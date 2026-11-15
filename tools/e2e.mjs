@@ -2,10 +2,10 @@
 import { chromium, webkit, devices } from 'playwright';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-const PORT = 4173, URL0 = `http://localhost:${PORT}/`;
+const PORT = 4173, URL0 = process.env.E2E_URL || `http://localhost:${PORT}/`;
 mkdirSync('screenshots', { recursive: true });
-const srv = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
-await new Promise((r) => { srv.stdout.on('data', (d) => String(d).includes('localhost') && r()); setTimeout(r, 8000); });
+const srv = process.env.E2E_URL ? { kill() {} } : spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
+if (!process.env.E2E_URL) await new Promise((r) => { srv.stdout.on('data', (d) => String(d).includes('localhost') && r()); setTimeout(r, 8000); });
 const errors = []; let failures = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function clickSq(page, sq, orient = 'white') {
@@ -18,8 +18,9 @@ async function run(name, browserType, ctxOpts) {
   try { browser = await browserType.launch(); } catch (e) { console.log(`⚠️ ${name}: lancement impossible (${String(e.message).split('\n')[0]})`); return false; }
   const ctx = await browser.newContext(ctxOpts); const page = await ctx.newPage(); page.setDefaultTimeout(20000);
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${page.url().split("#")[1] || "/"} console: ${m.text()}`); });
+  const loaded = new Set(); page.on('response', (r) => { const u = r.url(); if (r.ok() && /packs\/|stockfish/.test(u)) loaded.add(u.replace(URL0, '')); });
   page.on('pageerror', (e) => errors.push(`[${name}] pageerror: ${e.message}`));
-  const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${name}-${n}.png`, fullPage: false }); };
+  const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
   await page.goto(URL0); await page.waitForSelector('.modal', { timeout: 15000 });
@@ -69,6 +70,7 @@ async function run(name, browserType, ctxOpts) {
   await check('bilan de partie', async () => {
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); const g = s.games?.[0]; return g?.id; }).then(async (id) => { if (!id) throw new Error('aucune partie enregistrée'); await page.goto(URL0 + '#/game/' + id); await page.click('text=Lancer le bilan'); await page.waitForSelector('.coach-box, .acc', { timeout: 60000 }); await sleep(800); await shot('18-bilan'); });
   }).catch(() => {});
+  await check('packs + moteur chargés', async () => { const l = [...loaded]; const pk = l.filter((u) => u.includes('packs/')), sf = l.filter((u) => u.includes('stockfish')); if (!pk.length || !sf.length) throw new Error('packs ' + pk.length + ' moteur ' + sf.length); console.log('    packs :', pk.length, '· moteur :', sf.map((u) => u.split('/').pop()).join(', ')); });
   await check('service worker', async () => { const ok = await page.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration())); if (!ok) throw new Error('pas de SW'); });
   await browser.close(); return true;
 }

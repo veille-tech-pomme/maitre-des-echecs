@@ -11,7 +11,7 @@
 | Capacitor, @capacitor/* | Enveloppe iOS | MIT |
 | @revenuecat/purchases-capacitor | Achats intégrés iOS | MIT |
 | Base de puzzles Lichess (database.lichess.org) | 330 198 puzzles (intégrés + packs) | CC0 (domaine public) |
-| Base Lichess Broadcast (database.lichess.org/#broadcasts) | Base de maîtres : 256 295 parties OTB retransmises (Elo FIDE ≥ 2200 des deux côtés), statistiques par position | CC0 (domaine public) |
+| Base Lichess Broadcast (database.lichess.org/#broadcasts) | Base de maîtres : 256 295 parties de tournois retransmises (Elo FIDE ≥ 2200 des deux côtés), statistiques par position | CC0 (domaine public) |
 | Lichess chess-openings | Noms ECO de l’explorateur | CC0 (domaine public) |
 | Pièces « cburnett » (Colin M.L. Burnett) | Jeu de pièces par défaut | GPLv2+ / BSD / GFDL (triple licence) |
 | Pièces « merida » (Armando H. Marroquin) | Jeu de pièces | Libre (lila) |

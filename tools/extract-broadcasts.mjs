@@ -1,9 +1,11 @@
 // Étape 1 : extrait des PGN Lichess Broadcast (CC0, parties OTB retransmises) les parties standard
-// entre joueurs classés (≥ MIN Elo FIDE chacun) → tools/data/elite.jsonl (une partie par ligne).
+// humaines entre joueurs classés (≥ MIN Elo FIDE chacun) → tools/data/elite.jsonl (une partie par ligne).
 import fs from 'node:fs'; import zlib from 'node:zlib'; import readline from 'node:readline';
 const DIR = 'tools/data/bcast'; const MIN = +(process.env.MIN || 2000);
 const out = fs.createWriteStream('tools/data/elite.jsonl');
-const seen = new Set(); let kept = 0, total = 0, dup = 0;
+const seen = new Set();
+// Parties de moteurs (TCEC, CCC…) exclues : Elo humain max ≈ 2900 et filtre sur les noms.
+const ENGINE = /TCEC|CCC|computer|engine|stockfish|leela|\bLc0\b|komodo|dragon|ordinateur/i; let kept = 0, total = 0, dup = 0;
 const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.zst')).sort();
 function strip(mt) {
   return mt.replace(/\{[^}]*\}/g, ' ').replace(/\([^()]*\)/g, ' ').replace(/\([^()]*\)/g, ' ').replace(/\$\d+/g, ' ')
@@ -16,7 +18,8 @@ for (const f of files) {
     if (!h.Result) { h = {}; mt = []; return; }
     total++;
     const we = +h.WhiteElo || 0, be = +h.BlackElo || 0, res = h.Result;
-    const ok = we >= MIN && be >= MIN && (!h.Variant || h.Variant === 'Standard') && !h.FEN && ['1-0', '0-1', '1/2-1/2'].includes(res);
+    const ok = we >= MIN && be >= MIN && (!h.Variant || h.Variant === 'Standard') && !h.FEN && ['1-0', '0-1', '1/2-1/2'].includes(res)
+      && we <= 2900 && be <= 2900 && !ENGINE.test(`${h.Event} ${h.BroadcastName} ${h.White} ${h.Black}`);
     if (ok) {
       const mv = strip(mt.join(' '));
       if (mv.length >= 10) {

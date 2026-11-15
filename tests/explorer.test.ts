@@ -58,7 +58,7 @@ describe('Base de maîtres', () => {
     const key = posKey(fen);
     for (const id of s.games) {
       const g = await masterGame(id); expect(g).toBeTruthy();
-      expect(Math.min(g.we, g.be)).toBeGreaterThanOrEqual(2200);
+      expect(Math.min(g.we, g.be)).toBeGreaterThanOrEqual(2200); expect(Math.max(g.we, g.be)).toBeLessThanOrEqual(2900);
       const c = new Chess(); let hit = false;
       for (const san of g.moves.slice(0, 40)) { if (posKey(c.fen()) === key) { hit = true; break; } c.move(san); }
       expect(hit).toBe(true);

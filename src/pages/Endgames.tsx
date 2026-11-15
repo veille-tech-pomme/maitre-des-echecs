@@ -1,20 +1,20 @@
 import { useState } from 'preact/hooks';
-import { ENDGAMES } from '../data/endgames';
+import { ENDGAMES, ENDGAME_CATS } from '../data/endgames';
 import { PlayGoal } from '../components/Exercises';
 import { useStore, setState, addXp } from '../lib/store';
 import { checkBadges } from '../lib/progress';
 
 export function EndgamesHub() {
-  const s = useStore((x) => x);
+  const s = useStore((x) => x); const [cat, setCat] = useState('Toutes');
   return (
     <div class="page">
       <h1>♔ Finales</h1>
-      <p class="muted">Les positions que tout joueur doit savoir gagner (ou annuler). Le moteur défend à pleine puissance.</p>
-      {[1, 2, 3].map((lv) => (
-        <section><h2>{lv === 1 ? 'Essentielles' : lv === 2 ? 'Finales de pions' : 'Techniques avancées'}</h2>
-          <div class="opening-grid">{ENDGAMES.filter((e) => e.level === lv).map((e) => <a class={'opening-card ' + (s.endgames[e.id]?.done ? 'done' : '')} href={`#/endgames/${e.id}`}><span class="side-dot">{e.icon}</span><b>{e.title}</b><small class="muted">{e.desc}</small>{s.endgames[e.id]?.done && <small class="ok">✓ réussi</small>}</a>)}</div>
-        </section>
-      ))}
+      <p class="muted">{ENDGAMES.length} positions que tout joueur doit savoir gagner (ou annuler), toutes vérifiées par les tablebases ou Stockfish. Le moteur défend à pleine puissance.</p>
+      <div class="chips">{['Toutes', ...ENDGAME_CATS].map((c) => <button class={'chip ' + (cat === c ? 'on' : '')} onClick={() => setCat(c)}>{c}</button>)}</div>
+      {ENDGAME_CATS.filter((c) => cat === 'Toutes' || c === cat).map((c) => { const list = ENDGAMES.filter((e) => e.cat === c).sort((a, b) => a.level - b.level); const done = list.filter((e) => s.endgames[e.id]?.done).length; return (
+        <section><h2>{c} <small class="muted">{done}/{list.length}</small></h2>
+          <div class="opening-grid">{list.map((e) => <a class={'opening-card ' + (s.endgames[e.id]?.done ? 'done' : '')} href={`#/endgames/${e.id}`}><span class="side-dot">{e.icon}</span><b>{e.title}</b><small class="muted">{'●'.repeat(e.level)}{'○'.repeat(3 - e.level)} · {e.goal === 'mate' ? 'mater' : e.goal === 'promote' ? 'promouvoir' : 'annuler'}</small><small class="muted">{e.desc}</small>{s.endgames[e.id]?.done && <small class="ok">✓ réussi</small>}</a>)}</div>
+        </section>); })}
     </div>
   );
 }

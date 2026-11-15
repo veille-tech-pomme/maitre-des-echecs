@@ -11,6 +11,8 @@ import { detectMotifs, hangingPieces } from '../src/lib/motifs';
 import { PLANS } from '../src/lib/entitlements/config';
 import { FREE_REVIEWS_PER_DAY } from '../src/lib/features';
 import puzzles from '../src/data/puzzles.json';
+import eco from '../src/data/eco.json';
+import masters from '../src/data/masters.json';
 
 const base = { loss: 0, isBest: false, book: false, mate: false, sacrifice: false, winBefore: 50, winAfter: 50, onlyMove: false, missedWin: false };
 describe('Ouvertures', () => {
@@ -66,7 +68,17 @@ describe('Motifs tactiques (coach)', () => {
   it('pièce en prise', () => { const c = new Chess('4k3/8/8/3n4/8/8/8/3RK3 w - - 0 1'); expect(JSON.stringify(hangingPieces(c, 'b'))).toContain('d5'); });
 });
 describe('Contenu', () => {
-  it('9 bots à personnalité', () => { expect(BOTS.length).toBe(9); for (const b of BOTS) expect(b.name && b.elo).toBeTruthy(); });
+  it('40+ bots à personnalité (200 → 3200 Elo)', () => {
+    expect(BOTS.length).toBeGreaterThanOrEqual(40); for (const b of BOTS) { expect(b.name && b.elo && b.bio && b.group).toBeTruthy(); expect(b.elo).toBeGreaterThanOrEqual(200); expect(b.elo).toBeLessThanOrEqual(3200); }
+    expect(new Set(BOTS.map((b) => b.id)).size).toBe(BOTS.length);
+    for (const id of ['paulette', 'leo', 'odette', 'hugo', 'ines', 'comte', 'morgane', 'victor', 'max']) expect(BOTS.some((b) => b.id === id)).toBe(true);
+    for (const b of BOTS) for (const line of b.book || []) { const c = new Chess(); for (const m of line) expect(c.move(m), `${b.id} livre ${m}`).toBeTruthy(); }
+  });
+  it('explorateur : 3 800+ lignes nommées légales', () => {
+    const E = eco as [string, string, string][]; expect(E.length).toBeGreaterThan(3800);
+    for (const [, name, mv] of E) { expect(name.length).toBeGreaterThan(3); const c = new Chess(); for (const m of mv.split(' ')) expect(c.move(m)).toBeTruthy(); }
+  });
+  it('« Devine le coup » : parties légales', () => { for (const g of masters as any[]) { const c = new Chess(); for (const m of g.m.split(' ')) c.move(m); expect(['w', 'b']).toContain(g.side); } expect((masters as any[]).length).toBeGreaterThanOrEqual(60); });
   it('finales : positions légales', () => { expect(ENDGAMES.length).toBeGreaterThanOrEqual(12); for (const e of ENDGAMES) expect(() => new Chess(e.fen)).not.toThrow(); });
   it('puzzles : tous rejouables légalement', () => {
     const P = puzzles as { i: string; f: string; m: string; r: number; t: string[] }[]; expect(P.length).toBeGreaterThan(4000);

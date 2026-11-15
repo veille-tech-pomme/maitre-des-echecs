@@ -10,9 +10,10 @@ import { setSoundEnabled, unlockAudio } from './lib/sound';
 import { engine } from './lib/engine';
 import { Toasts, Modal } from './components/ui';
 import { Home } from './pages/Home';
-import { Learn } from './pages/Learn';
+import { Learn, CoursePage } from './pages/Learn';
+import { TrainingHub, Coordinates, NameSquare, KnightVision, MemoryTrainer, MateDrills, GuessMove } from './pages/Training';
 import { LessonPage } from './pages/Lesson';
-import { PuzzlesHub, PuzzleSession, Rush } from './pages/Puzzles';
+import { PuzzlesHub, PuzzleSession, Rush, PuzzleCustom, Battle, PuzzlePaths, PuzzlePath } from './pages/Puzzles';
 import { BotSelect, Game } from './pages/Play';
 import { GameReviewPage } from './pages/GameReview';
 import { Analysis } from './pages/Analysis';
@@ -30,10 +31,10 @@ const NAV = [
   { href: '#/learn', icon: '🎓', label: 'Apprendre', match: (p: string[]) => ['learn', 'lesson'].includes(p[0]) },
   { href: '#/puzzles', icon: '🧩', label: 'Puzzles', match: (p: string[]) => ['puzzles', 'review'].includes(p[0]) },
   { href: '#/play', icon: '♟️', label: 'Jouer', match: (p: string[]) => ['play', 'game'].includes(p[0]) },
-  { href: '#/more', icon: '☰', label: 'Plus', match: (p: string[]) => ['more', 'analysis', 'openings', 'endgames', 'profile', 'settings', 'premium', 'privacy', 'repertoire'].includes(p[0]) },
+  { href: '#/more', icon: '☰', label: 'Plus', match: (p: string[]) => ['more', 'analysis', 'openings', 'endgames', 'train', 'profile', 'settings', 'premium', 'privacy', 'repertoire'].includes(p[0]) },
 ];
 const SIDE_EXTRA = [
-  { href: '#/openings', icon: '📖', label: 'Ouvertures' }, { href: '#/endgames', icon: '♔', label: 'Finales' }, { href: '#/analysis', icon: '🔬', label: 'Analyse' },
+  { href: '#/train', icon: '🏋️', label: 'Entraînement' }, { href: '#/openings', icon: '📖', label: 'Ouvertures' }, { href: '#/endgames', icon: '♔', label: 'Finales' }, { href: '#/analysis', icon: '🔬', label: 'Analyse' },
   { href: '#/review', icon: '🔁', label: 'Révisions' }, { href: '#/profile', icon: '🏅', label: 'Progression' }, { href: '#/settings', icon: '⚙️', label: 'Réglages' },
 ];
 function More() {
@@ -84,22 +85,23 @@ function Onboarding() {
   );
 }
 function App() {
-  const { parts } = useRoute();
+  const { parts, query } = useRoute();
   const ent = useStore((s) => s.settings);
   useEffect(() => { applyAppearance(); setSoundEnabled(ent.sound); }, [ent.theme, ent.board, ent.pieces, ent.sound, ent.reduceMotion]);
   const [a, b, c] = parts;
   let page;
   switch (a) {
     case undefined: page = <Home />; break;
-    case 'learn': page = <Learn />; break;
+    case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
     case 'lesson': page = <LessonPage id={b} />; break;
-    case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : <PuzzlesHub />; break;
+    case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
     case 'review': page = <ReviewHub />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;
     case 'game': page = <GameReviewPage id={b} />; break;
     case 'analysis': page = <Analysis />; break;
     case 'openings': page = b ? <OpeningDetail id={b} line={c} /> : <OpeningsHub />; break;
     case 'repertoire': page = <RepertoireTrainer id={b} />; break;
+    case 'train': page = b === 'coords' ? <Coordinates /> : b === 'name' ? <NameSquare /> : b === 'vision' ? <KnightVision /> : b === 'memory' ? <MemoryTrainer /> : b === 'mates' ? <MateDrills /> : b === 'guess' ? <GuessMove /> : <TrainingHub />; break;
     case 'endgames': page = b ? <EndgameDrill id={b} /> : <EndgamesHub />; break;
     case 'profile': page = <Profile />; break;
     case 'settings': page = <Settings />; break;

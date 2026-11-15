@@ -35,6 +35,8 @@ export interface State {
   settings: Settings;
   onboarded: boolean;
   trial?: { startedAt: number; endsAt: number; reminded?: boolean };
+  /** Modes d'entraînement : duel, parcours de puzzles, coordonnées, mémoire, devine le coup, mats… */
+  training: Record<string, any>;
 }
 const KEY = 'echecs-app-v1';
 export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -45,7 +47,7 @@ export function defaultState(): State {
     themes: {}, daily: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
     badges: {}, openings: {}, repertoire: [], endgames: {}, plan: { date: '', done: [] },
     settings: { theme: 'auto', board: 'vert', pieces: 'cburnett', sound: true, coords: true, animation: true, showLegal: true, autoQueen: false, coachInPlay: true, reduceMotion: false, boardSize: 100, name: '' },
-    onboarded: false,
+    onboarded: false, training: {},
   };
 }
 function load(): State {

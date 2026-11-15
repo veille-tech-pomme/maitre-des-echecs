@@ -64,11 +64,14 @@ describe('Validation moteur des exercices', () => {
 });
 
 import { ENDGAMES } from '../src/data/endgames';
+import TB from '../tools/data/tb-cache.json';
 describe('Validation moteur des finales', () => {
   for (const d of ENDGAMES) it(d.id, async () => {
     new Chess(d.fen);
     const r = await e.analyse(d.fen, { depth: 22 }); const sc = score(r.lines[0]);
     if (d.goal === 'draw') expect(Math.abs(sc), d.id).toBeLessThanOrEqual(100);
-    else expect(sc, d.id).toBeGreaterThan(d.id === 'kbb-k' ? 200 : 400);
+    // les positions vérifiées par tablebase (gain certain) peuvent avoir une éval. Stockfish modeste (KBN-K, KQ-KR…)
+    else expect(sc, d.id).toBeGreaterThan(d.verified === 'tablebase' || d.id === 'kbb-k' ? 150 : 400);
+    if (d.verified === 'tablebase') { const tb = (TB as Record<string, any>)[d.fen]; expect(tb, d.id + ' cache tablebase').toBeTruthy(); expect(d.goal === 'draw' ? ['draw', 'blessed-loss', 'cursed-win'] : ['win']).toContain(tb.category); }
   });
 });

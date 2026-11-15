@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { lessonById, LESSONS, LEVELS, type Step, type Lesson as L } from '../data/lessons';
+import { lessonById, LESSONS, LEVELS, findLesson, cachedCourseLesson, loadCourses, type Step, type Lesson as L } from '../data/lessons';
 import { Board, toShapes } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { StarsExercise, SelectExercise, Quiz, PlayGoal } from '../components/Exercises';
@@ -8,6 +8,7 @@ import { Chess, tryMove, moveToUci, START_FEN, sanFr } from '../lib/chess';
 import { setState, addXp, useStore } from '../lib/store';
 import { usePremium } from '../lib/entitlements';
 import { loadPuzzles, lessonPuzzles, type Puzzle } from '../lib/puzzles';
+import { themedForLesson } from '../lib/puzzlebank';
 import { markPlanDone, isUnlocked } from '../lib/plan';
 import { playForMove, play } from '../lib/sound';
 import { checkBadges } from '../lib/progress';
@@ -19,7 +20,11 @@ function fenOf(s: { fen?: string; pre?: string[] }) {
 function sanLineToUci(fen: string, sans: string[]) { const ch = new Chess(fen); return sans.map((s) => { const m = tryMove(ch, s); return m ? moveToUci(m) : ''; }); }
 
 export function LessonPage({ id }: { id: string }) {
-  const lesson = lessonById(id);
+  const [lesson, setLesson] = useState<L | undefined>(() => lessonById(id) || cachedCourseLesson(id));
+  const [courseList, setCourseList] = useState<L[] | null>(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => { const l = lessonById(id) || cachedCourseLesson(id); setLesson(l); setMissing(false); if (!l) findLesson(id).then((x) => { setLesson(x); setMissing(!x); }); }, [id]);
+  useEffect(() => { if (lesson?.course) loadCourses().then((m) => setCourseList(m.COURSES.find((c) => c.id === lesson.course)?.lessons || null)); }, [lesson?.course]);
   const ent = usePremium();
   const st = useStore((s) => s);
   const [i, setI] = useState(0);
@@ -32,7 +37,7 @@ export function LessonPage({ id }: { id: string }) {
   const [totalMist, setTotalMist] = useState(0);
   useEffect(() => { setI(0); setFinished(false); setTotalMist(0); }, [id]);
   useEffect(() => { setMist(0); setHints(0); setSolved(false); setSol(0); }, [i, id]);
-  if (!lesson) return <div class="page"><h1>Leçon introuvable</h1><a href="#/learn">Retour</a></div>;
+  if (!lesson) return missing ? <div class="page"><h1>Leçon introuvable</h1><a href="#/learn">Retour</a></div> : <div class="page"><div class="loading">Chargement de la leçon…</div></div>;
   if (lesson.level === 'expert' && !ent.premium) return <div class="page"><a class="back" href="#/learn">‹ Parcours</a><h1>{lesson.icon} {lesson.title}</h1><PremiumLock title="Leçon Expert" text="Le niveau Expert (calcul avancé, prophylaxie, finales complexes et parties légendaires commentées) fait partie de Premium." /></div>;
   const step = lesson.steps[i];
   const lv = LEVELS.find((l) => l.id === lesson.level)!;
@@ -47,7 +52,8 @@ export function LessonPage({ id }: { id: string }) {
   };
   const onSolved = () => { setSolved(true); };
   const onMistake = () => { setMist((m) => m + 1); setTotalMist((m) => m + 1); };
-  const idx = LESSONS.indexOf(lesson); const nextL = LESSONS[idx + 1];
+  const seq = lesson.course ? courseList || [] : LESSONS; const idx = seq.indexOf(lesson); const nextL = seq[idx + 1];
+  const backHref = lesson.course ? `#/learn/course/${lesson.course}` : '#/learn';
   if (finished) {
     const s2 = st.lessons[lesson.id];
     return (
@@ -58,7 +64,7 @@ export function LessonPage({ id }: { id: string }) {
         <p class="muted">{totalMist === 0 ? 'Sans aucune erreur, impressionnant !' : `${totalMist} erreur${totalMist > 1 ? 's' : ''} — refais la leçon pour viser 3 étoiles.`}</p>
         <div class="row center">
           <button class="btn ghost" onClick={() => { setI(0); setFinished(false); setTotalMist(0); }}>Recommencer</button>
-          {nextL && (nextL.level !== 'expert' || ent.premium) && isUnlocked(st, nextL.id) ? <a class="btn primary" href={`#/lesson/${nextL.id}`}>Leçon suivante : {nextL.title} ›</a> : <a class="btn primary" href="#/learn">Retour au parcours</a>}
+          {nextL && (nextL.level !== 'expert' || ent.premium) && (nextL.course || isUnlocked(st, nextL.id)) ? <a class="btn primary" href={`#/lesson/${nextL.id}`}>Leçon suivante : {nextL.title} ›</a> : <a class="btn primary" href={backHref}>Retour {lesson.course ? 'au cours' : 'au parcours'}</a>}
         </div>
       </div>
     );
@@ -66,7 +72,7 @@ export function LessonPage({ id }: { id: string }) {
   return (
     <div class="page lesson" style={{ '--c': lv.color } as any}>
       <div class="lesson-top">
-        <a class="back" href="#/learn" aria-label="Retour au parcours">✕</a>
+        <a class="back" href={backHref} aria-label="Retour">✕</a>
         <Progress value={(i + (canNext ? 1 : 0)) / lesson.steps.length} color={lv.color} />
         <span class="muted small">{i + 1}/{lesson.steps.length}</span>
       </div>
@@ -146,7 +152,7 @@ function Demo({ step }: { step: Extract<Step, { type: 'demo' }> }) {
 }
 function LessonPuzzles({ step, lessonId, onSolved, onMistake }: { step: Extract<Step, { type: 'puzzles' }>; lessonId: string; onSolved: () => void; onMistake: () => void }) {
   const [list, setList] = useState<Puzzle[] | null>(null); const [k, setK] = useState(0); const [done, setDone] = useState(0); const [hint, setHint] = useState(0); const [sol, setSol] = useState(0); const [solvedCur, setSolvedCur] = useState(false);
-  useEffect(() => { loadPuzzles().then((all) => setList(lessonPuzzles(all, lessonId, step.themes, step.count, step.maxRating, step.minRating))); }, []);
+  useEffect(() => { loadPuzzles().then(async (all) => { const base = lessonPuzzles(all, lessonId, step.themes, step.count, step.maxRating, step.minRating); if (base.length >= step.count) { setList(base); return; } try { const more = await themedForLesson(lessonId, step.themes, step.count - base.length, step.minRating ?? 0, step.maxRating); setList([...base, ...more]); } catch { setList(base); } }); }, []);
   if (!list) return <div class="loading">Chargement des puzzles…</div>;
   const p = list[k];
   if (!p) return <div class="empty">🎉 Série terminée !</div>;

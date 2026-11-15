@@ -1,5 +1,6 @@
 // Ouvertures principales : lignes de référence commentées (vérifiées par les tests avec chess.js).
 import { Chess } from 'chess.js';
+import { OPENINGS_EXTRA } from './openings-extra';
 
 export interface OpeningLine { name: string; moves: string; notes?: Record<number, string> }
 export interface Opening { id: string; name: string; eco: string; side: 'w' | 'b'; family: 'e4' | 'd4' | 'autre'; summary: string; ideas: string[]; lines: OpeningLine[] }
@@ -110,6 +111,7 @@ export const OPENINGS: Opening[] = [
     ideas: ['Contrôle de d5', 'Fianchetto g2', 'Jeu sur l’aile dame'],
     lines: [{ name: 'Sicilienne inversée', moves: 'c4 e5 Nc3 Nf6 g3 d5 cxd5 Nxd5 Bg2 Nb6 Nf3 Nc6 O-O Be7' }] },
 ];
+OPENINGS.push(...OPENINGS_EXTRA);
 
 const key = (fen: string) => fen.split(' ').slice(0, 2).join(' ');
 let book: Set<string> | null = null;
@@ -138,8 +140,8 @@ export function openingName(sans: string[]): string | null {
     if (n > bestLen) { bestLen = n; cands = [{ o, l }]; } else if (n === bestLen && n > 0) cands.push({ o, l });
   }
   if (bestLen < 2 || !cands.length) return null;
-  const names = new Set(cands.map((c) => c.o.name));
-  if (names.size > 1) return null;
+  let names = new Set(cands.map((c) => c.o.name));
+  if (names.size > 1) { const base = cands.filter((c) => !OPENINGS_EXTRA.includes(c.o)); const bn = new Set(base.map((c) => c.o.name)); if (bn.size !== 1) return null; cands = base; names = bn; }
   const c = cands[0];
   return cands.length === 1 && bestLen >= 6 ? `${c.o.name} — ${c.l.name}` : c.o.name;
 }

@@ -8,6 +8,8 @@ export interface AnalyseOpts {
 }
 interface Job { fen: string; opts: AnalyseOpts; resolve: (r: AnalyseResult) => void; reject: (e: any) => void; cancelled?: boolean }
 
+export const mtAvailable = () => typeof SharedArrayBuffer !== 'undefined' && (globalThis as any).crossOriginIsolated === true;
+
 class Engine {
   private w: Worker | null = null;
   private ready: Promise<void> | null = null;
@@ -18,12 +20,15 @@ class Engine {
   private readyResolve: (() => void) | null = null;
   private lastOpts = '';
   failed = false;
+  threads = 1;
 
   private start() {
     if (this.ready) return this.ready;
     this.ready = new Promise<void>((res, rej) => {
       try {
-        const url = new URL('engine/stockfish-18-lite-single.js', document.baseURI).href;
+        // Multi-thread (SharedArrayBuffer) quand la page est « cross-origin isolated » (en-têtes COOP/COEP), sinon mono-thread.
+        this.threads = mtAvailable() ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1)) : 1;
+        const url = new URL(this.threads > 1 ? 'engine/stockfish-18-lite.js' : 'engine/stockfish-18-lite-single.js', document.baseURI).href;
         this.w = new Worker(url);
       } catch (e) { this.failed = true; rej(e); return; }
       this.readyResolve = res;
@@ -35,7 +40,7 @@ class Engine {
   }
   private send(s: string) { this.w?.postMessage(s); }
   private onLine(line: string) {
-    if (line === 'uciok') { this.send('setoption name Hash value 32'); this.send('isready'); return; }
+    if (line === 'uciok') { this.send('setoption name Hash value ' + (this.threads > 1 ? 64 : 32)); if (this.threads > 1) this.send('setoption name Threads value ' + this.threads); this.send('isready'); return; }
     if (line === 'readyok') { if (this.readyResolve) { this.readyResolve(); this.readyResolve = null; } return; }
     if (!this.cur) return;
     if (line.startsWith('info') && line.includes(' pv ')) {

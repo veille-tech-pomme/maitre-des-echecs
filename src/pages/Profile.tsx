@@ -1,3 +1,4 @@
+import { BotAvatar } from '../components/BotAvatar';
 import { useStore, levelFromXp } from '../lib/store';
 import { BADGES } from '../lib/badges';
 import { LineChart, Progress, PremiumLock, Ring } from '../components/ui';
@@ -50,7 +51,7 @@ export function Profile() {
       <section class="card"><h2>♟️ Mes parties</h2>
         {s.games.length === 0 ? <p class="muted">Aucune partie pour l’instant. <a href="#/play">Joue contre un bot !</a></p> :
           <ul class="games">{s.games.slice().reverse().slice(0, 30).map((g) => { const b = botById(g.botId); const won = (g.result === '1-0' && g.color === 'w') || (g.result === '0-1' && g.color === 'b'); const draw = g.result === '1/2-1/2';
-            return <li><a href={`#/game/${g.id}`}><span class={'res ' + (won ? 'w' : draw ? 'd' : 'l')}>{won ? 'V' : draw ? 'N' : 'D'}</span><span>{b.avatar} {b.name} <small class="muted">({b.elo})</small></span><small class="muted">{new Date(g.date).toLocaleDateString('fr-FR')} · {Math.ceil(g.moves.length / 2)} coups</small>{g.reviewed ? <small class="pill">{String(g.accuracy).replace(".", ",")} %</small> : <small class="pill ghost">Bilan</small>}</a></li>; })}</ul>}
+            return <li><a href={`#/game/${g.id}`}><span class={'res ' + (won ? 'w' : draw ? 'd' : 'l')}>{won ? 'V' : draw ? 'N' : 'D'}</span><span><BotAvatar bot={b} size={24} /> {b.name} <small class="muted">({b.elo})</small></span><small class="muted">{new Date(g.date).toLocaleDateString('fr-FR')} · {Math.ceil(g.moves.length / 2)} coups</small>{g.reviewed ? <small class="pill">{String(g.accuracy).replace(".", ",")} %</small> : <small class="pill ghost">Bilan</small>}</a></li>; })}</ul>}
       </section>
     </div>
   );

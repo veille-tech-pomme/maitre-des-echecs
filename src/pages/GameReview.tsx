@@ -44,7 +44,7 @@ export function GameReviewPage({ id }: { id: string }) {
     <div class="page center-page">
       <a class="back" href="#/profile">‹ Mes parties</a>
       <h1>🔬 Bilan de la partie</h1>
-      <p class="muted">Contre {bot.avatar} {bot.name} · {game.result} · {game.moves.length} demi-coups</p>
+      <p class="muted">Contre {bot.name} · {game.result} · {game.moves.length} demi-coups</p>
       {running ? (<><Progress value={prog} /><p class="muted">Analyse en cours par Stockfish… {Math.round(prog * 100)} %</p></>)
         : game.reviewed || left > 0 ? (<><button class="btn primary big" onClick={run}>Lancer le bilan</button>{!ent.premium && !game.reviewed && <p class="muted small">Bilans gratuits restants aujourd’hui : {left}/{FREE_REVIEWS_PER_DAY}</p>}</>)
         : <PremiumLock title="Tu as utilisé tes 3 bilans gratuits du jour" text="Reviens demain pour 3 nouveaux bilans gratuits, ou passe Premium pour des bilans illimités avec le coach approfondi." />}
@@ -106,7 +106,7 @@ export function GameReviewPage({ id }: { id: string }) {
             </div>
           ) : <p class="muted">Clique sur un coup ou sur la courbe pour voir le commentaire du coach.</p>}
           <table class="cls-table">
-            <thead><tr><th></th><th>Toi</th><th>{bot.avatar}</th></tr></thead>
+            <thead><tr><th></th><th>Toi</th><th>{bot.name.split(' ')[0]}</th></tr></thead>
             <tbody>{CLASS_ORDER.map((c) => (rv.counts.w[c] || rv.counts.b[c]) ? <tr><td><span class="cls-dot" style={{ background: CLASS_INFO[c].color }}>{CLASS_INFO[c].symbol}</span> {CLASS_INFO[c].label}</td><td>{rv.counts[game.color][c] || 0}</td><td>{rv.counts[game.color === 'w' ? 'b' : 'w'][c] || 0}</td></tr> : null)}</tbody>
           </table>
           {keyMoments.length > 0 && <><h4>Moments clés</h4><div class="key-moments">{keyMoments.map((m) => <button class="km" onClick={() => { setPly(m.ply + 1); setRetry(false); }}><span class="cls-dot" style={{ background: CLASS_INFO[m.cls].color }}>{CLASS_INFO[m.cls].symbol}</span>{Math.floor(m.ply / 2) + 1}. {sanFr(m.san)}</button>)}</div></>}

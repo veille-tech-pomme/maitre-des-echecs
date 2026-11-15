@@ -13,7 +13,7 @@ export type Step =
   | { type: 'demo'; title: string; body: string; fen?: string; pre?: string[]; moves: string[]; comments?: Record<number, string>; orientation?: 'white' | 'black' }
   | { type: 'exercise'; title: string; prompt: string; fen?: string; pre?: string[]; goal: Goal; hints?: string[]; success?: string; shapes?: string[]; orientation?: 'white' | 'black' }
   | { type: 'puzzles'; title: string; body: string; themes: string[]; count: number; maxRating: number; minRating?: number };
-export interface Lesson { id: string; level: Level; title: string; icon: string; minutes: number; summary: string; steps: Step[] }
+export interface Lesson { id: string; level: Level; title: string; icon: string; minutes: number; summary: string; steps: Step[]; course?: string }
 export const LEVELS: { id: Level; name: string; desc: string; color: string; icon: string; elo: string }[] = [
   { id: 'debutant', name: 'Débutant', desc: 'Les règles du jeu, de zéro jusqu’à ta première partie.', color: '#2bc48a', icon: '🌱', elo: '0 → 800' },
   { id: 'intermediaire', name: 'Intermédiaire', desc: 'Ouvertures, tactiques et mats de base.', color: '#4dabf7', icon: '⚔️', elo: '800 → 1400' },

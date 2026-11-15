@@ -1,5 +1,6 @@
+import EXTRA from './endgames-extra.json';
 // Exercices de finales contre le moteur (validés par Stockfish dans les tests).
-export interface EndgameDrill { id: string; title: string; icon: string; fen: string; goal: 'mate' | 'promote' | 'draw'; maxMoves: number; level: 1 | 2 | 3; desc: string; tip: string }
+export interface EndgameDrill { id: string; title: string; icon: string; fen: string; goal: 'mate' | 'promote' | 'draw'; maxMoves: number; level: 1 | 2 | 3; desc: string; tip: string; cat?: string; verified?: string; series?: string }
 export const ENDGAMES: EndgameDrill[] = [
   { id: 'kq-k', title: 'Roi + Dame contre Roi', icon: '👸', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', goal: 'mate', maxMoves: 25, level: 1, desc: 'Le mat de base le plus important.', tip: 'Enferme le roi dans une boîte (dame à un saut de cavalier), puis amène ton roi. Attention au pat !' },
   { id: 'krr-k', title: 'Deux tours contre Roi', icon: '🪜', fen: '8/8/3k4/8/8/8/8/R3K2R w - - 0 1', goal: 'mate', maxMoves: 20, level: 1, desc: 'Le mat de l’escalier.', tip: 'Une tour coupe une rangée, l’autre donne échec sur la rangée suivante. Alternez !' },
@@ -14,3 +15,8 @@ export const ENDGAMES: EndgameDrill[] = [
   { id: 'philidor', title: 'Position de Philidor', icon: '🏯', fen: '4k3/R7/1r6/3KP3/8/8/8/8 b - - 0 1', goal: 'draw', maxMoves: 12, level: 3, desc: 'Défense de la 3e rangée.', tip: 'Tour sur la 6e rangée ; si e6, tour en bas et échecs par derrière.' },
   { id: 'kbb-k', title: 'Deux fous contre Roi', icon: '⛪', fen: '8/8/3k4/8/8/8/8/2B1KB2 w - - 0 1', goal: 'mate', maxMoves: 50, level: 3, desc: 'Les fous côte à côte forment un mur.', tip: 'Place les fous côte à côte pour bloquer des diagonales, repousse le roi vers un coin avec l’aide de ton roi.' },
 ];
+
+const CAT: Record<string, string> = { 'kq-k': 'Mats élémentaires', 'krr-k': 'Mats élémentaires', 'kr-k': 'Mats élémentaires', 'kbb-k': 'Mats élémentaires', 'kp-6': 'Finales de pions', 'kp-only': 'Finales de pions', 'kp-opp': 'Finales de pions', 'kp-def': 'Finales de pions', square: 'Finales de pions', 'q-p7': 'Dame', lucena: 'Finales de tours', philidor: 'Finales de tours' };
+for (const e of ENDGAMES) e.cat ||= CAT[e.id] || 'Mats élémentaires';
+ENDGAMES.push(...(EXTRA as EndgameDrill[]));
+export const ENDGAME_CATS = ['Mats élémentaires', 'Finales de pions', 'Finales de tours', 'Pièces mineures', 'Dame', 'Études'];

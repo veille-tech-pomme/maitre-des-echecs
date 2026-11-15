@@ -85,7 +85,7 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
     if (result === 'draw') {
       if (sc < -400 || em.promotion) { fail('La position est perdue. Recommence et applique la méthode !'); return true; }
       if (moves >= maxMoves) { setStateS('won'); setMsg(`Tu as tenu ${maxMoves} coups : nulle assurée !`); play('win'); onDone(true); return true; }
-    } else if (sc < 150 && moves > 2) { fail('L’avantage s’est envolé (nulle probable). Recommence !'); return true; }
+    } else if (sc < 100 && moves > 2) { fail('L’avantage s’est envolé (nulle probable). Recommence !'); return true; }
     setStateS('play'); return true;
   }
   return (

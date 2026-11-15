@@ -9,6 +9,7 @@ import { newItem, review, isDue } from '../lib/srs';
 import { usePremium } from '../lib/entitlements';
 import { checkBadges } from '../lib/progress';
 import { playForMove } from '../lib/sound';
+import { loadEco, ecoNext, ecoName, type EcoLine } from '../lib/eco';
 
 export function OpeningsHub() {
   const s = useStore((x) => x);
@@ -39,17 +40,29 @@ export function OpeningsHub() {
 }
 function Explorer() {
   const [moves, setMoves] = useState<Move[]>([]);
+  const [eco, setEco] = useState<EcoLine[] | null>(null);
+  useEffect(() => { loadEco().then(setEco); }, []);
   const ch = useMemo(() => { const c = new Chess(); for (const m of moves) tryMove(c, m.san); return c; }, [moves]);
-  const book = bookMoves(ch.fen());
+  const sans = moves.map((m) => m.san);
+  const book = bookMoves(ch.fen()); const inBook = new Set(book.map((b) => b.san));
+  const next = eco ? ecoNext(eco, sans) : [];
+  const here = eco ? ecoName(eco, sans) : null;
+  const play1 = (san: string) => { const c = new Chess(ch.fen()); const m = tryMove(c, san); if (m) { playForMove(m); setMoves([...moves, m]); } };
+  const arrows = (next.length ? next.slice(0, 6).map((x) => x.san) : book.map((b) => b.san));
   return (
     <div class="play-grid">
       <Board fen={ch.fen()} turn={turnColor(ch)} movable={turnColor(ch)} dests={legalDests(ch)} lastMove={moves.length ? [moves[moves.length - 1].from, moves[moves.length - 1].to] : null}
         onMove={(f, t, p) => { const c = new Chess(ch.fen()); const m = tryMove(c, { from: f, to: t, promotion: p || (isPromotion(ch, f, t) ? 'q' : undefined) }); if (!m) return false; playForMove(m); setMoves([...moves, m]); return true; }}
-        promotionCheck={(f, t) => isPromotion(ch, f, t)} shapes={book.map((b) => { const c = new Chess(ch.fen()); const m = tryMove(c, b.san)!; return { orig: m.from as any, dest: m.to as any, brush: 'paleGreen' }; })} />
+        promotionCheck={(f, t) => isPromotion(ch, f, t)} shapes={arrows.map((san, i) => { const c = new Chess(ch.fen()); const m = tryMove(c, san)!; return { orig: m.from as any, dest: m.to as any, brush: i === 0 ? 'green' : 'paleGreen' }; })} />
       <aside class="side card">
-        <p class="muted small">{moves.length ? formatLine(moves.map((m) => m.san)) : 'Position de départ'}</p>
-        <h4>Coups de théorie</h4>
-        {book.length ? book.map((b) => <button class="explorer-row" onClick={() => { const c = new Chess(ch.fen()); const m = tryMove(c, b.san); if (m) { playForMove(m); setMoves([...moves, m]); } }}><b>{sanFr(b.san)}</b><small class="muted">{b.names.join(' · ')}</small></button>) : <p class="muted small">Hors de la théorie de l’app. Utilise l’analyse pour continuer.</p>}
+        <p class="muted small">{moves.length ? formatLine(sans) : 'Position de départ'}</p>
+        {here && <p><span class="pill">{here.eco}</span> <b>{here.name}</b></p>}
+        <h4>Suites connues {eco ? <small class="muted">({eco.length.toLocaleString('fr-FR')} lignes nommées)</small> : <small class="muted">chargement…</small>}</h4>
+        <div class="explorer-list">
+        {next.length ? next.map((b) => <button class="explorer-row" onClick={() => play1(b.san)}><b>{sanFr(b.san)}</b><small class="muted">{b.eco} · {b.name}{b.lines > 1 ? ` · ${b.lines} lignes` : ''}</small>{inBook.has(b.san) && <span class="pill">Cours</span>}</button>)
+          : book.length ? book.map((b) => <button class="explorer-row" onClick={() => play1(b.san)}><b>{sanFr(b.san)}</b><small class="muted">{b.names.join(' · ')}</small></button>)
+          : <p class="muted small">Hors théorie répertoriée. Utilise l’analyse pour continuer.</p>}
+        </div>
         <div class="row"><button class="btn small ghost" onClick={() => setMoves(moves.slice(0, -1))} disabled={!moves.length}>◀ Retour</button><button class="btn small ghost" onClick={() => setMoves([])}>Début</button></div>
       </aside>
     </div>

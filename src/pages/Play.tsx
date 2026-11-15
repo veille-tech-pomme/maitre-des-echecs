@@ -1,7 +1,8 @@
+import { BotAvatar } from '../components/BotAvatar';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
 import { Modal, toast } from '../components/ui';
-import { BOTS, botById, type Bot } from '../data/bots';
+import { BOT_GROUPS, BOTS, botById, type Bot } from '../data/bots';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, captured, material, gameOverText, sanFr, type Move } from '../lib/chess';
 import { engine, type PvLine } from '../lib/engine';
 import { botMove } from '../lib/bot-move';
@@ -15,25 +16,28 @@ import { go } from '../lib/router';
 
 export function BotSelect() {
   const s = useStore((x) => x);
-  const rec = recommendedBot(s);
+  const rec = recommendedBot(s); const [grp, setGrp] = useState('Tous');
   return (
     <div class="page">
       <h1>Jouer contre l’IA</h1>
-      <p class="muted">9 adversaires avec leur personnalité, de la débutante absolue au moteur à pleine puissance. Tous gratuits, sans limite.</p>
+      <p class="muted">{BOTS.length} adversaires avec leur personnalité, leur style et leur répertoire d’ouvertures, de 200 à 3200 Elo. Tous gratuits, sans limite.</p>
+      <div class="chips">{['Tous', ...BOT_GROUPS].map((g) => <button class={'chip ' + (grp === g ? 'on' : '')} onClick={() => setGrp(g)}>{g}</button>)}</div>
+      {BOT_GROUPS.filter((g) => grp === 'Tous' || g === grp).map((g) => { const list = BOTS.filter((b) => b.group === g); if (!list.length) return null; return (
+        <section><h2>{g}</h2>
       <div class="bot-grid">
-        {BOTS.map((b) => {
-          const games = s.games.filter((g) => g.botId === b.id); const wins = games.filter((g) => (g.result === '1-0' && g.color === 'w') || (g.result === '0-1' && g.color === 'b')).length;
+        {list.map((b) => {
+          const games = s.games.filter((x) => x.botId === b.id); const wins = games.filter((x) => (x.result === '1-0' && x.color === 'w') || (x.result === '0-1' && x.color === 'b')).length;
           return (
             <a class={'bot-card ' + (b.id === rec ? 'rec' : '')} href={`#/play/${b.id}`} style={{ '--c': b.color } as any}>
               {b.id === rec && <span class="pill rec-pill">Recommandé</span>}
-              <span class="bot-avatar">{b.avatar}</span>
+              <BotAvatar bot={b} size={70} />
               <b>{b.name}</b><small class="elo">{b.elo}</small>
               <small class="muted">{b.style}</small>
               {games.length > 0 && <small class="muted">{wins} victoire{wins > 1 ? 's' : ''} / {games.length}</small>}
             </a>
           );
         })}
-      </div>
+      </div></section>); })}
     </div>
   );
 }
@@ -140,7 +144,7 @@ export function Game({ botId }: { botId: string }) {
   if (setup) return (
     <div class="page game-setup">
       <a class="back" href="#/play">‹ Adversaires</a>
-      <div class="bot-hero" style={{ '--c': bot.color } as any}><span class="bot-avatar big">{bot.avatar}</span><div><h1>{bot.name} <small class="elo">{bot.elo}</small></h1><p class="muted">{bot.style}</p><p>{bot.bio}</p></div></div>
+      <div class="bot-hero" style={{ '--c': bot.color } as any}><BotAvatar bot={bot} size={110} /><div><h1>{bot.name} <small class="elo">{bot.elo}</small></h1><p class="muted">{bot.style}</p><p>{bot.bio}</p></div></div>
       <label class="switch-row"><input type="checkbox" checked={coachOn} onChange={(e) => { setCoachOn((e.target as HTMLInputElement).checked); setState((s) => { s.settings.coachInPlay = (e.target as HTMLInputElement).checked; }); }} /><span><b>Mode coach</b><small class="muted">Le coach évalue chacun de tes coups, t’explique tes erreurs et te propose de reprendre une gaffe.</small></span></label>
       <h3>Tu joues…</h3>
       <div class="row">
@@ -160,7 +164,7 @@ export function Game({ botId }: { botId: string }) {
       <div class="play-grid">
         <div class="board-col">
           <div class="player-bar">
-            <span class="bot-avatar sm">{bot.avatar}</span><b>{bot.name}</b><small class="elo">{bot.elo}</small>
+            <BotAvatar bot={bot} size={32} /><b>{bot.name}</b><small class="elo">{bot.elo}</small>
             <span class="caps">{botCaps.map((t) => sym(t, color))}{mat < 0 && <small> +{-mat}</small>}</span>
             {thinking && <span class="thinking">● ● ●</span>}
           </div>

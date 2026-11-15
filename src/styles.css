@@ -320,3 +320,23 @@ cg-board square.cls-mistake { --clsc: rgba(255, 164, 89, .6); } cg-board square.
 .with-eval > .evalbar { grid-column: 1; grid-row: 1; }
 .with-eval > :not(.evalbar) { grid-column: 2; }
 @media (max-width: 420px) { .board-col.with-eval { grid-template-columns: 14px minmax(0, 1fr); column-gap: 5px; } .with-eval .evalbar-label { font-size: 7px; } }
+/* Phase 2 : banque de puzzles, duel, avatars SVG */
+.bot-svg { display: inline-block; flex: none; border-radius: 50%; vertical-align: middle; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+.bank .bank-row { display: grid; grid-template-columns: 1fr minmax(80px, 2fr) auto auto; gap: .6rem; align-items: center; margin: .45rem 0; }
+@media (max-width: 560px) { .bank .bank-row { grid-template-columns: 1fr auto; } .bank .bank-row > :nth-child(2) { grid-column: 1 / -1; order: 3; } }
+.battle-bar { display: grid; grid-template-columns: 1fr auto 1fr; gap: .6rem; align-items: center; padding: .6rem .8rem; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-bottom: .6rem; }
+.battle-bar .bb { display: flex; align-items: center; gap: .45rem; min-width: 0; } .battle-bar .bb.opp { justify-content: flex-end; }
+.battle-bar .bb b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bb-score { font-size: 1.5rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.strikes .x { opacity: .25; margin-left: 2px; } .strikes .x.on { opacity: 1; color: var(--bad, #e5484d); }
+.battle-score { display: flex; justify-content: center; align-items: center; gap: 1.4rem; margin: 1rem 0; }
+.battle-score div { display: flex; flex-direction: column; align-items: center; } .battle-score b { font-size: 2.6rem; }
+.explorer-list { max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.search { width: 100%; padding: .6rem .8rem; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: inherit; margin: .6rem 0; }
+/* Entraînement */
+cg-board square.wrong { background: rgba(229, 72, 77, .55); } cg-board square.good { background: rgba(43, 196, 138, .5); } cg-board square.target { background: rgba(255, 196, 0, .6); }
+.coords-wrap { position: relative; } .coord-target { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-size: clamp(3rem, 14vw, 6rem); font-weight: 800; color: rgba(255,255,255,.85); text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+.big-num { font-size: 2.6rem; font-weight: 800; margin: .2rem 0; font-variant-numeric: tabular-nums; }
+.quiz-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: .5rem; margin: .6rem 0; } .btn.big { font-size: 1.25rem; padding: .7rem; }
+.palette { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; margin: .6rem 0; }
+.pal { font-size: 1.7rem; line-height: 1; padding: .3rem 0; border-radius: 10px; border: 2px solid var(--line); background: var(--bg2); color: var(--text); cursor: pointer; } .pal.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--bg2)); }

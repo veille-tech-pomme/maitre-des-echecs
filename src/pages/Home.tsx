@@ -70,7 +70,9 @@ export function Home() {
       <section class="quick">
         <a class="qa" href="#/puzzles/daily"><span>📅</span>Puzzle du jour{s.daily[today()] && <em>✓</em>}</a>
         <a class="qa" href="#/puzzles/rush"><span>⏱️</span>Contre la montre</a>
+        <a class="qa" href="#/puzzles/battle"><span>⚔️</span>Duel de puzzles</a>
         <a class="qa" href="#/play"><span>🤖</span>Jouer un bot</a>
+        <a class="qa" href="#/train"><span>🏋️</span>Entraînement</a>
         <a class="qa" href="#/review"><span>🔁</span>Révisions{due > 0 && <em class="badge-n">{due}</em>}</a>
         <a class="qa" href="#/openings"><span>📖</span>Ouvertures</a>
         <a class="qa" href="#/endgames"><span>♔</span>Finales</a>

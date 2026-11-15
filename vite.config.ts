@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['icons/*.png', 'icons/*.svg', 'engine/*', 'privacy.html'],
+      includeAssets: ['icons/*.png', 'icons/*.svg', 'privacy.html'],
       manifest: {
         name: 'Maître des Échecs — Apprendre & progresser',
         short_name: 'Maître Échecs',
@@ -30,12 +30,21 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,json,wasm,txt,webmanifest}'],
+        // Hors précache (téléchargés à la demande puis mis en cache) : moteur multi-thread et packs de contenu.
+        globIgnores: ['**/engine/stockfish-18-lite.*', '**/packs/**', '**/node_modules/**'],
+        runtimeCaching: [
+          { urlPattern: /\/engine\/stockfish-18-lite\.(js|wasm)$/, handler: 'CacheFirst', options: { cacheName: 'moteur-mt', expiration: { maxEntries: 4 } } },
+          { urlPattern: /\/packs\//, handler: 'CacheFirst', options: { cacheName: 'packs', expiration: { maxEntries: 2000 } } },
+        ],
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true
       }
     })
   ],
+  // En-têtes COOP/COEP → crossOriginIsolated → Stockfish multi-thread (à reproduire sur l'hébergeur de production).
+  server: { headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' } },
+  preview: { headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' } },
   build: { target: 'es2020', chunkSizeWarningLimit: 1500 },
   test: { environment: 'node', include: ['tests/**/*.test.ts'], testTimeout: 120000 }
 } as any);

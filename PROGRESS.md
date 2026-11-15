@@ -56,4 +56,7 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] UI : composant MasterStats (Explorateur des ouvertures + page Analyse, bascule « Maîtres ») ; parties notables ouvertes dans l'analyse (`#/analysis?game=ID&ply=N`) ; 3 parties notables gratuites, toutes en Premium.
 - [x] Moteur : repli automatique mono-thread si le worker multi-thread échoue (vu une fois sous WebKit).
 - [x] Tests : 1 192 OK (dont 9 tests base de maîtres) ; e2e local OK (2 × 30 vérifications).
-- [ ] Redéploiement + vérification en ligne + captures iPhone + Lighthouse mobile
+- [x] Redéployé (gh-pages) et vérifié en ligne : fragments explorer/ servis (200, application/gzip), e2e en ligne 2 × 29 vérifications OK, 0 erreur console (Chromium HTTPS direct ; WebKit iPhone via proxy).
+- [x] Mesures en ligne : premier chargement 151 Kio (sans SW) ; ouverture de l'explorateur + stats 167 Kio ; coup suivant ≈ 8 Ko de stats (+ parties notables). Lighthouse mobile : perf 96, accessibilité 87, bonnes pratiques 100, SEO 100 ; FCP 1,6 s, LCP 2,0 s, TBT 180 ms, CLS 0 (le poids total 5,5 Mo vient du précache du service worker après chargement).
+- [x] Captures : screenshots/live-iphone-32/34/35/36/37/38-*.png (explorateur + stats, partie de maître, analyse)
+**Phase 3 terminée.**

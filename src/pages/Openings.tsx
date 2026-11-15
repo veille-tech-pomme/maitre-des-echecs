@@ -10,6 +10,7 @@ import { usePremium } from '../lib/entitlements';
 import { checkBadges } from '../lib/progress';
 import { playForMove } from '../lib/sound';
 import { loadEco, ecoNext, ecoName, type EcoLine } from '../lib/eco';
+import { MasterStats } from '../components/MasterStats';
 
 export function OpeningsHub() {
   const s = useStore((x) => x);
@@ -57,7 +58,8 @@ function Explorer() {
       <aside class="side card">
         <p class="muted small">{moves.length ? formatLine(sans) : 'Position de départ'}</p>
         {here && <p><span class="pill">{here.eco}</span> <b>{here.name}</b></p>}
-        <h4>Suites connues {eco ? <small class="muted">({eco.length.toLocaleString('fr-FR')} lignes nommées)</small> : <small class="muted">chargement…</small>}</h4>
+        <MasterStats fen={ch.fen()} ply={moves.length} onPlay={play1} />
+        <h4>Suites nommées {eco ? <small class="muted">({eco.length.toLocaleString('fr-FR')} lignes nommées)</small> : <small class="muted">chargement…</small>}</h4>
         <div class="explorer-list">
         {next.length ? next.map((b) => <button class="explorer-row" onClick={() => play1(b.san)}><b>{sanFr(b.san)}</b><small class="muted">{b.eco} · {b.name}{b.lines > 1 ? ` · ${b.lines} lignes` : ''}</small>{inBook.has(b.san) && <span class="pill">Cours</span>}</button>)
           : book.length ? book.map((b) => <button class="explorer-row" onClick={() => play1(b.san)}><b>{sanFr(b.san)}</b><small class="muted">{b.names.join(' · ')}</small></button>)

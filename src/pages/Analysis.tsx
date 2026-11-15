@@ -6,6 +6,8 @@ import { engine, whiteScore, formatScore, type PvLine } from '../lib/engine';
 import { playForMove } from '../lib/sound';
 import { bookMoves, openingName } from '../data/openings';
 import { parseHash } from '../lib/router';
+import { MasterStats } from '../components/MasterStats';
+import { masterGame, type MasterGame } from '../lib/explorer';
 
 export function Analysis() {
   const q = parseHash().query;
@@ -17,9 +19,12 @@ export function Analysis() {
   const [engineOn, setEngineOn] = useState(true);
   const [io, setIo] = useState<'pgn' | 'fen' | null>(null);
   const [text, setText] = useState('');
+  const [mastersOn, setMastersOn] = useState(true);
+  const [game, setGame] = useState<MasterGame | null>(null);
   useEffect(() => {
     try {
-      if (q.get('pgn')) loadPgn(q.get('pgn')!);
+      if (q.get('game')) masterGame(+q.get('game')!).then((g) => { if (!g) return toast('Partie introuvable', '⚠️'); const c = new Chess(); const out: Move[] = []; for (const san of g.moves) { const m = tryMove(c, san); if (!m) break; out.push(m); } setGame(g); setMoves(out); setPly(Math.min(out.length, +(q.get('ply') || 0))); }).catch(() => toast('Partie indisponible hors-ligne', '⚠️'));
+      else if (q.get('pgn')) loadPgn(q.get('pgn')!);
       else if (q.get('fen')) { const f = q.get('fen')!; new Chess(f); setRoot(f); const ms = (q.get('moves') || '').split(' ').filter(Boolean); const c = new Chess(f); const out: Move[] = []; for (const u of ms) { const m = tryMove(c, u); if (m) out.push(m); } setMoves(out); setPly(Math.min(1, out.length)); setOrient(new Chess(f).turn() === 'w' ? 'black' : 'white'); }
     } catch { toast('Position invalide', '⚠️'); }
   }, []);
@@ -52,7 +57,8 @@ export function Analysis() {
   return (
     <div class="page analysis">
       <div class="session-head"><h1>Analyse</h1>
-        <label class="toggle"><input type="checkbox" checked={engineOn} onChange={(e) => setEngineOn((e.target as HTMLInputElement).checked)} /> Moteur</label></div>
+        <span class="row"><label class="toggle"><input type="checkbox" checked={mastersOn} onChange={(e) => setMastersOn((e.target as HTMLInputElement).checked)} /> Maîtres</label>
+        <label class="toggle"><input type="checkbox" checked={engineOn} onChange={(e) => setEngineOn((e.target as HTMLInputElement).checked)} /> Moteur</label></span></div>
       <div class="play-grid">
         <div class="board-col with-eval">
           {engineOn && <EvalBar cp={pos.isCheckmate() ? (pos.turn() === 'w' ? -10000 : 10000) : ev} orientation={orient} label={pos.isCheckmate() ? '#' : formatScore(ev)} />}
@@ -69,6 +75,7 @@ export function Analysis() {
         </div>
         <aside class="side card">
           {op && <p class="opening-name">📖 {op}</p>}
+          {game && <p class="game-head">🏆 <b>{game.white}</b> ({game.we}) – <b>{game.black}</b> ({game.be}) · {game.result === '1' ? '1-0' : game.result === '0' ? '0-1' : '½-½'}<br /><small class="muted">{game.event} · {game.date}{game.url && <> · <a href={game.url} target="_blank" rel="noopener">Lichess</a></>}</small></p>}
           {engineOn && (
             <div class="pv-lines">
               {lines.length === 0 && !pos.isGameOver() && <p class="muted small">Stockfish 18 réfléchit…</p>}
@@ -79,6 +86,7 @@ export function Analysis() {
               {best && <small class="muted">Profondeur {best.depth}</small>}
             </div>
           )}
+          {mastersOn && <MasterStats fen={fen} ply={ply} onPlay={(san) => { const c = new Chess(fen); const m = tryMove(c, san); if (m) onMove(m.from, m.to, m.promotion); }} />}
           {book.length > 0 && <div class="book"><h4>📖 Théorie</h4>{book.map((b) => <button class="chip" title={b.names.join(', ')} onClick={() => { const c = new Chess(fen); const m = tryMove(c, b.san); if (m) onMove(m.from, m.to, m.promotion); }}>{sanFr(b.san)}</button>)}</div>}
           <div class="review-moves">
             {moves.map((m, i) => <button class={'mv ' + (ply === i + 1 ? 'cur' : '')} onClick={() => setPly(i + 1)}>{(startPly + i) % 2 === 0 && <span class="num">{Math.floor((startPly + i) / 2) + 1}.</span>}{sanFr(m.san)}</button>)}
@@ -88,7 +96,7 @@ export function Analysis() {
             <button class="btn small ghost" onClick={() => { setText(''); setIo('fen'); }}>Importer FEN</button>
             <button class="btn small ghost" onClick={() => copy(pgnOut())}>Copier PGN</button>
             <button class="btn small ghost" onClick={() => copy(fen)}>Copier FEN</button>
-            <button class="btn small ghost" onClick={() => { setRoot(START_FEN); setMoves([]); setPly(0); }}>Réinitialiser</button>
+            <button class="btn small ghost" onClick={() => { setRoot(START_FEN); setMoves([]); setPly(0); setGame(null); }}>Réinitialiser</button>
           </div>
           <p class="muted small fen-line">{fen}</p>
         </aside>

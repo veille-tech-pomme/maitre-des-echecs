@@ -13,3 +13,4 @@ tools/data/*.rejected
 tools/data/*.log
 tools/data/pgn/
 tools/tmp/
+tools/data/bcast/

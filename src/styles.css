@@ -340,3 +340,21 @@ cg-board square.wrong { background: rgba(229, 72, 77, .55); } cg-board square.go
 .quiz-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: .5rem; margin: .6rem 0; } .btn.big { font-size: 1.25rem; padding: .7rem; }
 .palette { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; margin: .6rem 0; }
 .pal { font-size: 1.7rem; line-height: 1; padding: .3rem 0; border-radius: 10px; border: 2px solid var(--line); background: var(--bg2); color: var(--text); cursor: pointer; } .pal.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--bg2)); }
+/* Base de maîtres */
+.master-stats { margin-top: .6rem; }
+.master-stats h4 { margin: .2rem 0 .4rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: baseline; }
+.wdl { display: flex; height: 18px; border-radius: 5px; overflow: hidden; font-size: .68rem; line-height: 18px; min-width: 90px; border: 1px solid var(--line, #3334); }
+.wdl span { display: block; text-align: center; overflow: hidden; white-space: nowrap; }
+.wdl .w { background: #f2f2f2; color: #222; } .wdl .d { background: #8a8f98; color: #fff; } .wdl .b { background: #2b2d31; color: #eee; }
+.ms-total { display: grid; gap: .3rem; margin-bottom: .4rem; font-size: .9rem; }
+.ms-moves { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.ms-moves th { text-align: left; font-weight: 500; color: var(--muted); font-size: .72rem; padding: 2px 4px; }
+.ms-moves td { padding: 5px 4px; border-top: 1px solid var(--bg2); }
+.ms-moves td.num { white-space: nowrap; }
+.ms-moves .ms-bar { width: 45%; }
+.ms-row { cursor: pointer; } .ms-row:hover, .ms-row:focus { background: var(--bg2); outline: none; }
+.ms-games h5 { margin: .7rem 0 .3rem; }
+.ms-game { display: flex; gap: .5rem; align-items: center; padding: .4rem .5rem; border-radius: 8px; background: var(--bg2); margin-bottom: 4px; color: var(--text); text-decoration: none; font-size: .85rem; }
+.ms-res { font-weight: 700; min-width: 2.6rem; font-variant-numeric: tabular-nums; }
+.ms-more { display: block; font-size: .85rem; margin-top: .3rem; }
+.game-head { font-size: .88rem; margin: 0 0 .4rem; }

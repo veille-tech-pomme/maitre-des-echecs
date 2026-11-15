@@ -48,10 +48,10 @@ if (!isMainThread) {
   let gi = 0;
   for (const p of parts) {
     for (let i = 0; i + 1 < p.offs.length; i++, gi++) {
-      const g = games[gi]; const ms = g.m.split(' '); const ra = avg(g);
+      const g = games[gi]; const ms = g.m.split(' '); const ra = avg(g); const vis = new Set<bigint>();
       for (let k = p.offs[i], ply = 0; k < p.offs[i + 1]; k++, ply++) {
         const a = p.h[2 * k], b = p.h[2 * k + 1]; const key = (BigInt(a) << 32n) | BigInt(b);
-        if (!keep.has(key)) continue;
+        if (!keep.has(key) || vis.has(key)) continue; vis.add(key);
         let e = agg.get(key); if (!e) agg.set(key, (e = { a, b, ply, n: 0, w: 0, d: 0, r: 0, mv: new Map(), g: [] }));
         e.ply = Math.min(e.ply, ply); e.n++; if (g.r === 1) e.w++; else if (g.r === 0.5) e.d++; e.r += ra;
         const san = ms[ply]; let m = e.mv.get(san); if (!m) e.mv.set(san, (m = { n: 0, w: 0, d: 0, r: 0 }));

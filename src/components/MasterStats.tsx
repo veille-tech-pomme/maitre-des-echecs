@@ -16,7 +16,8 @@ export function WdlBar({ w, d, b, n, labels = true }: { w: number; d: number; b:
 }
 const fmt = (n: number) => n.toLocaleString('fr-FR');
 /** Statistiques des parties de maîtres pour une position : coups joués, % gains/nulles/pertes, Elo moyen, parties notables. */
-export function MasterStats({ fen, onPlay, ply = 0 }: { fen: string; onPlay: (san: string) => void; ply?: number }) {
+export function MasterStats({ fen, onPlay, ply = 0, onStats }: { fen: string; onPlay: (san: string) => void; ply?: number; onStats?: (s: PosStat | null) => void }) {
+  const [all, setAll] = useState(false);
   const [st, setSt] = useState<PosStat | null | undefined>(undefined);
   const [err, setErr] = useState(false);
   const [meta, setMeta] = useState<ExplorerMeta | null>(null);
@@ -24,9 +25,9 @@ export function MasterStats({ fen, onPlay, ply = 0 }: { fen: string; onPlay: (sa
   const prem = usePremium().premium;
   useEffect(() => { loadMeta().then(setMeta); }, []);
   useEffect(() => {
-    let live = true; setErr(false); setGames([]);
+    let live = true; setErr(false); setGames([]); setAll(false);
     positionStats(fen).then((s) => {
-      if (!live) return; setSt(s);
+      if (!live) return; setSt(s); onStats?.(s);
       if (s) {
         prefetch(s.moves.slice(0, 4).map((m) => { const c = new Chess(fen); tryMove(c, m.san); return c.fen(); }));
         const ids = s.games.slice(0, prem ? s.games.length : FREE_GAMES);
@@ -48,16 +49,17 @@ export function MasterStats({ fen, onPlay, ply = 0 }: { fen: string; onPlay: (sa
           <table class="ms-moves">
             <thead><tr><th>Coup</th><th>Parties</th><th class="ms-bar">Blancs / nulle / Noirs</th><th>Elo</th></tr></thead>
             <tbody>
-              {st.moves.map((m) => (
+              {(all ? st.moves : st.moves.slice(0, 8)).map((m) => (
                 <tr class="ms-row" onClick={() => onPlay(m.san)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onPlay(m.san)}>
                   <td><b>{sanFr(m.san)}</b></td>
-                  <td class="num">{fmt(m.n)} <small class="muted">{pct(m.n, st.n)}%</small></td>
+                  <td class="num">{fmt(m.n)} <small class="muted">{m.n * 100 < st.n ? '<1' : pct(m.n, st.n)}%</small></td>
                   <td class="ms-bar"><WdlBar {...m} /></td>
                   <td class="num muted">{m.elo}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {!all && st.moves.length > 8 && <button class="btn small ghost" onClick={() => setAll(true)}>Afficher les {st.moves.length} coups</button>}
           {st.games.length > 0 && (
             <div class="ms-games">
               <h5>Parties notables</h5>

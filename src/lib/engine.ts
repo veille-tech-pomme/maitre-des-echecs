@@ -21,19 +21,24 @@ class Engine {
   private lastOpts = '';
   failed = false;
   threads = 1;
+  private forceSingle = false;
 
   private start() {
     if (this.ready) return this.ready;
     this.ready = new Promise<void>((res, rej) => {
       try {
         // Multi-thread (SharedArrayBuffer) quand la page est « cross-origin isolated » (en-têtes COOP/COEP), sinon mono-thread.
-        this.threads = mtAvailable() ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1)) : 1;
+        this.threads = mtAvailable() && !this.forceSingle ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1)) : 1;
         const url = new URL(this.threads > 1 ? 'engine/stockfish-18-lite.js' : 'engine/stockfish-18-lite-single.js', document.baseURI).href;
         this.w = new Worker(url);
       } catch (e) { this.failed = true; rej(e); return; }
       this.readyResolve = res;
       this.w.onmessage = (e) => this.onLine(String(e.data));
-      this.w.onerror = (e) => { this.failed = true; console.warn('Stockfish error', e); rej(e); };
+      this.w.onerror = (e) => {
+        // Repli : si le moteur multi-thread ne démarre pas (navigateur, en-têtes), on relance en mono-thread.
+        if (this.threads > 1 && this.readyResolve) { e.preventDefault?.(); this.w?.terminate(); this.forceSingle = true; this.ready = null; const r = this.readyResolve; this.readyResolve = null; this.start().then(r, rej); return; }
+        this.failed = true; console.warn('Stockfish error', e); rej(e);
+      };
       this.send('uci');
     });
     return this.ready;

@@ -27,6 +27,19 @@ Ce guide part du projet tel qu’il est livré : la PWA (`dist/`), le projet iOS
 - Le Premium à **29,99 €/an** se situe au niveau de l’offre d’entrée de Chess.com, mais inclut le contenu Expert, les bilans illimités avec coach approfondi et le répertoire, c’est-à-dire l’équivalent de leurs formules supérieures.
 - L’argument marketing (déjà repris dans le paywall) : **« Progresser est gratuit. Premium, c’est aller plus loin. »**
 
+#### Contenu (phase 2, novembre 2026) : où nous en sommes face à Chess.com
+| | Maître des Échecs | Chess.com (ordre de grandeur public) |
+|---|---|---|
+| Puzzles | **330 198** hors ligne/téléchargeables (4 034 intégrés + 50 734 cœur + 275 430 pack « plus »), tous validés par Stockfish | plusieurs millions (en ligne) |
+| Leçons | **176** (43 parcours + 133 cours : 22 mats célèbres, 28 motifs tactiques, 39 ouvertures, 10 stratégie, 12 finales, 22 parties célèbres) | plusieurs centaines de vidéos/leçons |
+| Bots | **47** (200 → 3 200 Elo, styles, répertoires, 7 bots « styles historiques ») | ~100+ dont personnalités célèbres |
+| Ouvertures | **39** cours / 58 lignes commentées + explorateur de **3 865** lignes nommées en français | explorateur base de parties |
+| Finales | **90** exercices vérifiés (tablebases Lichess / Stockfish) | cours de finales + drills |
+| Entraînement | coordonnées, nomme la case, vision du cavalier, « Rejoue la position », mats contre l’ordinateur, « Devine le coup » (90 parties de champions) | coordonnées, vision, « Guess the move » |
+| Publicité | **aucune** | oui en gratuit |
+
+Écarts restants : jeu en ligne / classement humain, vidéos, base de millions de parties de maîtres, puzzles en ligne illimités au-delà des packs, personnalités sous licence.
+
 ---
 
 ## 1. Compte Apple Developer

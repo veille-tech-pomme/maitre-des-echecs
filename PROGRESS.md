@@ -42,4 +42,7 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] B5 finales : 90 exercices (12 + 78 nouveaux vérifiés tablebase Lichess / Stockfish ; 2 brouillons rejetés)
 - [x] B6 entraînement : coordonnées, nomme la case, vision du cavalier, « Rejoue la position », mats contre l’ordinateur, « Devine le coup » (90 parties de champions)
 - [x] Tests : 1 183 OK (vitest) ; build OK — commit « phase 2 contenu »
-- [ ] P1 vérif multi-thread sous COOP/COEP, P2 Lighthouse, e2e + captures, cap sync, zip, docs
+- [x] E2E : 28 vérifications × 2 (Chromium bureau + iPhone 14 Pro WebKit), 0 erreur console
+- [x] P1 : sous COOP/COEP (vite dev/preview) crossOriginIsolated=true → stockfish-18-lite multi-thread chargé ; 4 threads ≈ 4,0–4,5 M nœuds/s contre ≈ 0,9 M en mono (×4,4) ; repli mono sans isolation (Capacitor, GitHub Pages) — tools/perf-engine.mjs
+- [x] P2 : Lighthouse 12 — mobile : perf 90, accessibilité 87, bonnes pratiques 100, FCP 1,7 s, LCP 2,5 s, TBT 300 ms, CLS 0 ; bureau : perf 100, FCP 0,4 s, LCP 0,6 s, TBT 10 ms ; 159 Kio transférés au premier chargement. Échiquier : 59 fps (p95 17 ms) en émulation iPhone avec CPU ×4 pendant l’analyse — tools/perf-fps.mjs
+- [x] Docs : comparaison Chess.com mise à jour dans PUBLICATION_IOS.md

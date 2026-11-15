@@ -1,0 +1,56 @@
+# Codemagic — build iOS de « Maître des Échecs » (Capacitor 8, Swift Package Manager) sans Mac.
+# Prérequis (voir PUBLICATION_IOS.md) : intégration App Store Connect (clé API) nommée « ASC_KEY »
+# dans Codemagic > Team settings > Integrations, et groupe de variables « echecs_secrets » contenant VITE_RC_APPLE_KEY.
+workflows:
+  ios-release:
+    name: iOS — TestFlight / App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: ASC_KEY
+    environment:
+      groups:
+        - echecs_secrets          # VITE_RC_APPLE_KEY=appl_xxx (clé publique RevenueCat iOS)
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.echecs.maitre
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        APP_STORE_APPLE_ID: 0000000000   # ← remplace par l'Apple ID numérique de l'app (App Store Connect > Infos sur l'app)
+      node: 22
+      xcode: latest
+    cache:
+      cache_paths:
+        - $HOME/.npm
+    triggering:
+      events: [tag]
+      tag_patterns:
+        - pattern: 'v*'
+    scripts:
+      - name: Dépendances
+        script: npm ci
+      - name: Tests
+        script: npm test
+      - name: Build web
+        script: npm run build
+      - name: Synchronisation Capacitor
+        script: npx cap sync ios
+      - name: Profils de signature
+        script: xcode-project use-profiles
+      - name: Numéro de build
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          agvtool new-version -all $((LATEST + 1))
+        working_directory: ios/App
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false   # passe à true quand la fiche et les abonnements sont validés

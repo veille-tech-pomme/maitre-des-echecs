@@ -1,0 +1,39 @@
+{
+  "name": "echecs-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --host",
+    "test": "vitest run",
+    "puzzles": "node tools/build-puzzles.mjs",
+    "validate": "node tools/validate-engine.mjs",
+    "e2e": "node tools/e2e.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@revenuecat/purchases-capacitor": "^14.1.0",
+    "chess.js": "^1.4.0",
+    "chessground": "^9.2.1",
+    "preact": "^11.2.0",
+    "stockfish": "^18.0.8"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.2",
+    "@preact/preset-vite": "^2.10.6",
+    "playwright": "^1.65.1",
+    "sharp": "^0.35.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0"
+  }
+}

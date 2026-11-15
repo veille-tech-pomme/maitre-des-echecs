@@ -1,0 +1,10 @@
+node_modules/
+dist/
+tools/data/*.csv
+tools/data/*.zst
+screenshots/ERR-*
+*.zip
+.env*.local
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml

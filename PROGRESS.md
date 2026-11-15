@@ -46,3 +46,5 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] P1 : sous COOP/COEP (vite dev/preview) crossOriginIsolated=true → stockfish-18-lite multi-thread chargé ; 4 threads ≈ 4,0–4,5 M nœuds/s contre ≈ 0,9 M en mono (×4,4) ; repli mono sans isolation (Capacitor, GitHub Pages) — tools/perf-engine.mjs
 - [x] P2 : Lighthouse 12 — mobile : perf 90, accessibilité 87, bonnes pratiques 100, FCP 1,7 s, LCP 2,5 s, TBT 300 ms, CLS 0 ; bureau : perf 100, FCP 0,4 s, LCP 0,6 s, TBT 10 ms ; 159 Kio transférés au premier chargement. Échiquier : 59 fps (p95 17 ms) en émulation iPhone avec CPU ×4 pendant l’analyse — tools/perf-fps.mjs
 - [x] Docs : comparaison Chess.com mise à jour dans PUBLICATION_IOS.md
+- [x] C : cap sync iOS, zip /workspace/echecs-app/echecs-app.zip (38 Mo, 364 fichiers, sans node_modules/.git/dist/données brutes ; `npm ci && npm run build` régénère dist), commits locaux uniquement (aucun déploiement public)
+**Phase 2 terminée.**

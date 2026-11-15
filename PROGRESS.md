@@ -1,5 +1,5 @@
 # PROGRESS (reprise rapide)
-Dernière mise à jour : 15/11/2026 14:40 (Europe/Brussels)
+Dernière mise à jour : 15/11/2026 14:55 (Europe/Brussels)
 
 ## Fait
 - App complète (Vite+Preact+TS, chessground, chess.js, Stockfish 18 lite WASM), toutes les pages + main.tsx + styles.css.
@@ -10,8 +10,12 @@ Dernière mise à jour : 15/11/2026 14:40 (Europe/Brussels)
   - WebKit marche grâce aux libs extraites dans ~/.local/wklibs, symlinkées dans ~/.cache/ms-playwright/webkit-2388/minibrowser-wpe/lib.
 - capacitor.config.ts, server/stripe-checkout.example.mjs (trial_period_days 7).
 
-## Reste à faire
-- npx cap add ios + @capacitor/assets (icônes/splash)
-- PUBLICATION_IOS.md, codemagic.yaml, README.md, LICENCES.md, public/privacy.html
-- git init + scripts/deploy-gh-pages.sh (NE PAS publier sans accord explicite de l'utilisateur)
-- echecs-app.zip + rapport final
+## Fait aussi (14:55)
+- `npx cap add ios` (SPM, Capacitor 8) + icônes/splash (`capacitor-assets`), Info.plist FR, ITSAppUsesNonExemptEncryption=false
+- PUBLICATION_IOS.md, codemagic.yaml, README.md, LICENCES.md, LICENSE (GPL-3), public/privacy.html, server/stripe-checkout.example.mjs
+- git local (commit a616e49), scripts/deploy-gh-pages.sh (non exécuté : dépôt public = accord explicite requis)
+- echecs-app.zip (25 Mo, sans node_modules)
+- Tests finaux : vitest 218/218, build OK, e2e 40/40 vérifications, 0 erreur console (Chromium bureau + WebKit iPhone 14 Pro)
+
+## Reste (optionnel)
+- Déploiement GitHub Pages après accord : `scripts/deploy-gh-pages.sh maitre-des-echecs`

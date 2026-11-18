@@ -74,3 +74,6 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] Perf/a11y : écrans secondaires chargés à la demande → 165 Kio au premier chargement ; zoom autorisé, ARIA corrigé, robots.txt. Lighthouse mobile local : perf 93–95, accessibilité 100, bonnes pratiques 100, SEO 100
 - [x] Tests : vitest 1 192/1 192 (Stockfish natif /tmp/sf requis pour la validation moteur) ; e2e local 2 × 29 vérifications, 0 erreur console
 - [x] Captures après : screenshots/after/{iphone,se,desktop}-NN-*.png
+- [x] Redéployé (gh-pages, commit 409b864) : https://veille-tech-pomme.github.io/maitre-des-echecs/ — e2e en ligne 2 × 29 vérifications OK, 0 erreur console (HTTPS direct Chromium bureau + WebKit iPhone 14 Pro, et via tools/live-proxy.mjs)
+- [x] Mesures en ligne : premier chargement 157 Kio (sans SW) ; Lighthouse mobile perf 98–99, accessibilité 100, bonnes pratiques 100, SEO 100 (FCP 1,7 s, LCP 1,9 s, TBT 0–10 ms, CLS 0) ; bureau 100/100/100/100
+**Phase 4 terminée.**

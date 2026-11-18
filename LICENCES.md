@@ -8,6 +8,7 @@
 | chessground 9 (Lichess) | Échiquier interactif | GPL-3.0 |
 | chess.js | Règles, coups légaux, PGN/FEN | BSD-2-Clause |
 | Preact, Vite, Workbox, vite-plugin-pwa | Interface et PWA | MIT |
+| Lucide (paquet `lucide-static`, 113 icônes intégrées en SVG via tools/build-icons.mjs) | Icônes de l’interface | ISC |
 | Capacitor, @capacitor/* | Enveloppe iOS | MIT |
 | @revenuecat/purchases-capacitor | Achats intégrés iOS | MIT |
 | Base de puzzles Lichess (database.lichess.org) | 330 198 puzzles (intégrés + packs) | CC0 (domaine public) |

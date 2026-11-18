@@ -25,7 +25,7 @@
 }
 @media (min-width: 390px) { :root { --gutter: 20px; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+html, body { touch-action: manipulation; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
 body { font: 17px/1.41 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; -webkit-text-size-adjust: 100%; }
 a { color: var(--tint); text-decoration: none; }
 h1, h2, h3, h4, h5 { margin: 0; font-weight: 700; letter-spacing: -.02em; }

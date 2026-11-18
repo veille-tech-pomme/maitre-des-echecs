@@ -38,7 +38,7 @@ export function Onboarding() {
       <div class="ob-inner">
         <div class="ob-top">
           {step > 0 ? <button class="nb-btn" onClick={() => setStep(step - 1)} aria-label="Retour"><Icon name="left" size={26} stroke={2.4} /></button> : <span style="width:44px" />}
-          <div class="ob-dots" aria-label={`Étape ${step + 1} sur 3`}>{[0, 1, 2].map((i) => <span class={i === step ? 'on' : ''} />)}</div>
+          <div class="ob-dots" role="img" aria-label={`Étape ${step + 1} sur 3`}>{[0, 1, 2].map((i) => <span class={i === step ? 'on' : ''} />)}</div>
           <button class="btn plain small" onClick={() => finish(null)}>Passer</button>
         </div>
         {step === 0 && (

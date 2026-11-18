@@ -24,8 +24,8 @@ export function Md({ text }: { text: string }) {
     </div>
   );
 }
-export function Progress({ value, color }: { value: number; color?: string }) {
-  return <div class="progress" role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}><div style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, background: color }} /></div>;
+export function Progress({ value, color, label = 'Progression' }: { value: number; color?: string; label?: string }) {
+  return <div class="progress" role="progressbar" aria-label={label} aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}><div style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, background: color }} /></div>;
 }
 export function Ring({ value, size = 56, label, color = 'var(--gold)', width = 5, track = 'var(--surface-3)' }: { value: number; size?: number; label?: ComponentChildren; color?: string; width?: number; track?: string }) {
   const r = size / 2 - width / 2 - 1; const c = 2 * Math.PI * r;

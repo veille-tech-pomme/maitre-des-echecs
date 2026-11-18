@@ -13,20 +13,24 @@ import { Icon, type IconName } from './components/Icon';
 import { Onboarding } from './pages/Onboarding';
 import { Home } from './pages/Home';
 import { Learn, CoursePage } from './pages/Learn';
-import { TrainingHub, Coordinates, NameSquare, KnightVision, MemoryTrainer, MateDrills, GuessMove } from './pages/Training';
+const trainM = () => import('./pages/Training');
+const TrainingHub = lazy(trainM, 'TrainingHub'), Coordinates = lazy(trainM, 'Coordinates'), NameSquare = lazy(trainM, 'NameSquare'), KnightVision = lazy(trainM, 'KnightVision'), MemoryTrainer = lazy(trainM, 'MemoryTrainer'), MateDrills = lazy(trainM, 'MateDrills'), GuessMove = lazy(trainM, 'GuessMove');
 import { LessonPage } from './pages/Lesson';
 import { PuzzlesHub, PuzzleSession, Rush, PuzzleCustom, Battle, PuzzlePaths, PuzzlePath } from './pages/Puzzles';
 import { BotSelect, Game } from './pages/Play';
-import { GameReviewPage } from './pages/GameReview';
-import { Analysis } from './pages/Analysis';
-import { OpeningsHub, OpeningDetail, RepertoireTrainer } from './pages/Openings';
-import { EndgamesHub, EndgameDrill } from './pages/Endgames';
+const GameReviewPage = lazy(() => import('./pages/GameReview'), 'GameReviewPage');
+const Analysis = lazy(() => import('./pages/Analysis'), 'Analysis');
+const openM = () => import('./pages/Openings');
+const OpeningsHub = lazy(openM, 'OpeningsHub'), OpeningDetail = lazy(openM, 'OpeningDetail'), RepertoireTrainer = lazy(openM, 'RepertoireTrainer');
+const endM = () => import('./pages/Endgames');
+const EndgamesHub = lazy(endM, 'EndgamesHub'), EndgameDrill = lazy(endM, 'EndgameDrill');
 import { Profile } from './pages/Profile';
-import { Settings } from './pages/Settings';
-import { Premium } from './pages/Premium';
-import { Privacy } from './pages/Privacy';
-import { ReviewHub } from './pages/Review';
+const Settings = lazy(() => import('./pages/Settings'), 'Settings');
+const Premium = lazy(() => import('./pages/Premium'), 'Premium');
+const Privacy = lazy(() => import('./pages/Privacy'), 'Privacy');
+const ReviewHub = lazy(() => import('./pages/Review'), 'ReviewHub');
 import { isNative } from './lib/platform';
+import { lazy } from './lib/lazy';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
   { href: '#/', icon: 'today', label: 'Accueil', match: (p) => p.length === 0 },

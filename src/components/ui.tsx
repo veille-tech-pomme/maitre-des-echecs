@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { onEvent } from '../lib/store';
 import { play } from '../lib/sound';
+import { Icon, iconFor, type IconName } from './Icon';
 
 /** Mini-Markdown : **gras**, listes « - » et « 1. », sauts de ligne. */
 export function Md({ text }: { text: string }) {
@@ -26,12 +27,12 @@ export function Md({ text }: { text: string }) {
 export function Progress({ value, color }: { value: number; color?: string }) {
   return <div class="progress" role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}><div style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, background: color }} /></div>;
 }
-export function Ring({ value, size = 56, label, color = 'var(--accent)' }: { value: number; size?: number; label?: ComponentChildren; color?: string }) {
-  const r = size / 2 - 5; const c = 2 * Math.PI * r;
+export function Ring({ value, size = 56, label, color = 'var(--gold)', width = 5, track = 'var(--surface-3)' }: { value: number; size?: number; label?: ComponentChildren; color?: string; width?: number; track?: string }) {
+  const r = size / 2 - width / 2 - 1; const c = 2 * Math.PI * r;
   return (
     <div class="ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size} aria-hidden="true"><circle cx={size / 2} cy={size / 2} r={r} stroke="var(--line)" stroke-width="5" fill="none" />
-        <circle cx={size / 2} cy={size / 2} r={r} stroke={color} stroke-width="5" fill="none" stroke-dasharray={c} stroke-dashoffset={c * (1 - Math.max(0, Math.min(1, value)))} stroke-linecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} /></svg>
+      <svg width={size} height={size} aria-hidden="true"><circle cx={size / 2} cy={size / 2} r={r} stroke={track} stroke-width={width} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={color} stroke-width={width} fill="none" stroke-dasharray={c} stroke-dashoffset={c * (1 - Math.max(0, Math.min(1, value)))} stroke-linecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} /></svg>
       <span>{label}</span>
     </div>
   );
@@ -58,13 +59,13 @@ export function Toasts() {
     const add = (t: ToastMsg) => { setList((l) => [...l.slice(-2), t]); setTimeout(() => setList((l) => l.filter((x) => x.id !== t.id)), 2600); };
     toastSubs.add(add);
     const off = onEvent((e) => {
-      if (e.type === 'xp') add({ id: ++tid, text: `+${e.amount} XP · ${e.reason}`, icon: '⭐' });
-      if (e.type === 'level') { play('win'); add({ id: ++tid, text: `Niveau ${e.level} atteint !`, icon: '🎉' }); }
-      if (e.type === 'badge') { play('notify'); add({ id: ++tid, text: `Nouveau badge : ${e.id}`, icon: '🏅' }); }
+      if (e.type === 'xp') add({ id: ++tid, text: `+${e.amount} XP · ${e.reason}`, icon: 'star' });
+      if (e.type === 'level') { play('win'); add({ id: ++tid, text: `Niveau ${e.level} atteint !`, icon: 'trophy' }); }
+      if (e.type === 'badge') { play('notify'); add({ id: ++tid, text: `Nouveau badge : ${e.id}`, icon: 'award' }); }
     });
     return () => { toastSubs.delete(add); off(); };
   }, []);
-  return <div class="toasts" aria-live="polite">{list.map((t) => <div class="toast" key={t.id}><span>{t.icon}</span>{t.text}</div>)}</div>;
+  return <div class="toasts" aria-live="polite">{list.map((t) => <div class="toast" key={t.id}><Icon name={iconFor(t.icon)} size={18} />{t.text}</div>)}</div>;
 }
 export function EvalBar({ cp, orientation = 'white', label }: { cp: number; orientation?: 'white' | 'black'; label?: string }) {
   const w = 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * Math.max(-2000, Math.min(2000, cp)))) - 1);
@@ -91,16 +92,46 @@ export function LineChart({ points, height = 140, color = 'var(--accent)', fill 
   );
 }
 export function Empty({ icon, title, text, children }: { icon: string; title: string; text?: string; children?: ComponentChildren }) {
-  return <div class="empty"><div class="empty-icon">{icon}</div><h3>{title}</h3>{text && <p>{text}</p>}{children}</div>;
+  return <div class="empty"><div class="empty-icon"><Icon name={iconFor(icon)} size={30} /></div><h3>{title}</h3>{text && <p>{text}</p>}{children}</div>;
 }
 export function PremiumLock({ title, text }: { title: string; text: string }) {
   return (
     <div class="lock-card">
-      <div class="lock-icon">👑</div>
+      <div class="lock-icon"><Icon name="crown" size={28} /></div>
       <h3>{title}</h3>
       <p>{text}</p>
-      <a class="btn primary" href="#/premium">Découvrir Premium — 7 jours gratuits</a>
-      <p class="muted small">Ta progression reste 100 % gratuite : leçons Débutant → Avancé, puzzles, bots et analyse.</p>
+      <a class="btn primary" href="#/premium">Essayer 7 jours gratuits</a>
+      <p class="muted small">Débutant → Avancé, puzzles, bots et analyse restent gratuits.</p>
     </div>
   );
+}
+
+/** Grand titre iOS des écrans racine. */
+export function LargeTitle({ title, sub, eyebrow, right }: { title: ComponentChildren; sub?: ComponentChildren; eyebrow?: ComponentChildren; right?: ComponentChildren }) {
+  return <header class="lt"><div>{eyebrow && <div class="eyebrow-top">{eyebrow}</div>}<h1>{title}</h1>{sub && <p class="sub">{sub}</p>}</div>{right}</header>;
+}
+/** Barre de navigation compacte (écrans de détail / de jeu) : retour, titre, actions. */
+export function NavBar({ back, backLabel, title, right, close }: { back?: string; backLabel?: string; title?: ComponentChildren; right?: ComponentChildren; close?: boolean }) {
+  return (
+    <div class="navbar">
+      <div class="nb-left">{back && (close ? <a class="nb-btn round" href={back} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a> : <a class="nb-btn" href={back} aria-label={'Retour' + (backLabel ? ' : ' + backLabel : '')}><Icon name="left" size={26} stroke={2.4} />{backLabel && <span class="nb-back-label">{backLabel}</span>}</a>)}</div>
+      <div class="nb-title">{title}</div>
+      <div class="nb-right">{right}</div>
+    </div>
+  );
+}
+/** Rangée de liste groupée iOS. */
+export function Item({ href, onClick, icon, color, title, sub, value, chevron = true, large, children, disabled, class: cls = '' }: { href?: string; onClick?: () => void; icon?: IconName; color?: string; title: ComponentChildren; sub?: ComponentChildren; value?: ComponentChildren; chevron?: boolean; large?: boolean; children?: ComponentChildren; disabled?: boolean; class?: string }) {
+  const inner = <>
+    {icon && <span class="it-icon" style={color ? { '--c': color } as any : undefined}><Icon name={icon} size={large ? 24 : 18} stroke={2.2} /></span>}
+    <span class="it-main"><span class="it-title">{title}</span>{sub && <span class="it-sub">{sub}</span>}</span>
+    {value != null && <span class="it-val">{value}</span>}
+    {children}
+    {chevron && (href || onClick) && <Icon name="right" size={18} class="chev" stroke={2.4} />}
+  </>;
+  const c = 'item ' + (large ? 'lg ' : '') + cls;
+  return href ? <a class={c} href={disabled ? undefined : href} aria-disabled={disabled ? 'true' : undefined} onClick={onClick}>{inner}</a> : <button class={c} onClick={onClick} disabled={disabled}>{inner}</button>;
+}
+export function Stars({ n, of = 3, size = 14 }: { n: number; of?: number; size?: number }) {
+  return <span class="stars" aria-label={`${n} étoile${n > 1 ? 's' : ''} sur ${of}`}>{Array.from({ length: of }, (_, i) => <span class={i < n ? '' : 'off'}><Icon name="star" size={size} stroke={0} class="star-fill" /></span>)}</span>;
 }

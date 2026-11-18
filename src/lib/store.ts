@@ -46,7 +46,7 @@ export function defaultState(): State {
     puzzle: { rating: 800, games: 0, history: [], solved: 0, failed: 0, seen: [], streak: 0, bestStreak: 0 },
     themes: {}, daily: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
     badges: {}, openings: {}, repertoire: [], endgames: {}, plan: { date: '', done: [] },
-    settings: { theme: 'auto', board: 'vert', pieces: 'cburnett', sound: true, coords: true, animation: true, showLegal: true, autoQueen: false, coachInPlay: true, reduceMotion: false, boardSize: 100, name: '' },
+    settings: { theme: 'auto', board: 'maitre', pieces: 'cburnett', sound: true, coords: true, animation: true, showLegal: true, autoQueen: false, coachInPlay: true, reduceMotion: false, boardSize: 100, name: '' },
     onboarded: false, training: {},
   };
 }

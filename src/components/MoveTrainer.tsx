@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Board, toShapes } from './Board';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, moveToUci, type Move } from '../lib/chess';
-import { play, playForMove, haptic } from '../lib/sound';
+import { play, playForMove } from '../lib/sound';
+import { Icon } from './Icon';
 
 export interface TrainerProps {
   fen: string;
@@ -53,7 +54,7 @@ export function MoveTrainer(p: TrainerProps) {
     const expected = p.line[idx];
     const ok = moveToUci(m) === expected || (expected && moveToUci(m) === expected.slice(0, 4) && !expected[4]) || (p.accept?.(idx, m, n) ?? false) || (n.isCheckmate() && isMateLine(p.line, idx));
     if (!ok) {
-      play('error'); haptic(40); setMistakes((x) => x + 1); p.onMistake?.(idx);
+      play('error'); setMistakes((x) => x + 1); p.onMistake?.(idx);
       setFlash({ sq: to, cls: 'wrong' }); setStatus('wrong');
       setCh(new Chess(ch.fen()));
       later(() => setFlash(null), 600);
@@ -94,11 +95,11 @@ export function MoveTrainer(p: TrainerProps) {
         promotionCheck={(f, t) => isPromotion(ch, f, t)} />
       {p.feedback !== false && (
         <div class={'feedback ' + status} aria-live="polite">
-          {status === 'wait' && <span>⏳ L’adversaire joue…</span>}
-          {status === 'play' && <span>{userColor === 'white' ? '⚪ Les Blancs jouent' : '⚫ Les Noirs jouent'} — à toi !</span>}
-          {status === 'wrong' && <span>❌ Ce n’est pas le bon coup. Réessaie !</span>}
-          {status === 'good' && <span>✅ Bien joué ! Continue…</span>}
-          {status === 'solved' && <span>🎉 Bravo, c’est résolu !</span>}
+          {status === 'wait' && <span><span class="thinking" aria-hidden="true" />L’adversaire joue</span>}
+          {status === 'play' && <span><span class={'turn-dot ' + (userColor === 'white' ? 'w' : 'b')} />{userColor === 'white' ? 'Les Blancs jouent. À toi.' : 'Les Noirs jouent. À toi.'}</span>}
+          {status === 'wrong' && <span><Icon name="xCircle" size={20} />Pas tout à fait. Réessaie.</span>}
+          {status === 'good' && <span><Icon name="checkCircle" size={20} />Bien vu. Continue.</span>}
+          {status === 'solved' && <span><Icon name="sparkles" size={20} />Bravo, c’est résolu.</span>}
         </div>
       )}
     </div>

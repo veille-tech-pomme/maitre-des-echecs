@@ -2,6 +2,7 @@
 import { getState } from './store';
 import { getEnt } from './entitlements';
 export const BOARDS: { id: string; name: string; light: string; dark: string; premium?: boolean }[] = [
+  { id: 'maitre', name: 'Maître (ardoise)', light: '#E9E2D0', dark: '#8A9FA8' },
   { id: 'vert', name: 'Tournoi (vert)', light: '#ebecd0', dark: '#739552' },
   { id: 'bois', name: 'Bois', light: '#f0d9b5', dark: '#b58863' },
   { id: 'bleu', name: 'Bleu', light: '#dee3e6', dark: '#8ca2ad' },
@@ -26,7 +27,7 @@ export function applyAppearance() {
   const b = BOARDS.find((x) => x.id === s.board && (prem || !x.premium)) || BOARDS[0];
   document.documentElement.style.setProperty('--sq-light', b.light);
   document.documentElement.style.setProperty('--sq-dark', b.dark);
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#0f1115' : '#f6f7fb');
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#0B0C10' : '#F2F2F7');
   let st = document.getElementById('pieceset') as HTMLStyleElement | null;
   if (!st) { st = document.createElement('style'); st.id = 'pieceset'; document.head.appendChild(st); }
   const set = PIECE_SETS.find((x) => x.id === s.pieces && (prem || !x.premium))?.id || 'cburnett';

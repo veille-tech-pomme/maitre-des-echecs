@@ -3,7 +3,9 @@ import { lessonById, LESSONS, LEVELS, findLesson, cachedCourseLesson, loadCourse
 import { Board, toShapes } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { StarsExercise, SelectExercise, Quiz, PlayGoal } from '../components/Exercises';
-import { Md, Progress, PremiumLock } from '../components/ui';
+import { Md, Progress, PremiumLock, NavBar, Stars } from '../components/ui';
+import { Icon } from '../components/Icon';
+import { levelColor } from '../lib/visual';
 import { Chess, tryMove, moveToUci, START_FEN, sanFr } from '../lib/chess';
 import { setState, addXp, useStore } from '../lib/store';
 import { usePremium } from '../lib/entitlements';
@@ -37,8 +39,8 @@ export function LessonPage({ id }: { id: string }) {
   const [totalMist, setTotalMist] = useState(0);
   useEffect(() => { setI(0); setFinished(false); setTotalMist(0); }, [id]);
   useEffect(() => { setMist(0); setHints(0); setSolved(false); setSol(0); }, [i, id]);
-  if (!lesson) return missing ? <div class="page"><h1>Leçon introuvable</h1><a href="#/learn">Retour</a></div> : <div class="page"><div class="loading">Chargement de la leçon…</div></div>;
-  if (lesson.level === 'expert' && !ent.premium) return <div class="page"><a class="back" href="#/learn">‹ Parcours</a><h1>{lesson.icon} {lesson.title}</h1><PremiumLock title="Leçon Expert" text="Le niveau Expert (calcul avancé, prophylaxie, finales complexes et parties légendaires commentées) fait partie de Premium." /></div>;
+  if (!lesson) return missing ? <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>Leçon introuvable</h1></div> : <div class="page"><div class="loading" aria-label="Chargement de la leçon" /></div>;
+  if (lesson.level === 'expert' && !ent.premium) return <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>{lesson.title}</h1><PremiumLock title="Leçon Expert" text="Le niveau Expert (calcul avancé, prophylaxie, finales complexes et parties légendaires commentées) fait partie de Premium." /></div>;
   const step = lesson.steps[i];
   const lv = LEVELS.find((l) => l.id === lesson.level)!;
   const interactive = step.type === 'exercise' || step.type === 'puzzles';
@@ -58,45 +60,46 @@ export function LessonPage({ id }: { id: string }) {
     const s2 = st.lessons[lesson.id];
     return (
       <div class="page lesson done-screen">
-        <div class="celebrate">🎉</div>
-        <h1>Leçon terminée !</h1>
-        <p class="stars-big">{'★'.repeat(s2?.stars || 1)}{'☆'.repeat(3 - (s2?.stars || 1))}</p>
-        <p class="muted">{totalMist === 0 ? 'Sans aucune erreur, impressionnant !' : `${totalMist} erreur${totalMist > 1 ? 's' : ''} — refais la leçon pour viser 3 étoiles.`}</p>
+        <div class="celebrate"><Icon name="trophy" size={56} stroke={1.8} /></div>
+        <h1>Leçon terminée</h1>
+        <div class="stars-big"><Stars n={s2?.stars || 1} size={34} /></div>
+        <p class="muted">{totalMist === 0 ? 'Sans la moindre erreur. Impressionnant.' : `${totalMist} erreur${totalMist > 1 ? 's' : ''}. Refais-la pour viser trois étoiles.`}</p>
         <div class="row center">
-          <button class="btn ghost" onClick={() => { setI(0); setFinished(false); setTotalMist(0); }}>Recommencer</button>
-          {nextL && (nextL.level !== 'expert' || ent.premium) && (nextL.course || isUnlocked(st, nextL.id)) ? <a class="btn primary" href={`#/lesson/${nextL.id}`}>Leçon suivante : {nextL.title} ›</a> : <a class="btn primary" href={backHref}>Retour {lesson.course ? 'au cours' : 'au parcours'}</a>}
+          {nextL && (nextL.level !== 'expert' || ent.premium) && (nextL.course || isUnlocked(st, nextL.id)) ? <a class="btn primary lg" href={`#/lesson/${nextL.id}`}>Leçon suivante<Icon name="right" size={18} stroke={2.5} /></a> : <a class="btn primary lg" href={backHref}>Retour {lesson.course ? 'au cours' : 'au parcours'}</a>}
+          {nextL && <p class="muted small next-title">{nextL.title}</p>}
+          <button class="btn plain" onClick={() => { setI(0); setFinished(false); setTotalMist(0); }}>Recommencer la leçon</button>
         </div>
       </div>
     );
   }
   return (
-    <div class="page lesson" style={{ '--c': lv.color } as any}>
+    <div class="page lesson" style={{ '--c': levelColor(lv.id) } as any}>
       <div class="lesson-top">
-        <a class="back" href={backHref} aria-label="Retour">✕</a>
-        <Progress value={(i + (canNext ? 1 : 0)) / lesson.steps.length} color={lv.color} />
-        <span class="muted small">{i + 1}/{lesson.steps.length}</span>
+        <a class="nb-btn round" href={backHref} aria-label="Quitter la leçon"><Icon name="close" size={18} stroke={2.5} /></a>
+        <Progress value={(i + (canNext ? 1 : 0)) / lesson.steps.length} color={levelColor(lv.id)} />
+        <span class="muted small" aria-label={`Étape ${i + 1} sur ${lesson.steps.length}`}>{i + 1}/{lesson.steps.length}</span>
       </div>
       <div class="lesson-grid">
         <div class="lesson-board">
           <StepBoard key={`${id}-${i}`} step={step} lessonId={lesson.id} hints={hints} sol={sol} reset={reset} onSolved={onSolved} onMistake={onMistake} />
         </div>
         <div class="lesson-side">
-          <p class="eyebrow">{lesson.icon} {lesson.title}</p>
+          <p class="eyebrow">{lesson.title}</p>
           <h2>{step.title}</h2>
           {'body' in step && step.body && <Md text={step.body} />}
           {step.type === 'exercise' && <div class="prompt"><Md text={step.prompt} /></div>}
-          {step.type === 'exercise' && hints > 0 && step.hints && <div class="hint-box">{step.hints.slice(0, hints).map((h) => <p>💡 {h}</p>)}</div>}
-          {step.type === 'exercise' && solved && step.success && <p class="success-box">✅ {step.success}</p>}
+          {step.type === 'exercise' && hints > 0 && step.hints && <div class="hint-box"><Icon name="bulb" size={18} /><div>{step.hints.slice(0, hints).map((h) => <p>{h}</p>)}</div></div>}
+          {step.type === 'exercise' && solved && step.success && <p class="success-box"><Icon name="checkCircle" size={20} />{step.success}</p>}
           <div class="lesson-actions">
             {step.type === 'exercise' && !solved && (
               <>
-                {step.hints && hints < step.hints.length + (['line', 'any', 'mate'].includes(step.goal.kind) ? 2 : 0) && <button class="btn ghost" onClick={() => setHints((h) => h + 1)}>💡 Indice</button>}
-                {['play', 'stars'].includes(step.goal.kind) && <button class="btn ghost" onClick={() => setReset((r) => r + 1)}>↺ Recommencer</button>}
-                {['line', 'any', 'mate'].includes(step.goal.kind) && mist >= 2 && <button class="btn ghost" onClick={() => { setSol((x) => x + 1); onMistake(); }}>👁 Solution</button>}
-                {step.goal.kind === 'play' && mist >= 1 && <button class="btn ghost" onClick={() => setSolved(true)}>Passer</button>}
+                {step.hints && hints < step.hints.length + (['line', 'any', 'mate'].includes(step.goal.kind) ? 2 : 0) && <button class="btn secondary icon" onClick={() => setHints((h) => h + 1)} aria-label="Indice" title="Indice"><Icon name="bulb" size={20} /></button>}
+                {['play', 'stars'].includes(step.goal.kind) && <button class="btn secondary icon" onClick={() => setReset((r) => r + 1)} aria-label="Recommencer" title="Recommencer"><Icon name="reset" size={20} /></button>}
+                {['line', 'any', 'mate'].includes(step.goal.kind) && mist >= 2 && <button class="btn secondary icon" onClick={() => { setSol((x) => x + 1); onMistake(); }} aria-label="Solution" title="Solution"><Icon name="eye" size={20} /></button>}
+                {step.goal.kind === 'play' && mist >= 1 && <button class="btn secondary" onClick={() => setSolved(true)}>Passer</button>}
               </>
             )}
-            <button class={'btn primary ' + (canNext ? '' : 'disabled')} disabled={!canNext} onClick={next}>{i === lesson.steps.length - 1 ? 'Terminer' : 'Continuer'} ›</button>
+            <button class={'btn primary ' + (canNext ? '' : 'disabled')} disabled={!canNext} onClick={next}>{i === lesson.steps.length - 1 ? 'Terminer' : canNext ? 'Continuer' : interactive ? 'À toi de jouer' : 'Continuer'}</button>
           </div>
         </div>
       </div>
@@ -138,13 +141,13 @@ function Demo({ step }: { step: Extract<Step, { type: 'demo' }> }) {
   return (
     <div class="demo">
       <Board fen={pos.fen} viewOnly orientation={step.orientation} lastMove={pos.last} />
-      <div class="demo-comment" aria-live="polite">{ply === 0 ? '▶ Lance la démonstration' : <><b>{num(ply - 1) || `${Math.floor((ply - 1) / 2) + 1}…`} {sanFr(step.moves[ply - 1])}</b> {comment || ''}</>}</div>
+      <div class="demo-comment" aria-live="polite">{ply === 0 ? <span class="muted">Appuie sur lecture pour voir la démonstration.</span> : <><b>{num(ply - 1) || `${Math.floor((ply - 1) / 2) + 1}…`} {sanFr(step.moves[ply - 1])}</b> {comment || ''}</>}</div>
       <div class="demo-ctrl">
-        <button class="btn icon" onClick={() => go(0)} aria-label="Début">⏮</button>
-        <button class="btn icon" onClick={() => go(ply - 1)} aria-label="Précédent">◀</button>
-        <button class="btn icon primary" onClick={() => { if (ply >= step.moves.length) setPly(0); setAuto(!auto); }} aria-label="Lecture">{auto ? '⏸' : '▶'}</button>
-        <button class="btn icon" onClick={() => go(ply + 1)} aria-label="Suivant">▶</button>
-        <button class="btn icon" onClick={() => go(step.moves.length)} aria-label="Fin">⏭</button>
+        <button class="btn icon" onClick={() => go(0)} aria-label="Début"><Icon name="first" size={20} /></button>
+        <button class="btn icon" onClick={() => go(ply - 1)} aria-label="Précédent"><Icon name="left" size={22} stroke={2.4} /></button>
+        <button class="btn icon primary" onClick={() => { if (ply >= step.moves.length) setPly(0); setAuto(!auto); }} aria-label={auto ? 'Pause' : 'Lecture'}><Icon name={auto ? 'pause' : 'playIcon'} size={22} /></button>
+        <button class="btn icon" onClick={() => go(ply + 1)} aria-label="Suivant"><Icon name="right" size={22} stroke={2.4} /></button>
+        <button class="btn icon" onClick={() => go(step.moves.length)} aria-label="Fin"><Icon name="last" size={20} /></button>
       </div>
       <div class="demo-moves">{step.moves.map((m, k) => <button class={'mv ' + (k === ply - 1 ? 'cur' : '') + (step.comments?.[k] ? ' has-c' : '')} onClick={() => setPly(k + 1)}>{num(k)}{sanFr(m)}</button>)}</div>
     </div>
@@ -153,19 +156,19 @@ function Demo({ step }: { step: Extract<Step, { type: 'demo' }> }) {
 function LessonPuzzles({ step, lessonId, onSolved, onMistake }: { step: Extract<Step, { type: 'puzzles' }>; lessonId: string; onSolved: () => void; onMistake: () => void }) {
   const [list, setList] = useState<Puzzle[] | null>(null); const [k, setK] = useState(0); const [done, setDone] = useState(0); const [hint, setHint] = useState(0); const [sol, setSol] = useState(0); const [solvedCur, setSolvedCur] = useState(false);
   useEffect(() => { loadPuzzles().then(async (all) => { const base = lessonPuzzles(all, lessonId, step.themes, step.count, step.maxRating, step.minRating); if (base.length >= step.count) { setList(base); return; } try { const more = await themedForLesson(lessonId, step.themes, step.count - base.length, step.minRating ?? 0, step.maxRating); setList([...base, ...more]); } catch { setList(base); } }); }, []);
-  if (!list) return <div class="loading">Chargement des puzzles…</div>;
+  if (!list) return <div class="loading" aria-label="Chargement des puzzles" />;
   const p = list[k];
-  if (!p) return <div class="empty">🎉 Série terminée !</div>;
+  if (!p) return <div class="empty"><div class="empty-icon"><Icon name="trophy" size={30} /></div><h3>Série terminée</h3></div>;
   return (
     <div>
       <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup hintLevel={hint} showSolutionSignal={sol}
         onMistake={() => { onMistake(); }} onSolved={() => { setSolvedCur(true); const d = done + 1; setDone(d); if (d >= list.length) onSolved(); }} />
       <div class="row between puzzle-bar">
-        <span class="muted small">Puzzle {k + 1}/{list.length} · {p.r}</span>
+        <span class="muted small tnum">Puzzle {k + 1} sur {list.length} · {p.r}</span>
         <div class="row">
-          {!solvedCur && <button class="btn small ghost" onClick={() => setHint((h) => h + 1)}>💡</button>}
-          {!solvedCur && <button class="btn small ghost" onClick={() => { setSol((x) => x + 1); onMistake(); setSolvedCur(true); const d = done + 1; setDone(d); if (d >= list.length) onSolved(); }}>👁</button>}
-          {solvedCur && k < list.length - 1 && <button class="btn small primary" onClick={() => { setK(k + 1); setHint(0); setSolvedCur(false); }}>Suivant ›</button>}
+          {!solvedCur && <button class="btn small secondary" onClick={() => setHint((h) => h + 1)}><Icon name="bulb" size={16} />Indice</button>}
+          {!solvedCur && <button class="btn small secondary" onClick={() => { setSol((x) => x + 1); onMistake(); setSolvedCur(true); const d = done + 1; setDone(d); if (d >= list.length) onSolved(); }}><Icon name="eye" size={16} />Solution</button>}
+          {solvedCur && k < list.length - 1 && <button class="btn small primary" onClick={() => { setK(k + 1); setHint(0); setSolvedCur(false); }}>Suivant<Icon name="right" size={16} stroke={2.5} /></button>}
         </div>
       </div>
     </div>

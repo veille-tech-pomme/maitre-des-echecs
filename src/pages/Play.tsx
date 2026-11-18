@@ -1,7 +1,8 @@
 import { BotAvatar } from '../components/BotAvatar';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
-import { Modal, toast } from '../components/ui';
+import { Modal, toast, LargeTitle, NavBar, Item } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { BOT_GROUPS, BOTS, botById, type Bot } from '../data/bots';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, captured, material, gameOverText, sanFr, type Move } from '../lib/chess';
 import { engine, type PvLine } from '../lib/engine';
@@ -16,28 +17,38 @@ import { go } from '../lib/router';
 
 export function BotSelect() {
   const s = useStore((x) => x);
-  const rec = recommendedBot(s); const [grp, setGrp] = useState('Tous');
+  const rec = recommendedBot(s); const rb = botById(rec);
+  const recent = [...s.games].sort((x, y) => y.date - x.date).slice(0, 3);
+  const res = (g: typeof recent[number]) => (g.result === '1/2-1/2' ? 'd' : (g.result === '1-0') === (g.color === 'w') ? 'w' : 'l');
   return (
-    <div class="page">
-      <h1>Jouer contre l’IA</h1>
-      <p class="muted">{BOTS.length} adversaires avec leur personnalité, leur style et leur répertoire d’ouvertures, de 200 à 3200 Elo. Tous gratuits, sans limite.</p>
-      <div class="chips">{['Tous', ...BOT_GROUPS].map((g) => <button class={'chip ' + (grp === g ? 'on' : '')} onClick={() => setGrp(g)}>{g}</button>)}</div>
-      {BOT_GROUPS.filter((g) => grp === 'Tous' || g === grp).map((g) => { const list = BOTS.filter((b) => b.group === g); if (!list.length) return null; return (
-        <section><h2>{g}</h2>
-      <div class="bot-grid">
-        {list.map((b) => {
-          const games = s.games.filter((x) => x.botId === b.id); const wins = games.filter((x) => (x.result === '1-0' && x.color === 'w') || (x.result === '0-1' && x.color === 'b')).length;
-          return (
-            <a class={'bot-card ' + (b.id === rec ? 'rec' : '')} href={`#/play/${b.id}`} style={{ '--c': b.color } as any}>
-              {b.id === rec && <span class="pill rec-pill">Recommandé</span>}
-              <BotAvatar bot={b} size={70} />
-              <b>{b.name}</b><small class="elo">{b.elo}</small>
-              <small class="muted">{b.style}</small>
-              {games.length > 0 && <small class="muted">{wins} victoire{wins > 1 ? 's' : ''} / {games.length}</small>}
-            </a>
-          );
-        })}
-      </div></section>); })}
+    <div class="page play">
+      <LargeTitle title="Jouer" sub={`${BOTS.length} adversaires, de 200 à 3200 Elo`} />
+      <a class="hero-card bot-feature" href={`#/play/${rb.id}`} style={{ '--c': rb.color } as any}>
+        <span class="hc-eyebrow">Adversaire recommandé</span>
+        <div class="bf-row"><BotAvatar bot={rb} size={72} /><div><h2>{rb.name}</h2><p>{rb.style} · {rb.elo} Elo</p></div></div>
+        <span class="btn primary"><Icon name="play" size={18} />Jouer contre {rb.name}</span>
+      </a>
+      <div class="list">
+        <Item href="#/analysis" icon="microscope" color="#64D2FF" title="Analyse" sub="Étudie une position avec Stockfish" />
+        {recent.length > 0 && recent.map((g) => { const b = botById(g.botId); const r = res(g); return (
+          <a class="item" href={`#/game/${g.id}`}><span class={'res ' + r}>{r === 'w' ? 'V' : r === 'l' ? 'D' : 'N'}</span><span class="it-main"><span class="it-title">contre {b?.name || 'IA'}</span><span class="it-sub">{new Date(g.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · {Math.ceil(g.moves.length / 2)} coups · voir le bilan</span></span><Icon name="right" size={18} class="chev" stroke={2.4} /></a>); })}
+      </div>
+      {BOT_GROUPS.map((g) => { const list = BOTS.filter((b) => b.group === g); if (!list.length) return null; return (
+        <section>
+          <div class="section-title"><h2>{g}</h2><span class="muted tnum">{list[0].elo}–{list[list.length - 1].elo}</span></div>
+          <div class="bot-row bot-grid">
+            {list.map((b) => {
+              const games = s.games.filter((x) => x.botId === b.id); const wins = games.filter((x) => (x.result === '1-0' && x.color === 'w') || (x.result === '0-1' && x.color === 'b')).length;
+              return (
+                <a class={'bot-card ' + (b.id === rec ? 'rec' : '')} href={`#/play/${b.id}`} style={{ '--c': b.color } as any} aria-label={`${b.name}, ${b.elo} Elo, ${b.style}`}>
+                  <BotAvatar bot={b} size={64} />
+                  <b>{b.name}</b><small class="elo tnum">{b.elo}</small>
+                  <small class="muted">{games.length ? `${wins} sur ${games.length} gagnée${wins > 1 ? 's' : ''}` : b.style}</small>
+                </a>
+              );
+            })}
+          </div>
+        </section>); })}
     </div>
   );
 }
@@ -49,6 +60,7 @@ export function Game({ botId }: { botId: string }) {
   const [setup, setSetup] = useState(true);
   const [color, setColor] = useState<'w' | 'b'>('w');
   const [coachOn, setCoachOn] = useState(settings.coachInPlay);
+  const [pick, setPick] = useState<'w' | 'b' | 'r'>('w');
   const [ch, setCh] = useState(() => new Chess());
   const [hist, setHist] = useState<Move[]>([]);
   const [thinking, setThinking] = useState(false);
@@ -124,7 +136,7 @@ export function Game({ botId }: { botId: string }) {
   async function getHint() {
     if (thinking) return; setThinking(true);
     const r = await engine.analyse(ch.fen(), { depth: 14 }); setThinking(false);
-    if (r.best) { setHint(r.best); const c = new Chess(ch.fen()); const m = tryMove(c, r.best); if (m) toast(`Indice : regarde ${sanFr(m.san).replace(/[+#]/g, '')}`, '💡'); }
+    if (r.best) { setHint(r.best); const c = new Chess(ch.fen()); const m = tryMove(c, r.best); if (m) toast(`Indice : regarde ${sanFr(m.san).replace(/[+#]/g, '')}`, 'bulb'); }
   }
   function end(c: Chess, h: Move[], resigned = false) {
     let result: '1-0' | '0-1' | '1/2-1/2' = '1/2-1/2'; let text = gameOverText(c) || '';
@@ -143,30 +155,41 @@ export function Game({ botId }: { botId: string }) {
   }
   if (setup) return (
     <div class="page game-setup">
-      <a class="back" href="#/play">‹ Adversaires</a>
-      <div class="bot-hero" style={{ '--c': bot.color } as any}><BotAvatar bot={bot} size={110} /><div><h1>{bot.name} <small class="elo">{bot.elo}</small></h1><p class="muted">{bot.style}</p><p>{bot.bio}</p></div></div>
-      <label class="switch-row"><input type="checkbox" checked={coachOn} onChange={(e) => { setCoachOn((e.target as HTMLInputElement).checked); setState((s) => { s.settings.coachInPlay = (e.target as HTMLInputElement).checked; }); }} /><span><b>Mode coach</b><small class="muted">Le coach évalue chacun de tes coups, t’explique tes erreurs et te propose de reprendre une gaffe.</small></span></label>
-      <h3>Tu joues…</h3>
-      <div class="row">
-        <button class="btn big" onClick={() => start('w')}>⚪ Blancs</button>
-        <button class="btn big" onClick={() => start('r')}>🎲 Au hasard</button>
-        <button class="btn big" onClick={() => start('b')}>⚫ Noirs</button>
+      <NavBar back="#/play" backLabel="Jouer" />
+      <div class="bot-hero" style={{ '--c': bot.color } as any}><BotAvatar bot={bot} size={104} /><h1>{bot.name}</h1><p class="bh-style">{bot.style} · {bot.elo} Elo</p><p>{bot.bio}</p></div>
+      <div class="section-label">Tu joues</div>
+      <div class="color-pick" role="radiogroup" aria-label="Couleur">
+        {([['w', 'Blancs'], ['r', 'Hasard'], ['b', 'Noirs']] as const).map(([k, l]) => (
+          <button class={'color-opt ' + (pick === k ? 'on' : '')} role="radio" aria-checked={pick === k} onClick={() => setPick(k)}>
+            <span class={'kq ' + k}><Icon name={k === 'r' ? 'dice' : 'king'} size={26} /></span>{l}
+          </button>
+        ))}
       </div>
+      <div class="list">
+        <label class="item switch-row"><span class="it-icon" style="--c:#30A46C"><Icon name="message" size={18} /></span><span class="it-main"><span class="it-title">Mode coach</span><span class="it-sub">Il juge chaque coup et te laisse reprendre une gaffe.</span></span><input type="checkbox" class="switch" checked={coachOn} onChange={(e) => { setCoachOn((e.target as HTMLInputElement).checked); setState((s) => { s.settings.coachInPlay = (e.target as HTMLInputElement).checked; }); }} /></label>
+      </div>
+      <div class="sticky-cta"><button class="btn primary lg" onClick={() => start(pick)}>Commencer la partie</button></div>
     </div>
   );
   const orient = color === 'w' ? 'white' : 'black';
   const cap = captured(ch); const mat = material(ch).diff * (color === 'w' ? 1 : -1);
   const myCaps = color === 'w' ? cap.w : cap.b; const botCaps = color === 'w' ? cap.b : cap.w;
-  const sym = (t: string, c: 'w' | 'b') => ({ p: c === 'w' ? '♙' : '♟', n: c === 'w' ? '♘' : '♞', b: c === 'w' ? '♗' : '♝', r: c === 'w' ? '♖' : '♜', q: c === 'w' ? '♕' : '♛' } as any)[t];
+  const ROLE: Record<string, string> = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen' };
+  const capsOf = (list: string[], c: 'white' | 'black') => <span class="caps cg-wrap" aria-label={`${list.length} pièce${list.length > 1 ? 's' : ''} prise${list.length > 1 ? 's' : ''}`}>{list.map((t) => <piece class={`${ROLE[t]} ${c}`} />)}</span>;
   const op = openingName(hist.map((m) => m.san));
+  const myTurn = !over && !thinking && turnColor(ch) === orient;
   return (
     <div class="page game">
+      <div class="game-top">
+        <a class="nb-btn round" href="#/play" aria-label="Quitter la partie" onClick={(e) => { if (hist.length > 1 && !over && !confirm('Quitter la partie en cours ?')) e.preventDefault(); }}><Icon name="close" size={18} stroke={2.5} /></a>
+        <div class="gt-title">{op ? <span class="opening-name">{op}</span> : <span class="muted">{bot.name} · {bot.elo}</span>}</div>
+        <button class={'nb-btn round ' + (coachOn ? 'on' : '')} aria-pressed={coachOn} aria-label="Mode coach" title="Mode coach" onClick={() => { const v = !coachOn; setCoachOn(v); setState((s) => { s.settings.coachInPlay = v; }); }}><Icon name="message" size={18} /></button>
+      </div>
       <div class="play-grid">
         <div class="board-col">
           <div class="player-bar">
-            <BotAvatar bot={bot} size={32} /><b>{bot.name}</b><small class="elo">{bot.elo}</small>
-            <span class="caps">{botCaps.map((t) => sym(t, color))}{mat < 0 && <small> +{-mat}</small>}</span>
-            {thinking && <span class="thinking">● ● ●</span>}
+            <BotAvatar bot={bot} size={36} /><span class="pb-name"><b>{bot.name}</b><small class="elo tnum">{bot.elo}</small></span>
+            {thinking ? <span class="thinking" aria-label="Réfléchit">…</span> : capsOf(botCaps, color === 'w' ? 'white' : 'black')}{!thinking && mat < 0 && <small class="adv">+{-mat}</small>}
           </div>
           {chat && <div class="bubble" key={chat}>{chat}</div>}
           <Board fen={ch.fen()} orientation={orient} turn={turnColor(ch)} movable={thinking || over || (coach?.undoable && coach.review.cls === 'blunder') ? 'none' : orient}
@@ -174,35 +197,36 @@ export function Game({ botId }: { botId: string }) {
             onMove={(f, t, p) => { onMove(f, t, p); return true; }} promotionCheck={(f, t) => isPromotion(ch, f, t)}
             shapes={hint ? [{ orig: hint.slice(0, 2) as any, dest: hint.slice(2, 4) as any, brush: 'blue' }] : coach && coach.undoable ? [{ orig: coach.review.best.slice(0, 2) as any, dest: coach.review.best.slice(2, 4) as any, brush: 'green' }] : []} />
           <div class="player-bar me">
-            <span class="bot-avatar sm">🙂</span><b>{settings.name || 'Toi'}</b>
-            <span class="caps">{myCaps.map((t) => sym(t, color === 'w' ? 'b' : 'w'))}{mat > 0 && <small> +{mat}</small>}</span>
+            <span class="me-avatar">{(settings.name || 'T').slice(0, 1).toUpperCase()}</span><span class="pb-name"><b>{settings.name || 'Toi'}</b>{myTurn && <small class="your-turn">À toi de jouer</small>}</span>
+            {capsOf(myCaps, color === 'w' ? 'black' : 'white')}{mat > 0 && <small class="adv">+{mat}</small>}
           </div>
         </div>
-        <aside class="side card">
-          {op && <p class="opening-name">📖 {op}</p>}
+        <aside class="side">
           {coach && (
             <div class={'coach-box cls-' + coach.review.cls}>
-              <div class="coach-head"><span class="cls-badge" style={{ background: CLASS_INFO[coach.review.cls].color }}>{CLASS_INFO[coach.review.cls].symbol}</span><b>{sanFr(coach.review.san)} : {CLASS_INFO[coach.review.cls].label}</b></div>
+              <div class="coach-head"><span class="cls-badge" style={{ background: CLASS_INFO[coach.review.cls].color }}>{CLASS_INFO[coach.review.cls].symbol}</span><b>{sanFr(coach.review.san)} · {CLASS_INFO[coach.review.cls].label}</b></div>
               <p>{coach.review.coach}</p>
-              {coach.undoable && <div class="row"><button class="btn small primary" onClick={takeback}>↶ Reprendre ce coup</button>{coach.review.cls === 'blunder' && <button class="btn small ghost" onClick={continueAfterBlunder}>Continuer quand même</button>}</div>}
+              {coach.undoable && <div class="row"><button class="btn small primary" onClick={takeback}><Icon name="undo" size={16} />Reprendre ce coup</button>{coach.review.cls === 'blunder' && <button class="btn small secondary" onClick={continueAfterBlunder}>Continuer quand même</button>}</div>}
             </div>
           )}
-          {!coach && coachOn && <p class="muted small">🧑‍🏫 Le coach commentera ton prochain coup.</p>}
-          <div class="moves-inline">{hist.map((m, i) => <span class="mv">{i % 2 === 0 ? `${i / 2 + 1}.` : ''}{sanFr(m.san)} </span>)}</div>
-          <div class="row wrap">
-            <button class="btn ghost" onClick={getHint} disabled={thinking || !!over}>💡 Indice</button>
-            <button class="btn ghost" onClick={takeback} disabled={thinking || hist.length === 0}>↶ Annuler</button>
-            <button class="btn ghost" onClick={() => { if (confirm('Abandonner la partie ?')) end(ch, hist, true); }} disabled={!!over || hist.length < 2}>🏳️ Abandonner</button>
-          </div>
+          {hist.length > 0 && <div class="moves-inline" aria-label="Coups joués">{hist.map((m, i) => <span class={'mv ' + (i === hist.length - 1 ? 'cur' : '')}>{i % 2 === 0 ? <i>{i / 2 + 1}.</i> : ''}{sanFr(m.san)}</span>)}</div>}
           {takebacks > 0 && <p class="muted small">Coups repris : {takebacks}</p>}
+          <div class="actionbar">
+            <button class="tool" onClick={getHint} disabled={thinking || !!over}><Icon name="bulb" size={22} />Indice</button>
+            <button class="tool" onClick={takeback} disabled={thinking || hist.length === 0}><Icon name="undo" size={22} />Annuler</button>
+            <button class="tool" onClick={() => { if (confirm('Abandonner la partie ?')) end(ch, hist, true); }} disabled={!!over || hist.length < 2}><Icon name="flag" size={22} />Abandonner</button>
+          </div>
         </aside>
       </div>
       <Modal open={!!over} onClose={() => setOver(null)} title="Partie terminée">
-        <p class="big-result">{over?.text}</p>
-        <div class="col">
-          <button class="btn primary" onClick={() => go(`/game/${over!.id}`)}>🔬 Bilan de la partie</button>
-          <button class="btn ghost" onClick={() => { setOver(null); setSetup(true); }}>↻ Nouvelle partie</button>
-          <a class="btn ghost" href="#/play">Changer d’adversaire</a>
+        <div class="over">
+          <BotAvatar bot={bot} size={64} />
+          <p class="big-result">{over?.text}</p>
+          <div class="col">
+            <button class="btn primary lg" onClick={() => go(`/game/${over!.id}`)}><Icon name="microscope" size={18} />Voir le bilan</button>
+            <button class="btn secondary" onClick={() => { setOver(null); setSetup(true); }}><Icon name="reset" size={18} />Rejouer</button>
+            <a class="btn plain" href="#/play">Changer d’adversaire</a>
+          </div>
         </div>
       </Modal>
     </div>

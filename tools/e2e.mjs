@@ -39,9 +39,9 @@ async function run(name, browserType, ctxOpts) {
   });
   await check('puzzles hub', async () => { await page.goto(URL0 + '#/puzzles'); await page.waitForSelector('.mode-grid, .theme-grid', { timeout: 10000 }); await shot('06-puzzles'); });
   await check('contre la montre', async () => { await page.goto(URL0 + '#/puzzles/rush'); await sleep(800); await shot('07-rush'); });
-  await check('bots', async () => { await page.goto(URL0 + '#/play'); await page.waitForSelector('.bot-grid'); await shot('08-bots'); });
+  await check('bots', async () => { await page.goto(URL0 + '#/play'); await page.waitForSelector('.bot-card'); await shot('08-bots'); });
   await check('partie vs IA', async () => {
-    await page.goto(URL0 + '#/play/odette'); await page.click('text=Blancs'); await page.waitForSelector('cg-board'); await sleep(500);
+    await page.goto(URL0 + '#/play/odette'); await page.click('.color-opt >> text=Blancs'); await page.click('text=Commencer la partie'); await page.waitForSelector('cg-board'); await sleep(500);
     await clickSq(page, 'e2'); await clickSq(page, 'e4');
     await page.waitForFunction(() => document.querySelectorAll('cg-board piece').length === 32 && document.querySelectorAll('cg-board square.last-move').length === 2 && !!document.querySelector('.coach-box, .bubble'), null, { timeout: 30000 }).catch(() => {});
     await sleep(4000);
@@ -55,8 +55,8 @@ async function run(name, browserType, ctxOpts) {
   await check('profil', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.badge-grid'); await shot('14-profil'); });
   await check('réglages', async () => { await page.goto(URL0 + '#/settings'); await page.waitForSelector('.swatches'); await shot('15-reglages'); });
   await check('premium', async () => { await page.goto(URL0 + '#/premium'); await page.waitForSelector('.plans'); await page.getByText('7 jours gratuits, puis 29,99 €/an, annulable à tout moment', { exact: false }).first().waitFor(); await shot('16-premium'); });
-  await check('cours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.opening-grid', { timeout: 15000 }); await page.goto(URL0 + '#/learn/course/mats'); await page.waitForSelector('.opening-grid'); await shot('20-cours-mats'); await page.goto(URL0 + '#/lesson/mats-smotheredMate'); await page.waitForSelector('.lesson-grid', { timeout: 15000 }); await shot('21-lecon-mat-etouffe'); });
-  await check('partie célèbre (verrou premium)', async () => { await page.goto(URL0 + '#/learn/course/parties'); await page.waitForSelector('.opening-grid'); await shot('22-parties-celebres'); });
+  await check('cours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.course-card', { timeout: 15000 }); await page.goto(URL0 + '#/learn/course/mats'); await page.waitForSelector('.lesson-list'); await shot('20-cours-mats'); await page.goto(URL0 + '#/lesson/mats-smotheredMate'); await page.waitForSelector('.lesson-grid', { timeout: 15000 }); await shot('21-lecon-mat-etouffe'); });
+  await check('partie célèbre (verrou premium)', async () => { await page.goto(URL0 + '#/learn/course/parties'); await page.waitForSelector('.lesson-list'); await shot('22-parties-celebres'); });
   await check('puzzles sur mesure', async () => { await page.goto(URL0 + '#/puzzles/custom'); await sleep(800); await shot('23-puzzles-sur-mesure'); await page.goto(URL0 + '#/puzzles/custom/go?theme=fork&min=1000&max=1400'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(1200); await shot('24-puzzle-fourchette'); });
   await check('duel', async () => { await page.goto(URL0 + '#/puzzles/battle'); await sleep(800); await shot('25-duel'); });
   await check('parcours puzzles', async () => { await page.goto(URL0 + '#/puzzles/paths'); await sleep(600); await shot('26-parcours-puzzles'); await page.goto(URL0 + '#/puzzles/paths/fourchette'); await sleep(600); });

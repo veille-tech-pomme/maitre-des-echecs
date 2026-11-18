@@ -19,8 +19,8 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#0f1115',
-        theme_color: '#0f1115',
+        background_color: '#0B0C10',
+        theme_color: '#0B0C10',
         categories: ['games', 'education'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

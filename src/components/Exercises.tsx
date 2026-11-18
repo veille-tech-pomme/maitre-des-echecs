@@ -3,7 +3,8 @@ import { Board } from './Board';
 import { pieceDests } from '../lib/stars';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, gameOverText } from '../lib/chess';
 import { engine, whiteScore } from '../lib/engine';
-import { play, playForMove, haptic } from '../lib/sound';
+import { play, playForMove } from '../lib/sound';
+import { Icon } from './Icon';
 
 const ROLE: Record<string, string> = { Q: 'Q', R: 'R', B: 'B', N: 'N', K: 'K' };
 /** Ramasser les étoiles avec une pièce seule. */
@@ -18,7 +19,7 @@ export function StarsExercise({ piece, from, stars, blockers = [], par, onDone, 
       <Board fen={fen + ' w - - 0 1'} turn="white" movable={done ? 'none' : 'white'} dests={dests} highlight={hl} coordinates
         onMove={(f, t) => { setPos(t); const nl = left.filter((s) => s !== t); setMoves((m) => m + 1); if (nl.length < left.length) play('success'); else play('move');
           setLeft(nl); if (!nl.length) { setDone(true); onDone(!par || moves + 1 <= par); } return true; }} />
-      <div class={'feedback ' + (done ? 'solved' : 'play')}>{done ? `🎉 Toutes les étoiles en ${moves} coup${moves > 1 ? 's' : ''}${par && moves > par ? ` (record : ${par})` : ' — parfait !'}` : `⭐ Étoiles restantes : ${left.length} · coups : ${moves}${par ? ` / objectif ${par}` : ''}`}</div>
+      <div class={'feedback ' + (done ? 'solved' : 'play')}>{done ? <span><Icon name="sparkles" size={20} />{`Toutes les étoiles en ${moves} coup${moves > 1 ? 's' : ''}${par && moves > par ? ` (objectif : ${par})` : '. Parfait.'}`}</span> : <span><Icon name="star" size={20} />{`${left.length} étoile${left.length > 1 ? 's' : ''} à attraper · ${moves} coup${moves > 1 ? 's' : ''}${par ? ` sur ${par}` : ''}`}</span>}</div>
     </div>
   );
 }
@@ -38,9 +39,9 @@ export function SelectExercise({ fen, squares, onDone, onMistake, orientation }:
         onSquare={(sq) => {
           if (done) return;
           if (squares.includes(sq)) { if (sel.includes(sq)) return; const n = [...sel, sq]; setSel(n); play('tick'); if (n.length === squares.length) { setDone(true); play('success'); onDone(errs.current === 0); } }
-          else { errs.current++; setWrong(sq); play('error'); haptic(30); onMistake(); setTimeout(() => setWrong(null), 500); }
+          else { errs.current++; setWrong(sq); play('error'); onMistake(); setTimeout(() => setWrong(null), 500); }
         }} />
-      <div class={'feedback ' + (done ? 'solved' : 'play')}>{done ? '🎉 Parfait !' : `👆 Touche les cases (${sel.length}/${squares.length})`}</div>
+      <div class={'feedback ' + (done ? 'solved' : 'play')}>{done ? <span><Icon name="sparkles" size={20} />Parfait.</span> : <span><Icon name="hand" size={20} />{`Touche les bonnes cases (${sel.length} sur ${squares.length})`}</span>}</div>
     </div>
   );
 }
@@ -55,7 +56,7 @@ export function Quiz({ options, answer, onDone, onMistake, success }: { options:
           <span class="quiz-letter">{'ABCD'[i]}</span>{o}
         </button>
       ))}
-      {done && success && <p class="quiz-success">✅ {success}</p>}
+      {done && success && <p class="quiz-success"><Icon name="checkCircle" size={20} />{success}</p>}
     </div>
   );
 }
@@ -95,8 +96,8 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
       <div class={'feedback ' + (state === 'won' ? 'solved' : state === 'lost' ? 'wrong' : 'play')}>
         {state === 'play' && `À toi · coup ${n + 1}${result !== 'draw' ? ` / ${maxMoves}` : ` · tiens ${maxMoves} coups`}`}
         {state === 'think' && '🤖 Le moteur réfléchit…'}
-        {state === 'won' && '🎉 ' + msg}
-        {state === 'lost' && '❌ ' + msg}
+        {state === 'won' && <span><Icon name="sparkles" size={20} />{msg}</span>}
+        {state === 'lost' && <span><Icon name="xCircle" size={20} />{msg}</span>}
       </div>
     </div>
   );

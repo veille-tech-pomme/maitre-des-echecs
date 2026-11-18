@@ -1,16 +1,19 @@
+import { useState } from 'preact/hooks';
 import { useStore, levelFromXp, streakAlive, today } from '../lib/store';
 import { dailyPlan, nextLesson, weaknesses } from '../lib/plan';
 import { LESSONS, LEVELS } from '../data/lessons';
-import { Progress, Ring, LineChart } from '../components/ui';
+import { Progress, LargeTitle } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { usePremium } from '../lib/entitlements';
 import { trialBanner, dismissTrialBanner } from '../lib/notify';
-import { useState } from 'preact/hooks';
 import { isDue } from '../lib/srs';
+import { LEVEL_VIS, planIcon } from '../lib/visual';
 
 export function Home() {
   const s = useStore((x) => x);
   const ent = usePremium();
   const [, f] = useState(0);
+  const [more, setMore] = useState(false);
   const lvl = levelFromXp(s.xp);
   const plan = dailyPlan(s);
   const nl = nextLesson(s);
@@ -21,78 +24,86 @@ export function Home() {
   const hour = new Date().getHours();
   const hello = hour < 6 ? 'Bonne nuit' : hour < 18 ? 'Bonjour' : 'Bonsoir';
   const planDone = plan.filter((p) => p.done).length;
+  const streak = streakAlive(s) ? s.streak.count : 0;
+  const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const nlLevel = nl && LEVELS.find((l) => l.id === nl.level)!;
+  const levelLessons = nl ? LESSONS.filter((l) => l.level === nl.level) : [];
+  const levelDone = levelLessons.filter((l) => s.lessons[l.id]?.done).length;
+  const firstOpen = plan.find((p) => !p.done);
   return (
     <div class="page home">
+      <LargeTitle eyebrow={date} title={`${hello}${s.settings.name ? ', ' + s.settings.name : ''}`}
+        right={<a class="streak-btn" href="#/profile" aria-label={`Série : ${streak} jour${streak > 1 ? 's' : ''}`}><Icon name="flame" size={20} class={streak ? 'lit' : ''} /><b class="tnum">{streak}</b></a>} />
       {tb && (
-        <div class="banner warn">
-          <span>⏰ Ton essai gratuit se termine le <b>{new Date(tb.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</b>. Ensuite : 29,99 €/an. Tu peux annuler à tout moment.</span>
-          <div class="row"><a class="btn small" href="#/premium">Gérer</a><button class="btn small ghost" onClick={() => { dismissTrialBanner(); f((x) => x + 1); }}>OK</button></div>
+        <div class="banner">
+          <Icon name="clock" size={20} />
+          <span>Ton essai se termine le <b>{new Date(tb.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</b>. Ensuite 29,99 €/an, annulable à tout moment.</span>
+          <div class="row"><a class="btn small tinted" href="#/premium">Gérer</a><button class="btn small plain" onClick={() => { dismissTrialBanner(); f((x) => x + 1); }}>OK</button></div>
         </div>
       )}
-      <header class="hero">
-        <div>
-          <p class="muted">{hello}{s.settings.name ? `, ${s.settings.name}` : ''} 👋</p>
-          <h1>Prêt·e à progresser ?</h1>
-        </div>
-        <div class="hero-stats">
-          <div class={'chip streak ' + (streakAlive(s) && s.streak.count ? 'on' : '')} title="Série de jours"><span>🔥</span><b>{streakAlive(s) ? s.streak.count : 0}</b></div>
-          <div class="chip" title="Niveau"><span>⭐</span><b>Niv. {lvl.level}</b></div>
-          {ent.premium && <div class="chip gold"><span>👑</span><b>Premium</b></div>}
-        </div>
-      </header>
-      <div class="xpbar"><Progress value={lvl.into / lvl.need} /><span class="muted small">{lvl.into} / {lvl.need} XP</span></div>
 
-      <section class="card plan-card">
-        <div class="card-head"><h2>🎯 Ton plan du jour</h2><Ring value={plan.length ? planDone / plan.length : 0} size={44} label={<small>{planDone}/{plan.length}</small>} /></div>
-        <ul class="plan-list">
-          {plan.map((p) => (
-            <li class={p.done ? 'done' : ''}><a href={p.route}><span class="plan-icon">{p.done ? '✅' : p.icon}</span><span><b>{p.title}</b><small>{p.why}</small></span><span class="chev">›</span></a></li>
-          ))}
-        </ul>
-      </section>
-
-      <div class="grid2">
-        {nl && (
-          <a class="card continue" href={`#/lesson/${nl.id}`} style={{ '--c': LEVELS.find((l) => l.id === nl.level)!.color } as any}>
-            <small class="muted">Continuer le parcours · {LEVELS.find((l) => l.id === nl.level)!.name}</small>
-            <div class="continue-row"><span class="big-icon">{nl.icon}</span><div><h3>{nl.title}</h3><p class="muted">{nl.summary}</p></div></div>
-            <Progress value={doneCount / LESSONS.length} /><small class="muted">{doneCount}/{LESSONS.length} leçons terminées</small>
-          </a>
-        )}
-        <a class="card stat-card" href="#/puzzles">
-          <small class="muted">Classement puzzles</small>
-          <div class="stat-big">{s.puzzle.rating}</div>
-          <LineChart points={s.puzzle.history.slice(-30).map((h) => h.r)} height={70} />
-          <small class="muted">{s.puzzle.solved} résolus · série record {s.puzzle.bestStreak}</small>
+      {nl && nlLevel ? (
+        <a class="hero-card" href={`#/lesson/${nl.id}`}>
+          <span class="hc-art" aria-hidden="true"><Icon name={LEVEL_VIS[nl.level]?.icon || 'king'} size={150} stroke={1.2} /></span>
+          <span class="hc-eyebrow">{doneCount ? 'Continuer' : 'Ta première leçon'} · {nlLevel.name}</span>
+          <h2>{nl.title}</h2>
+          <p>{nl.summary}</p>
+          <span class="btn primary"><Icon name="playIcon" size={18} />{doneCount ? 'Continuer' : 'Commencer'}</span>
+          <span class="hc-meta"><Icon name="clock" size={15} />{nl.minutes} min<span aria-hidden="true">·</span><span class="grow"><Progress value={levelDone / Math.max(1, levelLessons.length)} /></span>{levelDone}/{levelLessons.length}</span>
         </a>
+      ) : (
+        <a class="hero-card" href="#/play">
+          <span class="hc-eyebrow">Parcours terminé</span><h2>Bravo, tu as tout appris.</h2><p>Mets ton savoir à l’épreuve face à un bot.</p>
+          <span class="btn primary"><Icon name="play" size={18} />Jouer</span>
+        </a>
+      )}
+
+      <div class="stat-strip">
+        <a class="stat-tile" href="#/profile" style={{ '--c': '#FF9F0A' } as any}><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{streak}</b><small>{streak > 1 ? 'jours d’affilée' : streak ? 'jour' : 'Joue aujourd’hui'}</small></a>
+        <a class="stat-tile" href="#/profile" style={{ '--c': '#F2B544' } as any}><span class="st-top"><Icon name="star" size={13} />Niveau</span><b>{lvl.level}</b><small>{lvl.into}/{lvl.need} XP</small></a>
+        <a class="stat-tile" href="#/puzzles" style={{ '--c': '#0A84FF' } as any}><span class="st-top"><Icon name="puzzle" size={13} />Puzzles</span><b>{s.puzzle.rating}</b><small>{s.puzzle.solved} résolus</small></a>
       </div>
 
-      <section class="quick">
-        <a class="qa" href="#/puzzles/daily"><span>📅</span>Puzzle du jour{s.daily[today()] && <em>✓</em>}</a>
-        <a class="qa" href="#/puzzles/rush"><span>⏱️</span>Contre la montre</a>
-        <a class="qa" href="#/puzzles/battle"><span>⚔️</span>Duel de puzzles</a>
-        <a class="qa" href="#/play"><span>🤖</span>Jouer un bot</a>
-        <a class="qa" href="#/train"><span>🏋️</span>Entraînement</a>
-        <a class="qa" href="#/review"><span>🔁</span>Révisions{due > 0 && <em class="badge-n">{due}</em>}</a>
-        <a class="qa" href="#/openings"><span>📖</span>Ouvertures</a>
-        <a class="qa" href="#/endgames"><span>♔</span>Finales</a>
-        <a class="qa" href="#/analysis"><span>🔬</span>Analyse</a>
-        <a class="qa" href="#/profile"><span>🏅</span>Badges</a>
+      <section class="plan-card">
+        <div class="section-title"><h2>Ton plan du jour</h2><span class="pill tnum">{planDone}/{plan.length}</span></div>
+        <div class="list">
+          {plan.map((p) => {
+            const v = planIcon(p.id);
+            return (
+              <a class={'item ' + (p.done ? 'done' : '') + (p === firstOpen ? ' next' : '')} href={p.route}>
+                <span class="it-icon" style={{ '--c': v.color } as any}><Icon name={v.icon} size={18} stroke={2.2} /></span>
+                <span class="it-main"><span class="it-title">{p.title}</span><span class="it-sub">{p.why}</span></span>
+                <span class="plan-check" aria-label={p.done ? 'Fait' : 'À faire'}>{p.done && <Icon name="check" size={15} stroke={3} />}</span>
+              </a>
+            );
+          })}
+        </div>
       </section>
 
+      <div class="section-title"><h2>Raccourcis</h2></div>
+      <div class="tiles">
+        <a class="tile" href="#/puzzles/daily"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{s.daily[today()] && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Puzzle du jour</b><small>Un défi par jour</small></a>
+        <a class="tile" href="#/puzzles/rush"><span class="tl-icon" style="--c:#FF9F0A"><Icon name="timer" size={20} /></span><b>Contre la montre</b><small>3 minutes, 3 vies</small></a>
+        <a class="tile" href="#/review"><span class="tl-icon" style="--c:#5E5CE6"><Icon name="repeat" size={20} /></span>{due > 0 && <span class="tl-badge badge-n">{due}</span>}<b>Révisions</b><small>{due ? `${due} à revoir` : 'Tout est à jour'}</small></a>
+        <a class="tile" href="#/analysis"><span class="tl-icon" style="--c:#64D2FF"><Icon name="microscope" size={20} /></span><b>Analyse</b><small>Stockfish 18</small></a>
+      </div>
+
       {weak.length > 0 && (
-        <section class="card">
-          <div class="card-head"><h2>🩺 Tes points à travailler</h2><a class="small" href="#/profile">Détails</a></div>
-          <ul class="weak-list">
-            {weak.map((w) => <li><a href={w.route}><b>{w.label}</b><small class="muted">{w.evidence}</small><span class="chev">›</span></a></li>)}
-          </ul>
+        <section>
+          <div class="section-title"><h2>À travailler</h2>{weak.length > 1 && <button class="btn plain small" onClick={() => setMore(!more)} aria-expanded={more}>{more ? 'Moins' : 'Tout voir'}</button>}</div>
+          <div class="list">
+            {(more ? weak : weak.slice(0, 1)).map((w) => (
+              <a class="item" href={w.route}><span class="it-icon" style="--c:#FF453A"><Icon name="target" size={18} /></span><span class="it-main"><span class="it-title">{w.label}</span><span class="it-sub">{w.evidence}</span></span><Icon name="right" size={18} class="chev" stroke={2.4} /></a>
+            ))}
+          </div>
         </section>
       )}
+
       {!ent.premium && (
         <a class="card promo" href="#/premium">
-          <span class="big-icon">👑</span>
-          <div><b>Ta progression est gratuite, pour toujours.</b><p class="muted small">Premium ajoute le niveau Expert, les parties légendaires commentées, le coach approfondi et ton répertoire personnel. 7 jours gratuits.</p></div>
-          <span class="chev">›</span>
+          <span class="lock-icon"><Icon name="crown" size={22} /></span>
+          <div class="grow"><b>Passe au niveau Expert</b><p class="muted">Grandes parties commentées, coach approfondi, répertoire. 7 jours offerts.</p></div>
+          <Icon name="right" size={18} class="chev" stroke={2.4} />
         </a>
       )}
     </div>

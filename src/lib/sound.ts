@@ -23,7 +23,9 @@ function tone(c: AudioContext, t: number, freq: number, dur: number, gain = 0.12
   o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
 }
 export type SoundName = 'move' | 'capture' | 'check' | 'castle' | 'success' | 'error' | 'win' | 'lose' | 'notify' | 'tick' | 'promote';
+const HAPTIC: Partial<Record<SoundName, number | number[]>> = { error: 35, success: [10, 50, 14], win: [16, 60, 16, 60, 24], lose: 60 };
 export function play(name: SoundName) {
+  const h = HAPTIC[name]; if (h) haptic(h);
   if (!enabled) return; const c = ac(); if (!c) return; const t = c.currentTime + 0.005;
   switch (name) {
     case 'move': knock(c, t, 1800, 0.9); break;
@@ -46,4 +48,4 @@ export function playForMove(m: { san: string; captured?: string; flags?: string 
   else if (m.captured) play('capture');
   else play('move');
 }
-export function haptic(ms = 10) { try { navigator.vibrate?.(ms); } catch {} }
+export function haptic(ms: number | number[] = 10) { try { navigator.vibrate?.(ms); } catch {} }

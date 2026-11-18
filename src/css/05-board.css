@@ -1,0 +1,46 @@
+/* ===== Échiquier ===== */
+.board-wrap { position: relative; width: 100%; max-width: min(720px, calc(100dvh - 210px)); margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.board-sq { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
+.cg-host { position: absolute; inset: 0; }
+cg-board { background-color: var(--sq-light); background-image: repeating-conic-gradient(var(--sq-dark) 0 25%, var(--sq-light) 0 50%); background-size: 25% 25%; }
+cg-board square.last-move { background-color: rgba(242, 181, 68, .42); }
+cg-board square.selected { background-color: rgba(242, 181, 68, .6); }
+cg-board square.move-dest { background: radial-gradient(rgba(11, 12, 16, .26) 18%, transparent 20%); }
+cg-board square.move-dest:hover { background: rgba(242, 181, 68, .35); }
+cg-board square.oc.move-dest { background: radial-gradient(transparent 0%, transparent 78%, rgba(11, 12, 16, .26) 80%); }
+cg-board square.premove-dest { background: radial-gradient(rgba(20, 30, 80, .4) 19%, transparent 21%); }
+cg-board square.check { background: radial-gradient(ellipse at center, rgba(255, 69, 58, 1) 0%, rgba(255, 69, 58, .9) 25%, rgba(255, 69, 58, 0) 89%); }
+cg-board square.current-premove { background-color: rgba(20, 30, 85, .5); }
+cg-board square.star { background: radial-gradient(circle, rgba(242, 181, 68, .95) 0 22%, transparent 24%); }
+cg-board square.star::after { content: '★'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 2.4vmin; text-shadow: 0 0 3px rgba(0, 0, 0, .4); }
+cg-board square.picked { background-color: rgba(48, 209, 88, .5); }
+cg-board square.wrong { background-color: rgba(255, 69, 58, .62); animation: shake .32s; }
+cg-board square.right { background-color: rgba(48, 209, 88, .58); }
+cg-board square[class*='cls-'] { background-color: var(--clsc, rgba(242, 181, 68, .4)); }
+cg-board square.cls-brilliant { --clsc: rgba(64, 200, 224, .6); } cg-board square.cls-great { --clsc: rgba(10, 132, 255, .5); }
+cg-board square.cls-best, cg-board square.cls-book { --clsc: rgba(48, 209, 88, .5); } cg-board square.cls-excellent { --clsc: rgba(48, 209, 88, .4); }
+cg-board square.cls-good { --clsc: rgba(150, 175, 139, .45); } cg-board square.cls-inaccuracy { --clsc: rgba(255, 214, 10, .5); }
+cg-board square.cls-mistake { --clsc: rgba(255, 159, 10, .58); } cg-board square.cls-miss { --clsc: rgba(255, 105, 97, .55); } cg-board square.cls-blunder { --clsc: rgba(255, 69, 58, .62); }
+.cg-wrap coords { font-size: clamp(9px, 2.6vmin, 12px); font-weight: 700; opacity: 1; }
+.cg-wrap coords.ranks { left: 2px; top: 1px; } .cg-wrap coords.files { bottom: 0; left: 0; text-transform: lowercase; }
+.cg-wrap coords coord { text-shadow: none; }
+.cg-wrap coords coord:nth-child(odd) { color: var(--sq-light); } .cg-wrap coords coord:nth-child(even) { color: var(--sq-dark); }
+.cg-wrap coords.black coord:nth-child(odd) { color: var(--sq-dark); } .cg-wrap coords.black coord:nth-child(even) { color: var(--sq-light); }
+.cg-wrap coords.files coord { padding-left: 3px; text-align: left; }
+.cg-wrap piece { background-size: cover; }
+.board-wrap.solved .board-sq { animation: glow 1s var(--ease); }
+@keyframes glow { 0% { box-shadow: 0 0 0 0 rgba(48,209,88,.8); } 100% { box-shadow: 0 0 0 14px rgba(48,209,88,0); } }
+.promo-overlay { position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: grid; place-items: center; border-radius: 6px; animation: fade .2s; }
+.promo-box { display: flex; gap: 8px; background: var(--surface); padding: 10px; border-radius: 20px; box-shadow: var(--shadow-lg); animation: pop .25s var(--spring); }
+.promo-piece { position: relative; width: clamp(56px, 16vw, 80px); height: clamp(56px, 16vw, 80px); border-radius: 14px; border: 0; background: var(--surface-2); cursor: pointer; padding: 0; }
+.promo-piece:hover { background: var(--gold-soft); }
+.promo-piece piece { position: absolute; inset: 0; width: 100%; height: 100%; background-size: cover; transform: none !important; }
+.preview-board { max-width: 280px; margin: 8px 0; } .preview-board .board-wrap { max-width: 280px; }
+.evalbar { position: relative; width: 10px; border-radius: 5px; overflow: hidden; background: #3A3A3C; flex-shrink: 0; align-self: stretch; }
+.evalbar-white { position: absolute; left: 0; right: 0; bottom: 0; background: #F5F5F7; transition: height .5s var(--ease); }
+.evalbar.flip { transform: rotate(180deg); } .evalbar.flip .evalbar-label { transform: rotate(180deg); }
+.evalbar-label { display: none; }
+.eval-chip { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; padding: 4px 10px; border-radius: 8px; background: var(--surface-2); }
+.board-col.with-eval { display: grid; grid-template-columns: 10px minmax(0, 1fr); column-gap: 6px; row-gap: 6px; }
+.with-eval > .evalbar { grid-column: 1; grid-row: 1; }
+.with-eval > :not(.evalbar) { grid-column: 2; }

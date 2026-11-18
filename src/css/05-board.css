@@ -1,6 +1,7 @@
 /* ===== Échiquier ===== */
 .board-wrap { position: relative; width: 100%; max-width: min(720px, calc(100dvh - 210px)); margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; }
-.board-sq { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
+.board-sq { --board-r: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--board-r); overflow: hidden; clip-path: inset(0 round var(--board-r)); }
+@media (min-width: 760px) { .board-sq { --board-r: 12px; } }
 .cg-host { position: absolute; inset: 0; }
 cg-board { background-color: var(--sq-light); background-image: repeating-conic-gradient(var(--sq-dark) 0 25%, var(--sq-light) 0 50%); background-size: 25% 25%; }
 cg-board square.last-move { background-color: rgba(242, 181, 68, .42); }

@@ -4,7 +4,8 @@
 .side, .lesson-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 @media (max-width: 759px) {
   .app.focus .board-wrap { width: calc(100% + 2 * var(--gutter)); max-width: none; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); }
-  .app.focus .board-wrap .board-sq, .app.focus .promo-overlay { border-radius: 0; }
+  .app.focus .board-wrap .board-sq { --board-r: 0px; }
+  .app.focus .promo-overlay { border-radius: 0; }
   .app.focus .card .board-wrap, .app.focus .preview-board .board-wrap, .app.focus .ob-art .board-wrap { width: 100%; margin: 0; }
   .app.focus .with-eval { margin: 0 calc(-1 * var(--gutter)); grid-template-columns: 8px minmax(0, 1fr) !important; column-gap: 0 !important; }
   .app.focus .with-eval .board-wrap { width: 100%; margin: 0; }
@@ -105,3 +106,12 @@ button.bot-card { border: 0; font: inherit; cursor: pointer; }
 @keyframes bubble-life { 0% { opacity: 0; transform: translateY(-4px) scale(.96); } 6% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 .reduce-motion .board-col > .bubble { position: static; margin-bottom: 4px; }
 @media (prefers-reduced-motion: reduce) { .board-col > .bubble { position: static; margin-bottom: 4px; } }
+/* Petits écrans (iPhone SE) : l’échiquier cède un peu de hauteur pour garder consigne et bouton visibles */
+@media (max-width: 759px) and (max-height: 600px) {
+  .app.focus .lesson .board-wrap, .app.focus .puzzle-session .board-wrap { width: min(100%, calc(100dvh - 270px)); margin-left: auto; margin-right: auto; }
+  .app.focus .lesson .board-wrap .board-sq, .app.focus .puzzle-session .board-wrap .board-sq { --board-r: 10px; }
+  .lesson-side h2 { font-size: 20px; line-height: 25px; } .lesson-side .md { font-size: 16px; line-height: 22px; }
+  .game-top, .lesson-top { height: 44px; }
+}
+@media (min-width: 760px) { .side > .actionbar { order: -1; } .play-grid, .lesson-grid, .analysis-grid { margin-top: 4px; } }
+@media (min-width: 1024px) { .game-top { max-width: 100%; } }

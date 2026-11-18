@@ -29,7 +29,7 @@ import { ReviewHub } from './pages/Review';
 import { isNative } from './lib/platform';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
-  { href: '#/', icon: 'today', label: 'Aujourd’hui', match: (p) => p.length === 0 },
+  { href: '#/', icon: 'today', label: 'Accueil', match: (p) => p.length === 0 },
   { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire'].includes(p[0]) },
   { href: '#/puzzles', icon: 'puzzle', label: 'Puzzles', match: (p) => ['puzzles', 'review'].includes(p[0]) },
   { href: '#/play', icon: 'play', label: 'Jouer', match: (p) => ['play', 'game', 'analysis'].includes(p[0]) },

@@ -41,3 +41,6 @@ main { padding: calc(var(--safe-t) + 8px) calc(var(--safe-r) + var(--gutter)) ca
 .section-label { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 500; margin: 24px 16px 8px; }
 .section-label:first-child { margin-top: 0; }
 .section-title.first { margin-top: 0; }
+.tabbar a { font-size: 10px; font-weight: 500; letter-spacing: -.01em; white-space: nowrap; min-width: 0; }
+.tabbar a.on { font-weight: 600; }
+.lt h1 { font-size: clamp(28px, 8.4vw, 34px); line-height: 1.18; }

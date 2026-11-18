@@ -32,6 +32,7 @@ export function Home() {
   const firstOpen = plan.find((p) => !p.done);
   return (
     <div class="page home">
+      <div class="home-grid">
       <LargeTitle eyebrow={date} title={`${hello}${s.settings.name ? ', ' + s.settings.name : ''}`}
         right={<a class="streak-btn" href="#/profile" aria-label={`Série : ${streak} jour${streak > 1 ? 's' : ''}`}><Icon name="flame" size={20} class={streak ? 'lit' : ''} /><b class="tnum">{streak}</b></a>} />
       {tb && (
@@ -44,7 +45,7 @@ export function Home() {
 
       {nl && nlLevel ? (
         <a class="hero-card" href={`#/lesson/${nl.id}`}>
-          <span class="hc-art" aria-hidden="true"><Icon name={LEVEL_VIS[nl.level]?.icon || 'king'} size={150} stroke={1.2} /></span>
+          <span class="hc-art" aria-hidden="true"><Icon name={LEVEL_VIS[nl.level]?.icon || 'king'} size={128} stroke={1.2} /></span>
           <span class="hc-eyebrow">{doneCount ? 'Continuer' : 'Ta première leçon'} · {nlLevel.name}</span>
           <h2>{nl.title}</h2>
           <p>{nl.summary}</p>
@@ -59,7 +60,7 @@ export function Home() {
       )}
 
       <div class="stat-strip">
-        <a class="stat-tile" href="#/profile" style={{ '--c': '#FF9F0A' } as any}><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{streak}</b><small>{streak > 1 ? 'jours d’affilée' : streak ? 'jour' : 'Joue aujourd’hui'}</small></a>
+        <a class="stat-tile" href="#/profile" style={{ '--c': '#FF9F0A' } as any}><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{streak}</b><small>{streak > 1 ? 'jours' : streak ? 'jour' : 'à lancer'}</small></a>
         <a class="stat-tile" href="#/profile" style={{ '--c': '#F2B544' } as any}><span class="st-top"><Icon name="star" size={13} />Niveau</span><b>{lvl.level}</b><small>{lvl.into}/{lvl.need} XP</small></a>
         <a class="stat-tile" href="#/puzzles" style={{ '--c': '#0A84FF' } as any}><span class="st-top"><Icon name="puzzle" size={13} />Puzzles</span><b>{s.puzzle.rating}</b><small>{s.puzzle.solved} résolus</small></a>
       </div>
@@ -80,6 +81,7 @@ export function Home() {
         </div>
       </section>
 
+      <section class="hs-tiles">
       <div class="section-title"><h2>Raccourcis</h2></div>
       <div class="tiles">
         <a class="tile" href="#/puzzles/daily"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{s.daily[today()] && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Puzzle du jour</b><small>Un défi par jour</small></a>
@@ -87,9 +89,10 @@ export function Home() {
         <a class="tile" href="#/review"><span class="tl-icon" style="--c:#5E5CE6"><Icon name="repeat" size={20} /></span>{due > 0 && <span class="tl-badge badge-n">{due}</span>}<b>Révisions</b><small>{due ? `${due} à revoir` : 'Tout est à jour'}</small></a>
         <a class="tile" href="#/analysis"><span class="tl-icon" style="--c:#64D2FF"><Icon name="microscope" size={20} /></span><b>Analyse</b><small>Stockfish 18</small></a>
       </div>
+      </section>
 
       {weak.length > 0 && (
-        <section>
+        <section class="hs-weak">
           <div class="section-title"><h2>À travailler</h2>{weak.length > 1 && <button class="btn plain small" onClick={() => setMore(!more)} aria-expanded={more}>{more ? 'Moins' : 'Tout voir'}</button>}</div>
           <div class="list">
             {(more ? weak : weak.slice(0, 1)).map((w) => (
@@ -100,12 +103,13 @@ export function Home() {
       )}
 
       {!ent.premium && (
-        <a class="card promo" href="#/premium">
+        <a class="card promo hs-promo" href="#/premium">
           <span class="lock-icon"><Icon name="crown" size={22} /></span>
           <div class="grow"><b>Passe au niveau Expert</b><p class="muted">Grandes parties commentées, coach approfondi, répertoire. 7 jours offerts.</p></div>
           <Icon name="right" size={18} class="chev" stroke={2.4} />
         </a>
       )}
+      </div>
     </div>
   );
 }

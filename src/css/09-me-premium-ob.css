@@ -55,7 +55,7 @@
 .ob-body { flex: 1; display: flex; flex-direction: column; justify-content: center; animation: enter .4s var(--ease); padding: 12px 0; }
 .ob h1 { font-size: 34px; line-height: 40px; letter-spacing: -.035em; margin: 26px 0 10px; } .ob .lead { font-size: 17px; color: var(--text-2); line-height: 24px; margin: 0; }
 .ob-art { width: 78%; max-width: 300px; margin: 0 auto; border-radius: 22px; overflow: hidden; box-shadow: var(--shadow-lg), 0 0 0 .5px rgba(255,255,255,.1); transform: rotate(-5deg); animation: bounce .7s var(--spring); }
-.ob-art .board-wrap { max-width: none; } .ob-art .board-sq { border-radius: 0; }
+.ob-art .board-wrap { max-width: none; } .ob-art .board-sq { --board-r: 0px; }
 .ob-mark { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, var(--gold-2), var(--gold) 60%, #C98A1B); color: var(--on-gold); box-shadow: 0 16px 40px rgba(242,181,68,.3); }
 .ob-feats { display: flex; flex-direction: column; gap: 16px; margin: 28px 0 0; }
 .ob-actions { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; } .ob-actions .btn { width: 100%; }

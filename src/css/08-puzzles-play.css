@@ -29,14 +29,14 @@
 .bot-avatar.big { width: 100px; height: 100px; margin: 0 auto; } .bot-avatar.sm { width: 32px; height: 32px; }
 .elo { font-weight: 600; color: var(--text-2); font-size: 14px; font-variant-numeric: tabular-nums; }
 .bot-svg { display: inline-block; flex: none; border-radius: 50%; vertical-align: middle; }
-.bot-row { display: flex; gap: 12px; overflow-x: auto; margin: 0 calc(-1 * var(--gutter)) 8px; padding: 2px var(--gutter) 6px; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.bot-row { display: flex; gap: 12px; overflow-x: auto; scroll-padding-inline: var(--gutter); margin: 0 calc(-1 * var(--gutter)) 8px; padding: 2px var(--gutter) 6px; scrollbar-width: none; scroll-snap-type: x mandatory; }
 .bot-row::-webkit-scrollbar { display: none; }
 .bot-row .bot-card { flex: none; width: 132px; scroll-snap-align: start; }
 .bot-hero { text-align: center; padding: 8px 0 20px; } .bot-hero h1 { font-size: 28px; margin: 14px 0 4px; } .bot-hero p { color: var(--text-2); max-width: 460px; margin: 0 auto 4px; }
 .bot-hero .bh-style { font-weight: 600; color: var(--tint); font-size: 15px; }
 .color-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 20px; }
-.color-opt { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px 12px; border-radius: var(--r); background: var(--surface); border: 0; cursor: pointer; color: var(--text); font-weight: 600; font-size: 15px; box-shadow: var(--shadow); transition: transform .12s, box-shadow .2s; }
-.color-opt:active { transform: scale(.96); } .color-opt.on { box-shadow: inset 0 0 0 2.5px var(--gold), var(--shadow); }
+.color-opt { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px 12px; border-radius: var(--r); background: var(--surface); border: 0; cursor: pointer; color: var(--text); font-weight: 600; font-size: 15px; box-shadow: var(--shadow); transition: transform .12s, background .2s; }
+.color-opt:active { transform: scale(.96); } .color-opt.on { background: color-mix(in srgb, var(--gold) 14%, var(--surface)); box-shadow: inset 0 0 0 2px var(--gold); }
 .color-opt .kq { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; }
 .color-opt .kq.w { background: #F5F5F7; color: #0B0C10; } .color-opt .kq.b { background: #1C1C1E; color: #F5F5F7; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); } .color-opt .kq.r { background: linear-gradient(135deg, #F5F5F7 50%, #1C1C1E 50%); color: var(--gold); }
 .res { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 700; color: #fff; flex-shrink: 0; font-size: 14px; }

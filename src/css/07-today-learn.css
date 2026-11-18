@@ -45,7 +45,7 @@
 .node-text { display: flex; flex-direction: column; min-width: 0; flex: 1; } .node-text b { font-weight: 600; font-size: 16px; } .node-text small { color: var(--text-2); line-height: 1.35; font-size: 13px; }
 .stars { color: var(--gold); display: inline-flex; gap: 1px; vertical-align: -2px; } .stars .off { color: var(--surface-3); }
 .lvl-row, .cls-bar { display: grid; grid-template-columns: minmax(110px, 1fr) 2fr 52px; align-items: center; gap: 10px; margin: 8px 0; font-size: 15px; } .lvl-row small, .cls-bar small { text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
-.course-scroll { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 66%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)) 8px; padding: 0 var(--gutter) 4px; scroll-padding: 0 var(--gutter); scrollbar-width: none; }
+.course-scroll { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 66%); gap: 10px; overflow-x: auto; scroll-padding-inline: var(--gutter); scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)) 8px; padding: 0 var(--gutter) 4px; scroll-padding: 0 var(--gutter); scrollbar-width: none; }
 .course-scroll::-webkit-scrollbar { display: none; }
 @media (min-width: 760px) { .course-scroll { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); overflow: visible; margin: 0 0 8px; padding: 0; } }
 .course-card { scroll-snap-align: start; position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: var(--r-lg); color: #fff; min-height: 172px; background: linear-gradient(155deg, color-mix(in srgb, var(--c) 88%, #fff 12%), color-mix(in srgb, var(--c) 58%, #000 42%)); overflow: hidden; transition: transform .15s var(--ease); }
@@ -87,10 +87,11 @@
 .item.is-done .it-title { color: var(--text-2); }
 @media (min-width: 1024px) {
   .home-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); column-gap: 24px; align-items: start;
-    grid-template-areas: "lt lt" "banner banner" "hero plan" "stats plan" "tiles plan" "tiles weak" "tiles promo" ". promo"; }
+    grid-template-areas: "lt lt" "banner banner" "hero plan" "stats plan" "tiles weak" "promo weak"; }
   .home-grid > .lt { grid-area: lt; } .home-grid > .banner { grid-area: banner; } .home-grid > .hero-card { grid-area: hero; }
   .home-grid > .stat-strip { grid-area: stats; } .home-grid > .plan-card { grid-area: plan; } .home-grid > .hs-tiles { grid-area: tiles; }
-  .home-grid > .hs-weak { grid-area: weak; } .home-grid > .hs-promo { grid-area: promo; margin-top: 12px; }
+  .home-grid > .hs-weak { grid-area: weak; } .home-grid > .hs-promo { grid-area: promo; margin-top: 16px; }
+  .home-grid > .hs-weak .section-title { margin-top: 0; } .home-grid > .hs-weak { margin-top: 28px; }
   .home-grid > .plan-card .section-title { margin-top: 0; }
   .home .hs-tiles .tiles { grid-template-columns: repeat(2, 1fr); }
   .hero-card { padding: 28px 28px 24px; min-height: 250px; } .hero-card h2 { font-size: 32px; line-height: 38px; }

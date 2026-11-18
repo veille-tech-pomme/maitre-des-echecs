@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
 import { PlayGoal } from '../components/Exercises';
-import { Progress, toast } from '../components/ui';
+import { Progress, toast, NavBar, Item } from '../components/ui';
+import { Icon, type IconName } from '../components/Icon';
 import { Chess, tryMove, legalDests, turnColor, isPromotion, sanFr, moveToUci, type Move } from '../lib/chess';
 import { useStore, setState, addXp } from '../lib/store';
 import { engine, whiteScore } from '../lib/engine';
@@ -17,31 +18,32 @@ const saveBest = (k: string, v: Record<string, number>) => setState((s) => { con
 export function TrainingHub() {
   const t = useStore((s) => s.training || {});
   const modes = [
-    { href: '#/train/coords', icon: '🧭', title: 'Coordonnées', desc: 'Trouve un maximum de cases en 30 secondes.', stat: t.coords?.best ? `Record : ${t.coords.best}` : '' },
-    { href: '#/train/name', icon: '🔤', title: 'Nomme la case', desc: 'Une case s’allume : quel est son nom ?', stat: t.name?.best ? `Record : ${t.name.best}` : '' },
-    { href: '#/train/vision', icon: '👁️', title: 'Vision du cavalier', desc: 'Combien de coups faut-il au cavalier pour atteindre la case ?', stat: t.vision?.best ? `Record : ${t.vision.best}` : '' },
-    { href: '#/train/memory', icon: '🧠', title: 'Rejoue la position', desc: 'Mémorise une position puis reconstruis-la de tête.', stat: t.memory?.best ? `Meilleur niveau : ${t.memory.best}` : '' },
-    { href: '#/train/mates', icon: '♚', title: 'Mats contre l’ordinateur', desc: 'Mat en 2 à 5 coups : le moteur défend au mieux.', stat: t.mates?.solved ? `${t.mates.solved} mats réussis` : '' },
-    { href: '#/train/guess', icon: '🎩', title: 'Devine le coup', desc: 'Joue à la place des champions du monde, coup par coup.', stat: t.guess?.best ? `Record : ${t.guess.best} %` : '' },
+    { href: '#/train/coords', icon: 'grid' as IconName, color: '#0A84FF', title: 'Coordonnées', desc: 'Trouve un maximum de cases en 30 secondes.', stat: t.coords?.best ? `Record : ${t.coords.best}` : '' },
+    { href: '#/train/name', icon: 'hash' as IconName, color: '#5E5CE6', title: 'Nomme la case', desc: 'Une case s’allume : quel est son nom ?', stat: t.name?.best ? `Record : ${t.name.best}` : '' },
+    { href: '#/train/vision', icon: 'play' as IconName, color: '#30A46C', title: 'Vision du cavalier', desc: 'Combien de coups faut-il au cavalier pour atteindre la case ?', stat: t.vision?.best ? `Record : ${t.vision.best}` : '' },
+    { href: '#/train/memory', icon: 'brain' as IconName, color: '#BF5AF2', title: 'Rejoue la position', desc: 'Mémorise une position puis reconstruis-la de tête.', stat: t.memory?.best ? `Meilleur niveau : ${t.memory.best}` : '' },
+    { href: '#/train/mates', icon: 'king' as IconName, color: '#FF453A', title: 'Mats contre l’ordinateur', desc: 'Mat en 2 à 5 coups : le moteur défend au mieux.', stat: t.mates?.solved ? `${t.mates.solved} mats réussis` : '' },
+    { href: '#/train/guess', icon: 'trophy' as IconName, color: '#F2B544', title: 'Devine le coup', desc: 'Joue à la place des champions du monde, coup par coup.', stat: t.guess?.best ? `Record : ${t.guess.best} %` : '' },
   ];
   return (
     <div class="page">
-      <h1>🏋️ Entraînement</h1>
-      <p class="muted">Des exercices courts pour la vision de l’échiquier, la mémoire et le calcul. Tous gratuits.</p>
-      <div class="opening-grid">{modes.map((m) => <a class="opening-card" href={m.href}><span class="side-dot">{m.icon}</span><b>{m.title}</b><small class="muted">{m.desc}</small>{m.stat && <small class="ok">{m.stat}</small>}</a>)}</div>
+      <NavBar back="#/learn" backLabel="Apprendre" />
+      <h1 class="page-title">Entraînement</h1>
+      <p class="muted page-sub">Des exercices courts pour la vision, la mémoire et le calcul.</p>
+      <div class="list train-list">{modes.map((m) => <Item href={m.href} icon={m.icon} color={m.color} title={m.title} sub={m.stat || m.desc} large />)}</div>
     </div>
   );
 }
-function Back() { return <a class="back" href="#/train">‹ Entraînement</a>; }
+function Top({ title }: { title: string }) { return <div class="game-top"><a class="nb-btn round" href="#/train" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{title}</div><span /></div>; }
 
 export function Coordinates() {
   const rec = best('coords'); const [color, setColor] = useState<'white' | 'black'>('white'); const [run, setRun] = useState(false);
   const [target, setTarget] = useState(rndSq()); const [score, setScore] = useState(0); const [left, setLeft] = useState(30); const [flash, setFlash] = useState<string | null>(null);
   useEffect(() => { if (!run) return; const t = setInterval(() => setLeft((l) => { if (l <= 1) { clearInterval(t); setRun(false); return 0; } return l - 1; }), 1000); return () => clearInterval(t); }, [run]);
-  useEffect(() => { if (!run && left === 0) { saveBest('coords', { best: score }); if (score > (rec.best || 0) && score > 0) toast(`Nouveau record : ${score} !`, '🏆'); addXp(Math.min(20, score), 'Coordonnées'); } }, [run, left]);
+  useEffect(() => { if (!run && left === 0) { saveBest('coords', { best: score }); if (score > (rec.best || 0) && score > 0) toast(`Nouveau record : ${score}`, 'trophy'); addXp(Math.min(20, score), 'Coordonnées'); } }, [run, left]);
   const click = (sq: string) => { if (!run) return; if (sq === target) { setScore((s) => s + 1); play('move'); setFlash(null); let n = rndSq(); while (n === target) n = rndSq(); setTarget(n); } else { setFlash(sq); play('error'); setTimeout(() => setFlash(null), 400); } };
   return (
-    <div class="page"><Back /><h1>🧭 Coordonnées</h1>
+    <div class="page"><Top title="Coordonnées" />
       <div class="play-grid">
         <div class="coords-wrap"><Board fen={EMPTY} orientation={color} movable="none" coordinates={!run} onSquare={click} highlight={flash ? new Map([[flash, 'wrong']]) : undefined} />{run && <div class="coord-target">{target}</div>}</div>
         <aside class="side card">
@@ -63,7 +65,7 @@ export function NameSquare() {
   const answer = (o: string) => { if (done) return; const ok = o === sq; if (ok) { setScore(score + 1); play('move'); } else { setWrong(sq); play('error'); }
     setTimeout(() => { setWrong(null); const k = n + 1; setN(k); if (k >= total) { saveBest('name', { best: score + (ok ? 1 : 0) }); addXp(10, 'Nomme la case'); } else setSq(rndSq()); }, ok ? 150 : 700); };
   return (
-    <div class="page"><Back /><h1>🔤 Nomme la case</h1>
+    <div class="page"><Top title="Nomme la case" />
       <div class="play-grid">
         <Board fen={EMPTY} orientation={color} viewOnly coordinates={false} highlight={new Map([[wrong || sq, wrong ? 'wrong' : 'target']])} />
         <aside class="side card">
@@ -88,17 +90,17 @@ export function KnightVision() {
   const [[from, to], setP] = useState(gen()); const [score, setScore] = useState(0); const [n, setN] = useState(0); const [res, setRes] = useState<string | null>(null);
   const d = knightDist(from, to); const total = 15; const done = n >= total;
   const fen = mapFen(new Map([[from, 'N']]));
-  const answer = (k: number) => { const ok = k === d; setRes(ok ? '✓' : `✗ il fallait ${d}`); if (ok) { setScore(score + 1); play('move'); } else play('error');
+  const answer = (k: number) => { const ok = k === d; setRes(ok ? 'Exact' : `Raté : il fallait ${d}`); if (ok) { setScore(score + 1); play('move'); } else play('error');
     setTimeout(() => { setRes(null); const m = n + 1; setN(m); if (m >= total) { saveBest('vision', { best: score + (ok ? 1 : 0) }); addXp(10, 'Vision du cavalier'); } else setP(gen()); }, ok ? 300 : 1200); };
   return (
-    <div class="page"><Back /><h1>👁️ Vision du cavalier</h1>
+    <div class="page"><Top title="Vision du cavalier" />
       <div class="play-grid">
         <Board fen={fen} viewOnly highlight={new Map([[to, 'target']])} />
         <aside class="side card">
           {done ? <><p class="success-box">Score : <b>{score}/{total}</b></p><button class="btn primary" onClick={() => { setN(0); setScore(0); setP(gen()); }}>Rejouer</button></> : <>
             <p>En combien de coups le cavalier de <b>{from}</b> peut-il atteindre <b>{to}</b> ?</p>
             <div class="quiz-opts">{[1, 2, 3, 4, 5, 6].map((k) => <button class="btn ghost big" onClick={() => !res && answer(k)}>{k}</button>)}</div>
-            {res && <p class={res.startsWith('✓') ? 'ok' : 'bad'}>{res}</p>}
+            {res && <p class={'feedback ' + (res === 'Exact' ? 'good' : 'wrong')}><span><Icon name={res === 'Exact' ? 'checkCircle' : 'xCircle'} size={20} />{res}</span></p>}
             <p class="muted small">Question {n + 1}/{total} · {score} bonnes réponses{rec.best ? ` · record ${rec.best}` : ''}</p></>}
         </aside>
       </div>
@@ -108,7 +110,8 @@ export function KnightVision() {
 
 // ---------- Mémoire : « Rejoue la position » ----------
 const PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p'];
-const GLYPH: Record<string, string> = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const GLYPH: Record<string, string> = { K: 'Roi blanc', Q: 'Dame blanche', R: 'Tour blanche', B: 'Fou blanc', N: 'Cavalier blanc', P: 'Pion blanc', k: 'Roi noir', q: 'Dame noire', r: 'Tour noire', b: 'Fou noir', n: 'Cavalier noir', p: 'Pion noir' };
+const ROLE_OF: Record<string, string> = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
 function boardMap(fen: string) { const m = new Map<string, string>(); fen.split(' ')[0].split('/').forEach((row, ri) => { let f = 0; for (const ch of row) { if (/\d/.test(ch)) f += +ch; else { m.set(FILES[f] + (8 - ri), ch); f++; } } }); return m; }
 function mapFen(m: Map<string, string>) { let s = ''; for (let r = 8; r >= 1; r--) { let e = 0; for (let f = 0; f < 8; f++) { const p = m.get(FILES[f] + r); if (p) { if (e) s += e; e = 0; s += p; } else e++; } if (e) s += e; if (r > 1) s += '/'; } return s + ' w - - 0 1'; }
 export function MemoryTrainer() {
@@ -117,7 +120,7 @@ export function MemoryTrainer() {
   const pieces = 3 + level * 2; const secs = Math.max(5, 12 - level);
   async function start() {
     let p: BankPuzzle | null = null; for (let k = 0; k < 8; k++) { p = await pickPuzzle({ rating: 800 + level * 150, theme: level < 4 ? 'endgame' : undefined }); if (p && boardMap(p.f).size <= pieces + 2) break; }
-    if (!p) return toast('Aucune position disponible', '⚠️');
+    if (!p) return toast('Aucune position disponible', 'info');
     const c = new Chess(p.f); const u = p.m.split(' ')[0]; c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] as any });
     setTarget(boardMap(c.fen())); setMine(new Map()); setPhase('show'); setLeft(secs);
   }
@@ -128,7 +131,7 @@ export function MemoryTrainer() {
   const correct = [...target].filter(([s, p]) => mine.get(s) === p).length; const wrong = [...mine].filter(([s, p]) => target.get(s) !== p).length;
   const hl = phase === 'result' ? new Map<string, string>([...target].map(([s, p]) => [s, mine.get(s) === p ? 'good' : 'wrong'] as [string, string]).concat([...mine].filter(([s]) => !target.has(s)).map(([s]) => [s, 'wrong'] as [string, string]))) : undefined;
   return (
-    <div class="page"><Back /><h1>🧠 Rejoue la position</h1>
+    <div class="page"><Top title="Rejoue la position" />
       <div class="play-grid">
         <Board fen={phase === 'show' ? mapFen(target) : phase === 'idle' ? EMPTY : mapFen(phase === 'result' ? target : mine)} movable="none" onSquare={place} highlight={hl} />
         <aside class="side card">
@@ -137,7 +140,7 @@ export function MemoryTrainer() {
             {rec.best && <p class="muted small">Meilleur niveau réussi : {rec.best}</p>}<button class="btn primary" onClick={start}>Commencer</button></>}
           {phase === 'show' && <><p class="big-num">{left}</p><p>Mémorise ! ({target.size} pièces)</p></>}
           {phase === 'build' && <><p>Choisis une pièce puis clique sur les cases ({mine.size}/{target.size} placées).</p>
-            <div class="palette">{PALETTE.map((p) => <button class={'pal ' + (tool === p ? 'on' : '')} onClick={() => setTool(p)} aria-label={p}>{GLYPH[p]}</button>)}<button class={'pal ' + (tool === 'x' ? 'on' : '')} onClick={() => setTool('x')} aria-label="Gomme">⌫</button></div>
+            <div class="palette">{PALETTE.map((p) => <button class={'pal ' + (tool === p ? 'on' : '')} onClick={() => setTool(p)} aria-label={GLYPH[p]}><span class="cg-wrap pal-piece"><piece class={ROLE_OF[p.toLowerCase()] + ' ' + (p === p.toUpperCase() ? 'white' : 'black')} /></span></button>)}<button class={'pal ' + (tool === 'x' ? 'on' : '')} onClick={() => setTool('x')} aria-label="Gomme"><Icon name="close" size={20} /></button></div>
             <button class="btn primary" onClick={check}>Vérifier</button></>}
           {phase === 'result' && <><p class={correct === target.size && !wrong ? 'success-box' : 'hint-box'}>{correct}/{target.size} pièces correctes{wrong ? `, ${wrong} erreur${wrong > 1 ? 's' : ''}` : ''}.</p>
             <p class="muted small">Le diagramme montre la position correcte (vert : trouvée, rouge : manquée ou fausse).</p>
@@ -151,18 +154,18 @@ export function MemoryTrainer() {
 // ---------- Mats contre l'ordinateur ----------
 export function MateDrills() {
   const rec = best('mates'); const [n, setN] = useState(2); const [p, setP] = useState<{ fen: string; r: number } | null>(null); const [reset, setReset] = useState(0); const [done, setDone] = useState(false); const [loading, setLoading] = useState(false);
-  async function next(k = n) { setLoading(true); setDone(false); const pz = await pickPuzzle({ rating: 1000 + k * 200, min: 600, max: 2600, theme: `mateIn${k}` }); setLoading(false); if (!pz) return toast('Aucun puzzle disponible', '⚠️');
+  async function next(k = n) { setLoading(true); setDone(false); const pz = await pickPuzzle({ rating: 1000 + k * 200, min: 600, max: 2600, theme: `mateIn${k}` }); setLoading(false); if (!pz) return toast('Aucun puzzle disponible', 'info');
     const c = new Chess(pz.f); const u = pz.m.split(' ')[0]; c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] as any }); setP({ fen: c.fen(), r: pz.r }); setReset((x) => x + 1); }
   useEffect(() => { next(); }, []);
   return (
-    <div class="page"><Back /><h1>♚ Mats contre l’ordinateur</h1>
+    <div class="page"><Top title="Mats contre l’ordinateur" />
       <div class="chips">{[2, 3, 4, 5].map((k) => <button class={'chip ' + (n === k ? 'on' : '')} onClick={() => { setN(k); next(k); }}>Mat en {k}</button>)}</div>
       {loading || !p ? <div class="loading">Chargement…</div> : <div class="play-grid">
         <PlayGoal fen={p.fen} result="mate" maxMoves={n} resetSignal={reset} onDone={() => { setDone(true); setState((s) => { const t = (s.training.mates ||= {}); t.solved = (t.solved || 0) + 1; }); addXp(5 + n * 3, `Mat en ${n}`); }} />
         <aside class="side card">
           <p><b>Mat en {n}</b> · difficulté {p.r}</p><p class="muted">Le moteur choisit la meilleure défense : chaque coup doit être précis. Une seule erreur et le mat s’envole.</p>
           {rec.solved ? <p class="muted small">{rec.solved} mats réussis au total</p> : null}
-          <div class="row"><button class="btn ghost" onClick={() => setReset(reset + 1)}>↺ Recommencer</button><button class={'btn ' + (done ? 'primary' : 'ghost')} onClick={() => next()}>Suivant ›</button></div>
+          <div class="row"><button class="btn secondary" onClick={() => setReset(reset + 1)}><Icon name="reset" size={18} />Recommencer</button><button class={'btn ' + (done ? 'primary' : 'secondary')} onClick={() => next()}>Suivant<Icon name="right" size={18} stroke={2.5} /></button></div>
         </aside>
       </div>}
     </div>
@@ -185,22 +188,22 @@ export function GuessMove() {
     if (!g || busy || finished) return false; const c = new Chess(ch.fen()); const m = tryMove(c, { from, to, promotion: promotion || (isPromotion(ch, from, to) ? 'q' : undefined) }); if (!m) return false;
     const master = sans[ply]; const mc = new Chess(ch.fen()); const mm = mc.move(master);
     setBusy(true); let gain = 0; let txt = '';
-    if (m.san === mm.san) { gain = 3; txt = `✅ ${sanFr(master)} : exactement le coup du maître ! +3`; play('win'); }
+    if (m.san === mm.san) { gain = 3; txt = `${sanFr(master)} : exactement le coup du maître. +3`; play('win'); }
     else {
-      playForMove(m); setFb('🤖 Évaluation de ton coup…');
+      playForMove(m); setFb('Évaluation de ton coup…');
       const fen = ch.fen(); const sgn = ch.turn() === 'w' ? 1 : -1;
       const [a, b] = await Promise.all([engine.analyse(fen, { depth: 12, searchmoves: [moveToUci(m)] }), engine.analyse(fen, { depth: 12, searchmoves: [moveToUci(mm)] })]);
       const sa = whiteScore(a.lines[0], fen) * sgn, sb = whiteScore(b.lines[0], fen) * sgn; const d = sb - sa;
       gain = d <= 25 ? 2 : d <= 80 ? 1 : 0;
-      txt = `${gain === 2 ? '👍' : gain === 1 ? '🙂' : '❌'} Tu as joué ${sanFr(m.san)}, le maître a joué ${sanFr(master)}. ${gain === 2 ? 'Aussi bon selon le moteur ! +2' : gain === 1 ? 'Un peu moins précis. +1' : `Le coup du maître était nettement meilleur (${(d / 100).toFixed(1).replace('.', ',')}).`}`;
+      txt = `Tu as joué ${sanFr(m.san)}, le maître a joué ${sanFr(master)}. ${gain === 2 ? 'Aussi bon selon le moteur ! +2' : gain === 1 ? 'Un peu moins précis. +1' : `Le coup du maître était nettement meilleur (${(d / 100).toFixed(1).replace('.', ',')}).`}`;
       if (!gain) play('error');
     }
     setPts((p) => p + gain); setMax((x) => x + 3); setFb(txt); setPly(ply + 2 > sans.length ? sans.length : ply + 2); setBusy(false); return true;
   }
-  if (!games) return <div class="page"><Back /><div class="loading">Chargement des parties…</div></div>;
+  if (!games) return <div class="page"><Top title="Devine le coup" /><div class="loading" aria-label="Chargement des parties" /></div>;
   const heroes = ['Tous', ...new Set(games.map((x) => x.hero))];
   if (!g) return (
-    <div class="page"><Back /><h1>🎩 Devine le coup</h1>
+    <div class="page"><Top title="Devine le coup" />
       <p class="muted">{games.length} parties gagnées par des champions du monde. Tu joues le camp du vainqueur à partir du 6e coup : 3 points pour le coup du maître, 2 si ton coup est aussi bon selon le moteur, 1 s’il est proche.</p>
       <div class="chips">{heroes.map((h) => <button class={'chip ' + (hero === h ? 'on' : '')} onClick={() => setHero(h)}>{h}</button>)}</div>
       <button class="btn primary" onClick={pick}>Commencer une partie</button>
@@ -208,7 +211,7 @@ export function GuessMove() {
   );
   const last = ply > 0 ? new Chess() : null; let lm: [string, string] | null = null; if (last) { let mv: Move | null = null; for (const s of sans.slice(0, ply)) mv = last.move(s); if (mv) lm = [mv.from, mv.to]; }
   return (
-    <div class="page"><Back /><h1>🎩 Devine le coup</h1>
+    <div class="page"><Top title="Devine le coup" />
       <div class="play-grid">
         <Board fen={ch.fen()} orientation={g.side === 'w' ? 'white' : 'black'} turn={turnColor(ch)} movable={!finished && !busy ? (g.side === 'w' ? 'white' : 'black') : 'none'} dests={legalDests(ch)} lastMove={lm}
           onMove={(f, t, p) => { onMove(f, t, p); return true; }} promotionCheck={(f, t) => isPromotion(ch, f, t)} />

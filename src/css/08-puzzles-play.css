@@ -129,3 +129,21 @@
 .delta.big { display: flex; align-items: center; gap: 4px; font-size: 22px; margin: 0; } .delta.big .muted { font-size: 15px; font-weight: 500; }
 .puzzle-meta { display: flex; align-items: center; gap: 8px; margin: 0; } .puzzle-meta .turn-dot { width: 12px; height: 12px; }
 .next-btn { width: 100%; animation: pop .3s var(--spring); }
+/* Bibliothèque, analyse, finales — refonte */
+.side-dot.ok { background: var(--green); color: #fff; } .side-dot.big { width: 52px; height: 52px; border-radius: 15px; margin: 4px 0 12px; } .side-dot.sm { width: 20px; height: 20px; border-radius: 6px; margin: 0 8px -4px 0; }
+.opening-card .progress { margin-top: auto; height: 4px; }
+.lvl-dots { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: 1px; } .lvl-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); } .lvl-dots i.on { background: var(--gold); }
+.goal-line { display: flex; gap: 10px; align-items: flex-start; margin: 0; font-size: 16px; } .goal-line .ico { color: var(--gold); flex: none; margin-top: 2px; }
+.an-toggles { margin: 0; } .an-toggles .chip .ico { margin-right: 2px; }
+.sheet-list { margin: 0 0 8px; box-shadow: none; background: var(--surface-2); }
+.pv-depth { display: block; margin-top: 6px; } .pv-lines { background: var(--surface); border-radius: var(--r); padding: 10px 14px; box-shadow: var(--shadow); }
+.center-text { text-align: center; } .page.review > .opening-name { justify-content: center; margin-bottom: 10px; }
+.review-progress { max-width: 360px; margin: 24px auto 0; }
+.pal-piece { position: relative; display: block; width: 34px; height: 34px; } .pal-piece piece { position: absolute; inset: 0; width: 100%; height: 100%; background-size: cover; transform: none !important; }
+.ms-head { display: flex; justify-content: space-between; gap: 8px; margin: 8px 2px 8px; } .ms-head span { text-transform: none; letter-spacing: 0; color: var(--text-3); }
+.deep-teaser { display: flex; gap: 8px; align-items: center; color: var(--tint); font-weight: 600; font-size: 14px; margin: 4px 0 10px; }
+.lead-text { font-size: 17px; line-height: 25px; margin: 0 0 8px; }
+.ideas .item { min-height: 0; } .ideas .it-title { white-space: normal; font-size: 15px; }
+.session-head.center { justify-content: center; } .seg.small button { min-height: 32px; font-size: 14px; }
+.game-head { display: flex; gap: 10px; align-items: flex-start; margin: 0; } .game-head > .ico { color: var(--gold); flex: none; margin-top: 3px; }
+.line-card { display: flex; gap: 12px; align-items: center; }

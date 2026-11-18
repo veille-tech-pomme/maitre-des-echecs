@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
-import { PremiumLock, toast, Md } from '../components/ui';
+import { PremiumLock, toast, Md, NavBar, Progress } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { OPENINGS, bookMoves } from '../data/openings';
 import { Chess, tryMove, moveToUci, sanFr, START_FEN, legalDests, turnColor, isPromotion, formatLine, type Move } from '../lib/chess';
 import { useStore, setState, addXp } from '../lib/store';
@@ -17,19 +18,20 @@ export function OpeningsHub() {
   const [tab, setTab] = useState<'list' | 'explorer' | 'repertoire'>('list');
   return (
     <div class="page openings">
-      <h1>Ouvertures</h1>
-      <div class="tabs" role="tablist">
-        <button class={tab === 'list' ? 'on' : ''} onClick={() => setTab('list')}>📚 Cours</button>
-        <button class={tab === 'explorer' ? 'on' : ''} onClick={() => setTab('explorer')}>🧭 Explorateur</button>
-        <button class={tab === 'repertoire' ? 'on' : ''} onClick={() => setTab('repertoire')}>⭐ Mon répertoire</button>
+      <NavBar back="#/learn" backLabel="Apprendre" />
+      <h1 class="page-title">Ouvertures</h1>
+      <div class="seg" role="tablist">
+        <button role="tab" aria-selected={tab === 'list'} class={tab === 'list' ? 'on' : ''} onClick={() => setTab('list')}>Cours</button>
+        <button role="tab" aria-selected={tab === 'explorer'} class={tab === 'explorer' ? 'on' : ''} onClick={() => setTab('explorer')}>Explorateur</button>
+        <button role="tab" aria-selected={tab === 'repertoire'} class={tab === 'repertoire' ? 'on' : ''} onClick={() => setTab('repertoire')}>Répertoire</button>
       </div>
       {tab === 'list' && ['e4', 'd4', 'autre'].map((fam) => (
         <section>
-          <h2>{fam === 'e4' ? '1.e4' : fam === 'd4' ? '1.d4' : 'Autres'}</h2>
+          <div class="section-label">{fam === 'e4' ? 'Après 1.e4' : fam === 'd4' ? 'Après 1.d4' : 'Autres premiers coups'}</div>
           <div class="opening-grid">
             {OPENINGS.filter((o) => o.family === fam).map((o) => {
               const n = o.lines.length; const ok = o.lines.filter((_, i) => (s.openings[`${o.id}:${i}`]?.ok || 0) > 0).length;
-              return <a class="opening-card" href={`#/openings/${o.id}`}><span class="side-dot">{o.side === 'w' ? '⚪' : '⚫'}</span><b>{o.name}</b><small class="muted">{o.eco}</small><small class="muted">{ok}/{n} lignes maîtrisées</small></a>;
+              return <a class="opening-card" href={`#/openings/${o.id}`}><span class={'side-dot ' + o.side} aria-label={o.side === 'w' ? 'Pour les Blancs' : 'Pour les Noirs'}><Icon name="king" size={16} /></span><b>{o.name}</b><small class="muted">{o.eco} · {ok}/{n} lignes</small>{n > 0 && <Progress value={ok / n} color="var(--green)" />}</a>;
             })}
           </div>
         </section>
@@ -66,7 +68,7 @@ function Explorer() {
           : book.length ? book.map((b) => <button class="explorer-row" onClick={() => play1(b.san)}><b>{sanFr(b.san)}</b><small class="muted">{b.names.join(' · ')}</small></button>)
           : <p class="muted small">Hors théorie répertoriée. Utilise l’analyse pour continuer.</p>}
         </div>
-        <div class="row"><button class="btn small ghost" onClick={() => setMoves(moves.slice(0, -1))} disabled={!moves.length}>◀ Retour</button><button class="btn small ghost" onClick={() => setMoves([])}>Début</button></div>
+        <div class="row"><button class="btn small secondary" onClick={() => setMoves(moves.slice(0, -1))} disabled={!moves.length}><Icon name="undo" size={16} />Retour</button><button class="btn small secondary" onClick={() => setMoves([])} disabled={!moves.length}><Icon name="first" size={16} />Début</button></div>
       </aside>
     </div>
   );
@@ -78,18 +80,21 @@ export function OpeningDetail({ id, line }: { id: string; line?: string }) {
   if (line != null) return <OpeningTrainer id={id} idx={+line} />;
   return (
     <div class="page">
-      <a class="back" href="#/openings">‹ Ouvertures</a>
-      <h1>{o.name} <small class="muted">{o.eco}</small></h1>
-      <p>{o.summary}</p>
-      <div class="chips">{o.ideas.map((i) => <span class="chip">💡 {i}</span>)}</div>
-      <h2>Lignes à apprendre</h2>
+      <NavBar back="#/openings" backLabel="Ouvertures" />
+      <span class={'side-dot big ' + o.side}><Icon name="king" size={22} /></span>
+      <h1 class="page-title">{o.name}</h1>
+      <p class="muted page-sub">{o.eco} · pour les {o.side === 'w' ? 'Blancs' : 'Noirs'}</p>
+      <p class="lead-text">{o.summary}</p>
+      <div class="section-label">Idées clés</div>
+      <div class="list ideas">{o.ideas.map((i) => <div class="item"><span class="it-icon" style="--c:#F2B544"><Icon name="bulb" size={18} /></span><span class="it-main"><span class="it-title">{i}</span></span></div>)}</div>
+      <div class="section-label">Lignes à apprendre</div>
       {o.lines.map((l, i) => {
         const st = s.openings[`${o.id}:${i}`]; const srs = s.srs[`o:${o.id}:${i}`];
         return (
           <div class="card line-card">
             <div class="grow"><b>{l.name}</b><p class="muted small mono">{formatLine(l.moves.split(' '))}</p>
               <small class="muted">{st ? `${st.ok} réussite${st.ok > 1 ? 's' : ''} · ${st.ko} erreur${st.ko > 1 ? 's' : ''}` : 'Pas encore étudiée'}{srs ? ` · prochaine révision ${isDue(srs) ? 'maintenant' : new Date(srs.due).toLocaleDateString('fr-FR')}` : ''}</small></div>
-            <a class="btn primary" href={`#/openings/${o.id}/${i}`}>S’entraîner</a>
+            <a class="btn tinted small" href={`#/openings/${o.id}/${i}`}>S’entraîner</a>
           </div>
         );
       })}
@@ -120,17 +125,17 @@ export function OpeningTrainer({ id, idx, custom }: { id: string; idx: number; c
   };
   return (
     <div class="page">
-      <a class="back" href={custom ? '#/openings' : `#/openings/${id}`}>‹ {custom ? 'Répertoire' : o!.name}</a>
-      <div class="session-head"><h1>{l.name}</h1><div class="tabs small"><button class={mode === 'learn' ? 'on' : ''} onClick={() => { setMode('learn'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Apprendre</button><button class={mode === 'test' ? 'on' : ''} onClick={() => { setMode('test'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Tester</button></div></div>
+      <div class="game-top"><a class="nb-btn round" href={custom ? '#/openings' : `#/openings/${id}`} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{l.name}</div><span /></div>
+      <div class="session-head center"><div class="seg small"><button class={mode === 'learn' ? 'on' : ''} onClick={() => { setMode('learn'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Apprendre</button><button class={mode === 'test' ? 'on' : ''} onClick={() => { setMode('test'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Tester</button></div></div>
       <div class="play-grid">
         <MoveTrainer key={mode + sig} fen={fen} line={uci} setup={side === 'b'} orientation={side === 'w' ? 'white' : 'black'} hintLevel={mode === 'learn' ? 2 : 0}
           onProgress={setK} onMistake={() => setMist((m) => m + 1)} onSolved={() => finish(mist === 0)} />
-        <aside class="side card">
-          <p class="muted small">Tu joues les {side === 'w' ? 'Blancs' : 'Noirs'}. {mode === 'learn' ? 'Les flèches te montrent le coup à jouer.' : 'Sans aide : de mémoire !'}</p>
+        <aside class="side">
+          <p class="muted small">{mode === 'learn' ? 'Les flèches te montrent le coup à jouer.' : 'Sans aide, de mémoire.'}</p>
           <p class="mono">{formatLine(sans.slice(0, k))}</p>
-          {note && <div class="hint-box"><p>💬 {note}</p></div>}
-          {done && <p class="success-box">{mist === 0 ? '🎉 Ligne parfaite ! Elle reviendra dans tes révisions espacées.' : `Ligne terminée avec ${mist} erreur${mist > 1 ? 's' : ''}. Elle reviendra bientôt en révision.`}</p>}
-          {done && <button class="btn primary" onClick={() => { setSig(sig + 1); setDone(false); setMist(0); setK(0); setMode('test'); }}>Retester de mémoire</button>}
+          {note && <div class="hint-box"><Icon name="message" size={18} /><p>{note}</p></div>}
+          {done && <p class="success-box"><Icon name="checkCircle" size={20} />{mist === 0 ? 'Ligne parfaite. Elle reviendra dans tes révisions.' : `Ligne terminée avec ${mist} erreur${mist > 1 ? 's' : ''}. Elle reviendra bientôt en révision.`}</p>}
+          {done && <button class="btn primary lg" onClick={() => { setSig(sig + 1); setDone(false); setMist(0); setK(0); setMode('test'); }}>Retester de mémoire</button>}
         </aside>
       </div>
     </div>
@@ -147,22 +152,22 @@ function Repertoire() {
         onMove={(f, t, p) => { const c = new Chess(ch.fen()); const m = tryMove(c, { from: f, to: t, promotion: p || (isPromotion(ch, f, t) ? 'q' : undefined) }); if (!m) return false; playForMove(m); setMoves([...moves, m]); return true; }} />
       <aside class="side card">
         <label>Nom de la ligne<input value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} placeholder="Ex. : Mon Italienne" /></label>
-        <div class="row"><button class={'btn small ' + (color === 'w' ? 'primary' : 'ghost')} onClick={() => setColor('w')}>⚪ Blancs</button><button class={'btn small ' + (color === 'b' ? 'primary' : 'ghost')} onClick={() => setColor('b')}>⚫ Noirs</button></div>
+        <div class="row"><div class="seg small"><button class={color === 'w' ? 'on' : ''} onClick={() => setColor('w')}>Blancs</button><button class={color === 'b' ? 'on' : ''} onClick={() => setColor('b')}>Noirs</button></div></div>
         <p class="mono">{formatLine(moves.map((m) => m.san)) || 'Joue les coups de ta ligne…'}</p>
-        <div class="row wrap"><button class="btn small ghost" onClick={() => setMoves(moves.slice(0, -1))}>◀ Annuler</button>
-          <button class="btn small primary" disabled={moves.length < 2} onClick={() => { setState((st) => { st.repertoire.push({ id: 'r' + Date.now().toString(36), name: name || 'Ma ligne', color, moves: moves.map((m) => m.san) }); }); toast('Ligne enregistrée', '⭐'); setBuilding(false); setMoves([]); setName(''); }}>Enregistrer</button>
-          <button class="btn small ghost" onClick={() => setBuilding(false)}>Fermer</button></div>
+        <div class="row wrap"><button class="btn small secondary" onClick={() => setMoves(moves.slice(0, -1))}><Icon name="undo" size={16} />Annuler</button>
+          <button class="btn small primary" disabled={moves.length < 2} onClick={() => { setState((st) => { st.repertoire.push({ id: 'r' + Date.now().toString(36), name: name || 'Ma ligne', color, moves: moves.map((m) => m.san) }); }); toast('Ligne enregistrée', 'star'); setBuilding(false); setMoves([]); setName(''); }}>Enregistrer</button>
+          <button class="btn small plain" onClick={() => setBuilding(false)}>Fermer</button></div>
       </aside>
     </div>
   );
   return (
     <div>
-      <button class="btn primary" onClick={() => setBuilding(true)}>＋ Nouvelle ligne</button>
+      <button class="btn primary" onClick={() => setBuilding(true)}><Icon name="plus" size={18} />Nouvelle ligne</button>
       {s.repertoire.length === 0 && <p class="muted">Aucune ligne pour l’instant.</p>}
       {s.repertoire.map((r) => (
-        <div class="card line-card"><div class="grow"><b>{r.color === 'w' ? '⚪' : '⚫'} {r.name}</b><p class="muted small mono">{formatLine(r.moves)}</p></div>
-          <a class="btn primary" href={`#/repertoire/${r.id}`}>S’entraîner</a>
-          <button class="btn ghost small" onClick={() => { if (confirm('Supprimer cette ligne ?')) setState((st) => { st.repertoire = st.repertoire.filter((x) => x.id !== r.id); delete st.srs['r:' + r.id]; }); }} aria-label="Supprimer">🗑</button></div>
+        <div class="card line-card"><div class="grow"><b><span class={'side-dot sm ' + r.color}><Icon name="king" size={12} /></span>{r.name}</b><p class="muted small mono">{formatLine(r.moves)}</p></div>
+          <a class="btn tinted small" href={`#/repertoire/${r.id}`}>S’entraîner</a>
+          <button class="btn icon small secondary" onClick={() => { if (confirm('Supprimer cette ligne ?')) setState((st) => { st.repertoire = st.repertoire.filter((x) => x.id !== r.id); delete st.srs['r:' + r.id]; }); }} aria-label="Supprimer"><Icon name="trash" size={18} /></button></div>
       ))}
     </div>
   );

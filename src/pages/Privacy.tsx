@@ -1,7 +1,8 @@
+import { NavBar } from '../components/ui';
 export function Privacy() {
   return (
     <div class="page prose">
-      <a class="back" href="#/settings">‹ Réglages</a>
+      <NavBar back="#/profile" backLabel="Moi" />
       <h1>Politique de confidentialité</h1>
       <p class="muted">Dernière mise à jour : 15 novembre 2026 · <em>Modèle à compléter avec l’identité de l’éditeur avant publication.</em></p>
       <h2>En bref</h2>

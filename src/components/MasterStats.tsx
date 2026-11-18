@@ -39,7 +39,7 @@ export function MasterStats({ fen, onPlay, ply = 0, onStats }: { fen: string; on
   const head = meta ? `${fmt(meta.games)} parties de maîtres (Elo FIDE ≥ ${meta.minElo})` : 'Parties de maîtres';
   return (
     <div class="master-stats">
-      <h4>🏆 Base de maîtres <small class="muted">{head}</small></h4>
+      <div class="section-label ms-head">Base des maîtres <span>{head}</span></div>
       {err && <p class="muted small">Base indisponible hors-ligne pour cette position (pas encore en cache).</p>}
       {st === undefined && !err && <p class="muted small">Chargement…</p>}
       {st === null && !err && <p class="muted small">{meta && ply >= meta.depth ? `La base couvre les ${meta.depth / 2} premiers coups.` : `Position jouée dans moins de ${meta?.minN ?? 5} parties de maîtres.`}</p>}
@@ -69,7 +69,7 @@ export function MasterStats({ fen, onPlay, ply = 0, onStats }: { fen: string; on
                   <span class="grow"><b>{g.white}</b> <small class="muted">{g.we}</small> – <b>{g.black}</b> <small class="muted">{g.be}</small><br /><small class="muted">{g.event} · {g.date.slice(0, 4)}</small></span>
                 </a>
               ))}
-              {!prem && st.games.length > FREE_GAMES && <a class="ms-more" href="#/premium">👑 Voir les {st.games.length} parties notables (Premium)</a>}
+              {!prem && st.games.length > FREE_GAMES && <a class="ms-more" href="#/premium">Voir les {st.games.length} parties notables avec Premium</a>}
             </div>
           )}
         </>

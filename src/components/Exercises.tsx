@@ -95,7 +95,7 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
         dests={legalDests(ch)} lastMove={last} check={!!checkSquare(ch)} onMove={(f, t, pr) => { onMove(f, t, pr); return true; }} promotionCheck={(f, t) => isPromotion(ch, f, t)} />
       <div class={'feedback ' + (state === 'won' ? 'solved' : state === 'lost' ? 'wrong' : 'play')}>
         {state === 'play' && `À toi · coup ${n + 1}${result !== 'draw' ? ` / ${maxMoves}` : ` · tiens ${maxMoves} coups`}`}
-        {state === 'think' && '🤖 Le moteur réfléchit…'}
+        {state === 'think' && <span><span class="thinking" aria-hidden="true" />Le moteur réfléchit</span>}
         {state === 'won' && <span><Icon name="sparkles" size={20} />{msg}</span>}
         {state === 'lost' && <span><Icon name="xCircle" size={20} />{msg}</span>}
       </div>

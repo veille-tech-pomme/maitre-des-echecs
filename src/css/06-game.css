@@ -98,3 +98,10 @@
   .app.focus main:has(.actionbar) { padding-bottom: calc(var(--safe-b) + 96px); }
 }
 button.bot-card { border: 0; font: inherit; cursor: pointer; }
+/* Bulle de l’adversaire : superposée, disparaît seule (ne décale jamais l’échiquier) */
+.board-col { position: relative; }
+.board-col > .bubble { position: absolute; z-index: 6; top: 50px; left: 52px; right: 12px; max-width: 320px; margin: 0; pointer-events: none; animation: bubble-life 4.2s var(--ease) forwards; box-shadow: var(--shadow-lg); }
+.board-col > .bubble::before { left: 14px; }
+@keyframes bubble-life { 0% { opacity: 0; transform: translateY(-4px) scale(.96); } 6% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+.reduce-motion .board-col > .bubble { position: static; margin-bottom: 4px; }
+@media (prefers-reduced-motion: reduce) { .board-col > .bubble { position: static; margin-bottom: 4px; } }

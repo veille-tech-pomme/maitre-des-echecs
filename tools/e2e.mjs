@@ -23,8 +23,8 @@ async function run(name, browserType, ctxOpts) {
   const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
-  await page.goto(URL0); await page.waitForSelector('.modal', { timeout: 15000 });
-  await check('onboarding', async () => { await shot('00-onboarding'); await page.fill('.modal input', 'Camille'); await page.click('text=Je débute'); await page.waitForSelector('.lesson-grid', { timeout: 10000 }); });
+  await page.goto(URL0); await page.waitForSelector('.ob', { timeout: 15000 });
+  await check('onboarding', async () => { await shot('00-onboarding'); await page.click('.ob-actions .btn'); await page.fill('.ob input', 'Camille'); await page.click('.ob-actions .btn'); await page.click('.level-opt >> text=Je débute'); await page.click('.ob-actions .btn'); await page.waitForSelector('.lesson-grid', { timeout: 10000 }); });
   await check('leçon (1ère)', async () => { await sleep(600); await shot('02-lecon'); });
   await check('leçon exercice (pion)', async () => {
     await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.lesson-grid'); await sleep(500);
@@ -60,7 +60,7 @@ async function run(name, browserType, ctxOpts) {
   await check('puzzles sur mesure', async () => { await page.goto(URL0 + '#/puzzles/custom'); await sleep(800); await shot('23-puzzles-sur-mesure'); await page.goto(URL0 + '#/puzzles/custom/go?theme=fork&min=1000&max=1400'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(1200); await shot('24-puzzle-fourchette'); });
   await check('duel', async () => { await page.goto(URL0 + '#/puzzles/battle'); await sleep(800); await shot('25-duel'); });
   await check('parcours puzzles', async () => { await page.goto(URL0 + '#/puzzles/paths'); await sleep(600); await shot('26-parcours-puzzles'); await page.goto(URL0 + '#/puzzles/paths/fourchette'); await sleep(600); });
-  await check('entraînement', async () => { await page.goto(URL0 + '#/train'); await page.waitForSelector('.opening-grid'); await shot('27-entrainement'); await page.goto(URL0 + '#/train/coords'); await page.waitForSelector('cg-board'); await page.click('text=Démarrer'); await sleep(300); await shot('28-coordonnees');
+  await check('entraînement', async () => { await page.goto(URL0 + '#/train'); await page.waitForSelector('.train-list'); await shot('27-entrainement'); await page.goto(URL0 + '#/train/coords'); await page.waitForSelector('cg-board'); await page.click('text=Démarrer'); await sleep(300); await shot('28-coordonnees');
     await page.goto(URL0 + '#/train/memory'); await page.click('text=Commencer'); await page.waitForSelector('cg-board piece', { timeout: 20000 }); await shot('29-memoire');
     await page.goto(URL0 + '#/train/mates'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(800); await shot('30-mats-ordinateur');
     await page.goto(URL0 + '#/train/guess'); await page.click('text=Commencer une partie'); await page.waitForSelector('cg-board'); await sleep(500); await shot('31-devine-le-coup'); });

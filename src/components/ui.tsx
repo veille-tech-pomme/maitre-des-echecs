@@ -52,7 +52,7 @@ export function Modal({ open, onClose, children, title }: { open: boolean; onClo
 interface ToastMsg { id: number; text: string; icon: string }
 let tid = 0;
 const toastSubs = new Set<(t: ToastMsg) => void>();
-export function toast(text: string, icon = '✨') { const t = { id: ++tid, text, icon }; toastSubs.forEach((f) => f(t)); }
+export function toast(text: string, icon = 'sparkles') { const t = { id: ++tid, text, icon }; toastSubs.forEach((f) => f(t)); }
 export function Toasts() {
   const [list, setList] = useState<ToastMsg[]>([]);
   useEffect(() => {
@@ -135,3 +135,5 @@ export function Item({ href, onClick, icon, color, title, sub, value, chevron = 
 export function Stars({ n, of = 3, size = 14 }: { n: number; of?: number; size?: number }) {
   return <span class="stars" aria-label={`${n} étoile${n > 1 ? 's' : ''} sur ${of}`}>{Array.from({ length: of }, (_, i) => <span class={i < n ? '' : 'off'}><Icon name="star" size={size} stroke={0} class="star-fill" /></span>)}</span>;
 }
+/** Ferme un écran plein écran : retour arrière si possible, sinon lien de repli. */
+export const backOr = (e: Event) => { if (history.length > 1) { e.preventDefault(); history.back(); } };

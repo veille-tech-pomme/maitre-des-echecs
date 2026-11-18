@@ -70,3 +70,36 @@
 /* ===== Mouvement réduit ===== */
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+.paywall .game-top { margin-bottom: 0; }
+.paywall .feat-list { margin: 22px 4px 8px; }
+.card-title { font-size: 17px; margin: 0 0 14px; }
+.pw-free summary { list-style: none; display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; min-height: 28px; } .pw-free summary::-webkit-details-marker { display: none; }
+.pw-free summary > .ico:first-child { color: var(--green); } .pw-free summary .chev { margin-left: auto; transition: transform .2s; } .pw-free[open] summary .chev { transform: rotate(180deg); }
+.pw-free ul { margin-top: 10px; }
+.pw-links { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin-top: 8px; } .pw-links .btn { color: var(--text-2); font-weight: 500; }
+.pw-sticky { margin-top: 8px; } .pw-sticky .pw-legal { margin-top: 8px; }
+.app.focus .pw-sticky { margin-bottom: 0; }
+.me-head .grow { min-width: 0; display: flex; flex-direction: column; gap: 4px; } .me-head .progress { max-width: 220px; margin-top: 4px; }
+.me-head h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile .list, .profile .promo { margin-bottom: 12px; }
+.badge { opacity: 1; filter: none; background: var(--surface); box-shadow: var(--shadow); }
+.badge .bd-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--text-3); margin-bottom: 4px; }
+.badge.got .bd-icon { background: var(--c); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 35%, transparent); }
+.badge:not(.got) b { color: var(--text-2); } .badge.got { background: var(--surface); }
+.badge small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.install summary { list-style: none; display: flex; align-items: center; gap: 12px; cursor: pointer; } .install summary::-webkit-details-marker { display: none; }
+.install[open] summary .chev { transform: rotate(180deg); } .install p { margin: 12px 0 0; color: var(--text-2); font-size: 15px; }
+.empty-inline { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .empty-inline p { margin: 0; }
+.settings .section-label:first-of-type { margin-top: 4px; }
+.settings .card h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 500; margin: 18px 0 10px; }
+.settings .preview-board { max-width: 240px; margin: 16px auto 0; }
+.item.field .inline-input { flex: 0 1 50%; min-height: 36px; text-align: right; background: transparent; border: 0; box-shadow: none; padding: 0; color: var(--text-2); font-size: 17px; }
+.item.field .inline-input:focus { color: var(--text); outline: none; }
+.list-foot { color: var(--text-3); font-size: 13px; line-height: 18px; margin: 8px 16px 0; }
+.danger-text { color: var(--red); }
+.swatch .sw-lock { position: absolute; right: 3px; bottom: 3px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.55); color: var(--gold); }
+.pw-crown { width: 72px; height: 72px; border-radius: 22px; }
+.pw-hero h1 { font-size: 30px; margin: 16px 0 6px; }
+.paywall .feat { gap: 12px; } .paywall .feat > span { width: 36px; height: 36px; border-radius: 10px; }
+.paywall .feat b { font-size: 16px; } .paywall .feat small { font-size: 14px; }
+.paywall .feat-list { gap: 14px; }

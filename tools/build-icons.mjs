@@ -9,7 +9,7 @@ const MAP = {
   route: 'route', library: 'library', castle: 'castle', grid: 'grid-3x3', crosshair: 'crosshair', copy: 'copy', upload: 'upload', download: 'download', bell: 'bell', moon: 'moon', palette: 'palette',
   sound: 'volume-2', help: 'circle-help', sliders: 'sliders-horizontal', trend: 'trending-up', award: 'award', medal: 'medal', clock: 'clock', heart: 'heart', gift: 'gift', wand: 'wand-sparkles',
   microscope: 'microscope', layers: 'layers', list: 'list', dice: 'dices', sword: 'sword', message: 'message-circle', hand: 'hand', brainCircuit: 'brain-circuit', mountain: 'mountain', sprout: 'sprout',
-  shieldHalf: 'shield-half', gauge: 'gauge', more: 'ellipsis', logout: 'log-out', file: 'file-text', keyboard: 'keyboard', smartphone: 'smartphone', badge: 'badge-check', hourglass: 'hourglass', piece: 'shapes',
+  shieldHalf: 'shield-half', gauge: 'gauge', more: 'ellipsis', logout: 'log-out', file: 'file-text', keyboard: 'keyboard', smartphone: 'smartphone', badge: 'badge-check', hourglass: 'hourglass', piece: 'shapes', gem: 'gem', moonStar: 'moon-star', sun: 'sun', sunMoon: 'sun-moon', lockOpen: 'lock-open', trash: 'trash-2', vibrate: 'vibrate', hash: 'hash', zap: 'zap', move: 'move', paw: 'paw-print', footprints: 'footprints', infinity: 'infinity', cloud: 'cloud', mail: 'mail', code: 'code', externalLink: 'external-link', cpu: 'cpu',
 };
 const out = {};
 for (const [k, n] of Object.entries(MAP)) {

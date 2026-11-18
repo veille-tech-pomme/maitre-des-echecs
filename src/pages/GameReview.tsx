@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
-import { EvalBar, Progress, PremiumLock } from '../components/ui';
+import { EvalBar, Progress, PremiumLock, backOr } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { useStore, setState, addXp } from '../lib/store';
 import { reviewGame, CLASS_INFO, CLASS_ORDER, type GameReview } from '../lib/review';
 import { reviewsLeft, consumeReview, FREE_REVIEWS_PER_DAY } from '../lib/features';
@@ -42,11 +43,12 @@ export function GameReviewPage({ id }: { id: string }) {
   const left = reviewsLeft();
   if (!rv) return (
     <div class="page center-page">
-      <a class="back" href="#/profile">‹ Mes parties</a>
-      <h1>🔬 Bilan de la partie</h1>
-      <p class="muted">Contre {bot.name} · {game.result} · {game.moves.length} demi-coups</p>
-      {running ? (<><Progress value={prog} /><p class="muted">Analyse en cours par Stockfish… {Math.round(prog * 100)} %</p></>)
-        : game.reviewed || left > 0 ? (<><button class="btn primary big" onClick={run}>Lancer le bilan</button>{!ent.premium && !game.reviewed && <p class="muted small">Bilans gratuits restants aujourd’hui : {left}/{FREE_REVIEWS_PER_DAY}</p>}</>)
+      <div class="game-top"><a class="nb-btn round" href="#/play" onClick={backOr} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><span /><span /></div>
+      <div class="celebrate"><Icon name="microscope" size={52} stroke={1.8} /></div>
+      <h1>Bilan de la partie</h1>
+      <p class="muted">Contre {bot.name} · {game.result} · {Math.ceil(game.moves.length / 2)} coups</p>
+      {running ? (<div class="review-progress"><Progress value={prog} /><p class="muted tnum">Stockfish analyse chaque coup… {Math.round(prog * 100)} %</p></div>)
+        : game.reviewed || left > 0 ? (<><div class="center-col"><button class="btn primary lg" onClick={run}>Lancer le bilan</button></div>{!ent.premium && !game.reviewed && <p class="muted small">Bilans gratuits restants aujourd’hui : {left}/{FREE_REVIEWS_PER_DAY}</p>}</>)
         : <PremiumLock title="Tu as utilisé tes 3 bilans gratuits du jour" text="Reviens demain pour 3 nouveaux bilans gratuits, ou passe Premium pour des bilans illimités avec le coach approfondi." />}
       {err && <p class="error">{err}</p>}
     </div>
@@ -61,8 +63,8 @@ export function GameReviewPage({ id }: { id: string }) {
   const W = 600, H = 90; const pts = rv.evals.map((e, i) => { const w = 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * Math.max(-1500, Math.min(1500, e)))) - 1); return [(i / Math.max(1, rv.evals.length - 1)) * W, H - (w / 100) * H]; });
   return (
     <div class="page review">
-      <div class="session-head"><a class="back" href="#/profile">‹</a><h1>Bilan contre {bot.name}</h1><span class="pill">{game.result}</span></div>
-      {op && <p class="opening-name">📖 {op}</p>}
+      <div class="game-top"><a class="nb-btn round" href="#/play" onClick={backOr} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">Bilan contre {bot.name}</div><span class="pill tnum">{game.result}</span></div>
+      {op && <p class="opening-name center-text">{op}</p>}
       <div class="acc-row">
         <div class="acc"><small>Toi</small><b>{String(rv.accuracy[game.color]).replace('.', ',')}</b><small>précision</small></div>
         <div class="acc"><small>{bot.name}</small><b>{String(rv.accuracy[game.color === 'w' ? 'b' : 'w']).replace('.', ',')}</b><small>précision</small></div>
@@ -84,36 +86,36 @@ export function GameReviewPage({ id }: { id: string }) {
               shapes={cur && !['best', 'book', 'brilliant', 'great'].includes(cur.cls) && cur.best !== cur.uci ? [{ orig: cur.best.slice(0, 2) as any, dest: cur.best.slice(2, 4) as any, brush: 'green' }] : []}
               highlight={cur ? new Map([[cur.uci.slice(2, 4), 'cls-' + cur.cls]]) : undefined} />
           )}
-          <div class="demo-ctrl">
-            <button class="btn icon" onClick={() => { setPly(0); setRetry(false); }} aria-label="Début">⏮</button>
-            <button class="btn icon" onClick={() => { setPly(Math.max(0, ply - 1)); setRetry(false); }} aria-label="Précédent">◀</button>
-            <button class="btn icon" onClick={() => { setPly(Math.min(rv.moves.length, ply + 1)); setRetry(false); }} aria-label="Suivant">▶</button>
-            <button class="btn icon" onClick={() => { setPly(rv.moves.length); setRetry(false); }} aria-label="Fin">⏭</button>
-          </div>
         </div>
-        <aside class="side card">
+        <aside class="side">
           {cur ? (
             <div class={'coach-box cls-' + cur.cls}>
               <div class="coach-head"><span class="cls-badge" style={{ background: CLASS_INFO[cur.cls].color }}>{CLASS_INFO[cur.cls].symbol}</span><b>{Math.floor(cur.ply / 2) + 1}{cur.color === 'w' ? '.' : '…'} {sanFr(cur.san)} — {CLASS_INFO[cur.cls].label}</b></div>
               <p>{cur.coach}</p>
               {cur.best !== cur.uci && !['book'].includes(cur.cls) && <p class="muted small">Meilleur : <b>{sanFr(cur.bestSan)}</b> ({formatLine(cur.bestLine.slice(0, 5), cur.ply)})</p>}
-              {ent.premium ? (cur.deep.length > 0 && <details open><summary>🧑‍🏫 Explication approfondie</summary><ul>{cur.deep.map((d) => <li>{d}</li>)}</ul></details>)
-                : <a class="deep-teaser" href="#/premium">🔒 Explication approfondie du coach (variantes, menaces, principes) — Premium</a>}
+              {ent.premium ? (cur.deep.length > 0 && <details open><summary>Explication approfondie</summary><ul>{cur.deep.map((d) => <li>{d}</li>)}</ul></details>)
+                : <a class="deep-teaser" href="#/premium"><Icon name="crown" size={16} />Explication approfondie du coach avec Premium</a>}
               {cur.color === game.color && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(cur.cls) && (
-                retry ? (retryDone ? <p class="success-box">✅ Bravo, c’était bien {sanFr(cur.bestSan)} !</p> : <button class="btn small ghost" onClick={() => setRetry(false)}>Annuler</button>)
-                  : <button class="btn small primary" onClick={() => { setRetry(true); setRetryDone(false); }}>🔁 Retrouver le meilleur coup</button>
+                retry ? (retryDone ? <p class="success-box"><Icon name="checkCircle" size={20} />Bravo, c’était bien {sanFr(cur.bestSan)}.</p> : <button class="btn small secondary" onClick={() => setRetry(false)}>Annuler</button>)
+                  : <button class="btn small primary" onClick={() => { setRetry(true); setRetryDone(false); }}><Icon name="repeat" size={16} />Retrouver le meilleur coup</button>
               )}
             </div>
-          ) : <p class="muted">Clique sur un coup ou sur la courbe pour voir le commentaire du coach.</p>}
+          ) : <p class="muted">Touche un coup ou la courbe pour lire le commentaire du coach.</p>}
           <table class="cls-table">
             <thead><tr><th></th><th>Toi</th><th>{bot.name.split(' ')[0]}</th></tr></thead>
             <tbody>{CLASS_ORDER.map((c) => (rv.counts.w[c] || rv.counts.b[c]) ? <tr><td><span class="cls-dot" style={{ background: CLASS_INFO[c].color }}>{CLASS_INFO[c].symbol}</span> {CLASS_INFO[c].label}</td><td>{rv.counts[game.color][c] || 0}</td><td>{rv.counts[game.color === 'w' ? 'b' : 'w'][c] || 0}</td></tr> : null)}</tbody>
           </table>
-          {keyMoments.length > 0 && <><h4>Moments clés</h4><div class="key-moments">{keyMoments.map((m) => <button class="km" onClick={() => { setPly(m.ply + 1); setRetry(false); }}><span class="cls-dot" style={{ background: CLASS_INFO[m.cls].color }}>{CLASS_INFO[m.cls].symbol}</span>{Math.floor(m.ply / 2) + 1}. {sanFr(m.san)}</button>)}</div></>}
+          {keyMoments.length > 0 && <><div class="section-label">Moments clés</div><div class="key-moments">{keyMoments.map((m) => <button class="km" onClick={() => { setPly(m.ply + 1); setRetry(false); }}><span class="cls-dot" style={{ background: CLASS_INFO[m.cls].color }}>{CLASS_INFO[m.cls].symbol}</span>{Math.floor(m.ply / 2) + 1}. {sanFr(m.san)}</button>)}</div></>}
           <div class="review-moves">
             {rv.moves.map((m, i) => <button class={'mv ' + (ply === i + 1 ? 'cur' : '')} onClick={() => { setPly(i + 1); setRetry(false); }}>{i % 2 === 0 && <span class="num">{i / 2 + 1}.</span>}{sanFr(m.san)}<span class="cls-mini" style={{ color: CLASS_INFO[m.cls].color }}>{['brilliant', 'great', 'inaccuracy', 'mistake', 'miss', 'blunder'].includes(m.cls) ? CLASS_INFO[m.cls].symbol : ''}</span></button>)}
           </div>
-          <a class="btn ghost" href={`#/analysis?pgn=${encodeURIComponent(game.pgn)}`}>Ouvrir dans l’analyse libre</a>
+          <a class="btn secondary" href={`#/analysis?pgn=${encodeURIComponent(game.pgn)}`}><Icon name="microscope" size={18} />Ouvrir dans l’analyse</a>
+          <div class="actionbar">
+            <button class="tool" onClick={() => { setPly(0); setRetry(false); }} aria-label="Début" disabled={ply === 0}><Icon name="first" size={22} /></button>
+            <button class="tool" onClick={() => { setPly(Math.max(0, ply - 1)); setRetry(false); }} aria-label="Coup précédent" disabled={ply === 0}><Icon name="left" size={26} stroke={2.4} /></button>
+            <button class="tool" onClick={() => { setPly(Math.min(rv.moves.length, ply + 1)); setRetry(false); }} aria-label="Coup suivant" disabled={ply >= rv.moves.length}><Icon name="right" size={26} stroke={2.4} /></button>
+            <button class="tool" onClick={() => { setPly(rv.moves.length); setRetry(false); }} aria-label="Fin" disabled={ply >= rv.moves.length}><Icon name="last" size={22} /></button>
+          </div>
         </aside>
       </div>
     </div>

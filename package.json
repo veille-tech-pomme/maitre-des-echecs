@@ -30,6 +30,7 @@
     "@capacitor/assets": "^4.0.0",
     "@capacitor/cli": "^8.6.2",
     "@preact/preset-vite": "^2.10.6",
+    "lucide-static": "^1.75.0",
     "playwright": "^1.65.1",
     "sharp": "^0.35.5",
     "typescript": "^7.0.2",

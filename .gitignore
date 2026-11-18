@@ -14,3 +14,4 @@ tools/data/*.log
 tools/data/pgn/
 tools/tmp/
 tools/data/bcast/
+screenshots/sheets/

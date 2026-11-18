@@ -60,3 +60,17 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] Mesures en ligne : premier chargement 151 Kio (sans SW) ; ouverture de l'explorateur + stats 167 Kio ; coup suivant ≈ 8 Ko de stats (+ parties notables). Lighthouse mobile : perf 96, accessibilité 87, bonnes pratiques 100, SEO 100 ; FCP 1,6 s, LCP 2,0 s, TBT 180 ms, CLS 0 (le poids total 5,5 Mo vient du précache du service worker après chargement).
 - [x] Captures : screenshots/live-iphone-32/34/35/36/37/38-*.png (explorateur + stats, partie de maître, analyse)
 **Phase 3 terminée.**
+
+# PHASE 4 (18/11) — refonte UX/UI complète (niveau Apple HIG)
+- [x] Audit : UX_AUDIT.md (84 captures « avant » dans screenshots/before/, problèmes classés par gravité)
+- [x] Système de design : DESIGN.md + src/css/01…09 (jetons, coquille, surfaces, échiquier, jeu, accueil/apprendre, puzzles/jouer, Moi/paywall/onboarding) ; 113 icônes Lucide (ISC) à la place des emoji
+- [x] Coquille 5 onglets (Accueil, Apprendre, Puzzles, Jouer, Moi) + mode focus plein écran (barre d'onglets masquée) pour leçon, partie, puzzle, analyse, entraînements, paywall
+- [x] Accueil : une seule action principale (« Continuer »/« Commencer »), plan du jour, raccourcis ; grille 2 colonnes sur bureau
+- [x] Échiquier pleine largeur sur mobile, coordonnées lisibles, retour visuel (feedback coloré) + haptique centralisée (sound.ts)
+- [x] Onboarding 3 écrans (bienvenue, prénom, niveau) ; paywall honnête (essai 7 j avec frise, ce qui reste gratuit, aucune fonction non livrée annoncée)
+- [x] Toutes les pages refaites (leçons, puzzles et modes, jouer/configuration/partie, analyse, bilan, ouvertures, finales, entraînement, révisions, Moi, réglages, confidentialité)
+- [x] Critique 1 (iPhone 14 Pro, SE, bureau) : onglets SE, titres, leçon sur petit écran, accueil bureau, bulle du bot, barre d'actions fixe, arrondi de l'échiquier
+- [x] Critique 2 (sombre + clair) : barres plus opaques, défilements horizontaux alignés, accueil bureau rééquilibré, choix de couleur visible
+- [x] Perf/a11y : écrans secondaires chargés à la demande → 165 Kio au premier chargement ; zoom autorisé, ARIA corrigé, robots.txt. Lighthouse mobile local : perf 93–95, accessibilité 100, bonnes pratiques 100, SEO 100
+- [x] Tests : vitest 1 192/1 192 (Stockfish natif /tmp/sf requis pour la validation moteur) ; e2e local 2 × 29 vérifications, 0 erreur console
+- [x] Captures après : screenshots/after/{iphone,se,desktop}-NN-*.png

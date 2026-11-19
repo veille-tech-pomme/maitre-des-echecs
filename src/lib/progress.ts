@@ -1,5 +1,5 @@
 // Enregistrement des résultats (puzzles, badges) et mise à jour du profil.
-import { getState, setState, emit, addXp, today } from './store';
+import { getState, setState, emit, addXp, today, pushCoach } from './store';
 import { newBadges } from './badges';
 import { updateRating } from './rating';
 import { newItem, review } from './srs';
@@ -26,6 +26,7 @@ export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme
     if (mode === 'review' && s.srs[key]) s.srs[key] = review(s.srs[key], success ? 2 : 0);
     else if (!success && !s.srs[key]) s.srs[key] = newItem(key, 'puzzle');
     if (mode === 'daily' && success) s.daily[today()] = true;
+    if (mode !== 'rush') pushCoach(s, { k: 'puzzle', t: Date.now(), id: p.i, r: p.r, th: p.t, ok: success, plies: p.m.split(' ').length - 1 });
   });
   if (success) addXp(mode === 'rush' ? 2 : mode === 'daily' ? 20 : 8, mode === 'daily' ? 'Puzzle du jour' : 'Puzzle résolu');
   checkBadges();

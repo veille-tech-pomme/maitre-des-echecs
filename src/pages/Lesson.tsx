@@ -7,7 +7,7 @@ import { Md, Progress, PremiumLock, NavBar, Stars } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { levelColor } from '../lib/visual';
 import { Chess, tryMove, moveToUci, START_FEN, sanFr } from '../lib/chess';
-import { setState, addXp, useStore } from '../lib/store';
+import { setState, addXp, useStore, pushCoach } from '../lib/store';
 import { usePremium } from '../lib/entitlements';
 import { loadPuzzles, lessonPuzzles, type Puzzle } from '../lib/puzzles';
 import { themedForLesson } from '../lib/puzzlebank';
@@ -49,7 +49,7 @@ export function LessonPage({ id }: { id: string }) {
     if (i < lesson.steps.length - 1) { setI(i + 1); return; }
     const stars = totalMist === 0 ? 3 : totalMist <= 3 ? 2 : 1;
     const first = !st.lessons[lesson.id]?.done;
-    setState((s) => { const prev = s.lessons[lesson.id]; s.lessons[lesson.id] = { done: true, stars: Math.max(stars, prev?.stars || 0), step: 0 }; markPlanDone(s, 'lesson:' + lesson.id); });
+    setState((s) => { const prev = s.lessons[lesson.id]; s.lessons[lesson.id] = { done: true, stars: Math.max(stars, prev?.stars || 0), step: 0 }; markPlanDone(s, 'lesson:' + lesson.id); pushCoach(s, { k: 'lesson', t: Date.now(), id: lesson.id, level: lesson.level, stars }); });
     addXp(first ? 30 + stars * 10 : 10, 'Leçon terminée'); play('win'); checkBadges(); setFinished(true);
   };
   const onSolved = () => { setSolved(true); };

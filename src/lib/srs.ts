@@ -1,5 +1,5 @@
 // Répétition espacée (SM-2 simplifié) pour les puzzles manqués et les lignes d'ouverture.
-export interface SrsItem { id: string; kind: 'puzzle' | 'opening' | 'repertoire'; due: number; interval: number; ease: number; reps: number; lapses: number; added: number }
+export interface SrsItem { id: string; kind: 'puzzle' | 'opening' | 'repertoire' | 'mistake'; due: number; interval: number; ease: number; reps: number; lapses: number; added: number }
 const DAY = 86400000;
 export function newItem(id: string, kind: SrsItem['kind'], now = Date.now()): SrsItem {
   return { id, kind, due: now + 10 * 60000, interval: 0, ease: 2.5, reps: 0, lapses: 0, added: now };

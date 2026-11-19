@@ -116,10 +116,10 @@ Détecteurs (`motifs.ts`). Chacun renvoie `{key, squares, pieces, gain}` et des 
   puzzle (Elo Lichess, thèmes → compétences), leçon terminée (d selon le niveau), **événement de partie** (le
   pipeline émet par exemple « fourchette disponible, trouvée ou non », d = Elo estimé + 120 × profondeur, ou
   « pièce laissée en prise », d faible car l’erreur est facile à éviter). Le RD augmente avec l’inactivité
-  (c = 35 / jour, plafond 350).
+  (c = 35 par période de 30 jours, plafond 350).
 * **Preuves** : journal circulaire (400 évènements) `{t, skill, ok, src, ref, piece, mat}` → phrases du type
   « tu as perdu 4 pièces sur des fourchettes de cavalier ces 10 dernières parties ».
-* **Faiblesse** : `r_skill < r_global − 100` avec RD < 160, **ou** ≥ 3 occurrences du même schéma dans les
+* **Faiblesse** : `r_global − r_skill > max(100, 0,8·RD)` avec RD < 200, **ou** ≥ 3 occurrences du même schéma dans les
   10 dernières parties. Force : l’inverse. Confiance affichée = 1 − RD/350.
 
 ## 4. Curriculum adaptatif
@@ -146,7 +146,8 @@ compétence-focus). Le plan du jour (`plan.ts`) est désormais alimenté par le 
 * **Puzzles** : quand tu te trompes, le coach explique pourquoi ton coup ne marche pas et quelle idée il fallait voir.
 * **Leçons** : à la fin, effet sur les compétences.
 * **« Mes progrès »** (`#/coach`) : radar des 6 familles, compétences avec confiance, preuves, objectifs de la semaine.
-* **Onboarding** : test de placement adaptatif (6 positions, ~2 min, facultatif).
+* **Onboarding** : test de placement adaptatif (6 positions, ~2 min, facultatif) ; estimation bayésienne sur grille
+  (a priori N(départ, 450²), vraisemblance Elo), chaque item posé à la moyenne a posteriori.
 
 ## 6. Couche langage (option future)
 `coach/language.ts` définit `CoachLanguage { rephrase(e, ctx); answer(q, ctx) }`. L’implémentation par défaut

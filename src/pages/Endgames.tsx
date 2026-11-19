@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { ENDGAMES, ENDGAME_CATS } from '../data/endgames';
 import { PlayGoal } from '../components/Exercises';
-import { useStore, setState, addXp } from '../lib/store';
+import { useStore, setState, addXp, pushCoach } from '../lib/store';
 import { checkBadges } from '../lib/progress';
 import { NavBar } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -29,7 +29,7 @@ export function EndgameDrill({ id }: { id: string }) {
       <div class="game-top"><a class="nb-btn round" href="#/endgames" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{d.title}</div><span /></div>
       <div class="play-grid">
         <PlayGoal fen={d.fen} result={d.goal} maxMoves={d.maxMoves} resetSignal={reset}
-          onDone={() => { setWon(true); const first = !useStoreSnapshot().endgames[d.id]?.done; setState((s) => { s.endgames[d.id] = { done: true }; }); addXp(first ? 30 : 5, 'Finale réussie'); checkBadges(); }} />
+          onDone={() => { setWon(true); const first = !useStoreSnapshot().endgames[d.id]?.done; setState((s) => { s.endgames[d.id] = { done: true }; pushCoach(s, { k: 'endgame', t: Date.now(), id: d.id, ok: true }); }); addXp(first ? 30 : 5, 'Finale réussie'); checkBadges(); }} />
         <aside class="side">
           <p class="goal-line"><Icon name="target" size={18} /><span><b>Objectif :</b> {d.goal === 'mate' ? `mater en ${d.maxMoves} coups maximum` : d.goal === 'promote' ? 'aller à dame' : `tenir ${d.maxMoves} coups sans perdre`}.</span></p>
           <p class="muted">{d.desc}</p>

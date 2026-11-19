@@ -37,6 +37,13 @@ export interface State {
   trial?: { startedAt: number; endsAt: number; reminded?: boolean };
   /** Modes d'entraînement : duel, parcours de puzzles, coordonnées, mémoire, devine le coup, mats… */
   training: Record<string, any>;
+  /** Modèle du coach (chargé à la demande) et file d'évènements bruts qu'il consomme. */
+  coach?: import('../coach/model').CoachModel;
+  coachQ?: import('../coach/model').RawQueue;
+}
+/** Ajoute un évènement pour le coach sans charger son code (file bornée). */
+export function pushCoach(s: State, e: import('../coach/model').RawEvent) {
+  const q = (s.coachQ ||= { n: 0, items: [] }); q.items.push(e); q.n++; if (q.items.length > 300) q.items.splice(0, q.items.length - 300);
 }
 const KEY = 'echecs-app-v1';
 export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

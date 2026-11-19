@@ -85,6 +85,9 @@ Ordre de travail (cocher au fur et à mesure) :
   - src/coach/{winprob,classify,lang,explain,skills,pipeline,hints,language,worker,client}.ts ; tests/coach-pipeline.test.ts (Stockfish natif)
   - Bench explications (bench/explain-bench.json, 400 gaffes Lichess, SF d12) : 0 affirmation non soutenue / 132 pertes matérielles et 139 mats ; motif cohérent avec l’étiquette Lichess 66 % (borne basse) ; raison spécifique 90 %
   - Commande : `npx -y tsx tools/bench/explain-bench.mts 400`
-- [ ] M3 : modèle du joueur (Glicko-2), preuves, curriculum, puzzles personnels, diagnostic
+- [x] M3 : modèle du joueur (Glicko-2), preuves, curriculum, puzzles personnels, diagnostic
+  - src/coach/{model,curriculum,diagnostic}.ts ; State.coach + State.coachQ (file d’évènements, pushCoach) ; hooks recordPuzzle / leçons / finales ; SRS kind 'mistake'
+  - Bench joueurs simulés (bench/reco-bench.json, 200 joueurs) à 160 puzzles : faiblesse détectée 93 %, top-3 86 %, plan qui la cible 78 %, puzzles dans la zone 60–90 % : 67 %, RMSE 115 ; à 320 puzzles : 98 % / 96 % / 88 % / 76 %, RMSE 89. Test de placement (6 items, a posteriori bayésien) : erreur moyenne ≈ 130.
+  - Commande : `npx -y tsx tools/bench/reco-bench.mts 200`
 - [ ] M4 : UX (carte coach accueil, bilan mené par le coach, aides en partie, feedback puzzle, écran Mes progrès, test de placement)
 - [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne

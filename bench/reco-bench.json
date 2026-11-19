@@ -1,0 +1,38 @@
+[
+ {
+  "players": 200,
+  "puzzlesPerPlayer": 80,
+  "skillRMSE": 131,
+  "weakDetected": 0.715,
+  "weakTop1": 0.46,
+  "weakTop3": 0.68,
+  "strongMisflagged": 0,
+  "planTargetsWeakness": 0.61,
+  "puzzlesInZone60to90": 0.522,
+  "diagnosticMAE6items": 132
+ },
+ {
+  "players": 200,
+  "puzzlesPerPlayer": 160,
+  "skillRMSE": 115,
+  "weakDetected": 0.93,
+  "weakTop1": 0.59,
+  "weakTop3": 0.865,
+  "strongMisflagged": 0.005,
+  "planTargetsWeakness": 0.785,
+  "puzzlesInZone60to90": 0.672,
+  "diagnosticMAE6items": 132
+ },
+ {
+  "players": 200,
+  "puzzlesPerPlayer": 320,
+  "skillRMSE": 89,
+  "weakDetected": 0.98,
+  "weakTop1": 0.8,
+  "weakTop3": 0.96,
+  "strongMisflagged": 0,
+  "planTargetsWeakness": 0.875,
+  "puzzlesInZone60to90": 0.757,
+  "diagnosticMAE6items": 132
+ }
+]

@@ -185,4 +185,5 @@ service payant n’est requis aujourd’hui ; rien n’est envoyé hors de l’a
 * Les explications positionnelles restent plus sommaires que les explications tactiques (pas de réseau entraîné
   pour « comprendre » les plans), d’où la formulation prudente.
 * Hors ligne, pas de base de finales parfaite : Stockfish seul au-delà des schémas reconnus.
-* Sur mobile mono-thread (GitHub Pages sans COOP/COEP), le bilan d’une partie prend plusieurs dizaines de secondes.
+* GitHub Pages ne permet pas les en-têtes COOP/COEP : Stockfish tourne en mono-thread en ligne. Mesuré sur ordinateur : ≈ 0,25 s par demi-coup (25 demi-coups en 6,4 s) ; sur un téléphone d’entrée de gamme, compter 2 à 4 fois plus.
+* Les explications « positionnelles » de second ordre (ex. pourquoi d3 vaut mieux que Tf1 quand les deux perdent du matériel) restent formulées à partir de la menace la plus proche, pas d’un plan à long terme.

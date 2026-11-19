@@ -142,8 +142,47 @@
   },
   "note": "pipeline coach dans un Worker : le fil principal reste à ~60 i/s pendant l’analyse"
  },
- "firstLoadKiB": 155,
+ "firstLoadKiB": {
+  "local": 155,
+  "live": 145
+ },
  "tests": {
   "vitest": "1256 tests"
+ },
+ "browserReviewLive": {
+  "url": "https://veille-tech-pomme.github.io/maitre-des-echecs/",
+  "threads": "mono-thread (pas de COOP/COEP sur GitHub Pages)",
+  "games": {
+   "25 demi-coups": {
+    "ms": 6430,
+    "fps": 59
+   },
+   "14 demi-coups": {
+    "ms": 2214,
+    "fps": 60
+   },
+   "18 demi-coups": {
+    "ms": 2210,
+    "fps": 60
+   }
+  }
+ },
+ "lighthouseLive": {
+  "mobile": {
+   "performance": 99,
+   "accessibility": 100,
+   "bestPractices": 100,
+   "seo": 100,
+   "LCP": "1.9 s",
+   "TBT": "0 ms",
+   "CLS": 0
+  },
+  "desktop": {
+   "performance": 100,
+   "accessibility": 100,
+   "bestPractices": 100,
+   "seo": 100,
+   "LCP": "0.4 s"
+  }
  }
 }

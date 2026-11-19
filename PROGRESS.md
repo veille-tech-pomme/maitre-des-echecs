@@ -97,8 +97,8 @@ Ordre de travail (cocher au fur et à mesure) :
   - #/coach (radar 6 familles, forces, faiblesses avec preuves, objectifs de la semaine), #/coach/test (test bayésien 6 positions), #/review/mistakes (erreurs de partie en répétition espacée).
   - Play et Puzzles chargés à la demande : 1er chargement 155 Kio (174 avant).
   - e2e local : 2 × 32 vérifications, 0 erreur console.
-- [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne
+- [x] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne
   - [x] bench/coach-bench.json (motifs, explications, recommandations, temps de bilan navigateur + i/s)
   - [x] vitest 1256/1256 ; e2e local 2 × 32, 0 erreur console ; 1er chargement 155 Kio
   - [x] captures screenshots/coach/ (profil de démo : tools/coach-seed.mts + tools/coach-shots.mjs)
-  - [ ] déploiement GitHub Pages, e2e et Lighthouse en ligne
+  - [x] déployé (87fc46e) ; e2e en ligne 2 × 32, 0 erreur ; Lighthouse en ligne mobile 99/100/100/100, bureau 100 × 4 ; 1er chargement en ligne 145 Kio ; bilan 25 demi-coups 6,4 s à 59 i/s (mono-thread)

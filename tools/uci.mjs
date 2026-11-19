@@ -34,7 +34,7 @@ export class Uci {
     const pv = {};
     for (const l of ls) {
       const m = l.match(/ multipv (\d+) .*score (cp|mate) (-?\d+).* pv (\S+)/);
-      if (m && l.includes(` depth `)) pv[m[1]] = { move: m[4], cp: m[2] === 'cp' ? +m[3] : null, mate: m[2] === 'mate' ? +m[3] : null };
+      if (m && l.includes(` depth `) && !/(lower|upper)bound/.test(l)) pv[m[1]] = { move: m[4], cp: m[2] === 'cp' ? +m[3] : null, mate: m[2] === 'mate' ? +m[3] : null, pv: l.split(' pv ')[1].trim().split(' ') };
     }
     const best = ls[ls.length - 1].split(' ')[1];
     return { best, lines: Object.values(pv) };

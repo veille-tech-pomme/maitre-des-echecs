@@ -1,0 +1,291 @@
+{
+ "positions": 400,
+ "depth": 12,
+ "flaggedAsError": 0.902,
+ "specificReason": 0.9,
+ "tacticMotifAgreement": 0.659,
+ "tacticClaims": 41,
+ "mateClaimsCorrect": 1,
+ "mateClaims": 139,
+ "materialClaimsSupported": 1,
+ "materialClaims": 132,
+ "unsupportedClaims": 0,
+ "engineAgreesWithLichessRefutation": 0.978,
+ "examples": [
+  {
+   "tag": "allowedMate:backRankMate",
+   "id": "1SEgI",
+   "themes": "endgame,mate,mateIn2,rookEndgame",
+   "headline": "Ce coup permet un mat en 2",
+   "why": "Un mat du couloir : le roi est enfermé sur sa première rangée par ses propres pions. Après Th1+, ton roi ne peut plus échapper au mat.",
+   "plan": "Il fallait Td1, qui empêchait ce mat.",
+   "tip": "Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3)."
+  },
+  {
+   "tag": "allowedMate",
+   "id": "1I8DV",
+   "themes": "endgame,mate,mateIn1",
+   "headline": "Ce coup permet un mat immédiat",
+   "why": "L’adversaire mate avec Td1#.",
+   "plan": "Il fallait Tf8, qui empêchait ce mat.",
+   "tip": "Avant de jouer, vérifie les échecs que l’adversaire peut donner."
+  },
+  {
+   "tag": "lostAnyway",
+   "id": "1bmWy",
+   "themes": "backRankMate,mate,mateIn1,middlegame",
+   "headline": "La meilleure résistance",
+   "why": "L’adversaire a un mat forcé quoi que tu joues : 27… Txc1#. Le tournant de la partie est venu plus tôt."
+  },
+  {
+   "tag": "allowed:threat",
+   "id": "2FnxR",
+   "themes": "endgame,rookEndgame",
+   "headline": "Attention à la réponse Txd3+",
+   "why": "Après Txd3+, ta tour en c3 est menacée et l’adversaire prend l’initiative : tes chances passent de 50 % à 26 %.",
+   "plan": "Mieux : Re7 (52… Re7 53. Txd3 Tc1 54. Rf3).",
+   "tip": "Compte attaquants et défenseurs sur chaque pièce que tu bouges ou que tu laisses."
+  },
+  {
+   "tag": "allowed:hanging",
+   "id": "17YRN",
+   "themes": "hangingPiece,middlegame",
+   "headline": "Tu perds la dame contre deux fous et un pion",
+   "why": "Sur d1, ta tour n’est pas protégée. Après 33. Txd1 Dxf2+ 34. Rxf2 Fxe7 35. Dg6+ Rh8 : au bout du compte, tu perds la dame contre deux fous et un pion.",
+   "plan": "Mieux : Fxe7 (32… Fxe7 33. Dg6+ Rh8 34. Txc1).",
+   "tip": "Compte attaquants et défenseurs sur chaque pièce que tu bouges ou que tu laisses."
+  },
+  {
+   "tag": "missed:hangingCapture",
+   "id": "3wgrQ",
+   "themes": "endgame,kingsideAttack",
+   "headline": "Tu pouvais gagner la dame : prise gagnante !",
+   "why": "Avec Txf6, tu prends la tour adverse en f6, et la suite te permet de gagner la dame.",
+   "plan": "20… Txf6 21. Txf6 Cxc3 22. Tf1 Ce2",
+   "tip": "Cherche toujours dans l’ordre : échecs, prises, menaces."
+  },
+  {
+   "tag": "allowed:fork",
+   "id": "0lDcL",
+   "themes": "endgame",
+   "headline": "Attention : fourchette en vue",
+   "why": "Après Cb5+, c’est une fourchette : le cavalier adverse vise à la fois ton fou en c7 et ton roi en d4. Tu perds un fou.",
+   "plan": "Mieux : Fb6 (50… Fb6 51. Cf7 Fc7 52. Ch8).",
+   "tip": "Deux pièces non protégées sont une invitation à la fourchette."
+  },
+  {
+   "tag": "allowed:skewer",
+   "id": "1b3UG",
+   "themes": "endgame,skewer",
+   "headline": "Ce coup permet une enfilade adverse",
+   "why": "Après Tf1+, enfilade : ton roi en f3 doit s’écarter, et ta dame en f7, derrière, tombe. Tu perds la dame et un pion contre un fou.",
+   "plan": "Mieux : Rh2, qui permet de gagner un pion (48. Rh2 Te1 49. Dh5+ Rg8 50. Dxg5+).",
+   "tip": "Roi et dame sur la même ligne, c’est dangereux : une enfilade guette."
+  },
+  {
+   "tag": "allowed:material",
+   "id": "0wctg",
+   "themes": "advancedPawn,endgame,pawnEndgame,quietMove",
+   "headline": "L’adversaire fait dame",
+   "why": "Après la suite 44. b5 Rxh3 45. b6 g4 46. b7 g3, l’adversaire fait dame.",
+   "plan": "Mieux : h5 (43… h5 44. b5 g4 45. hxg4)."
+  },
+  {
+   "tag": "allowedMate:smotheredMate",
+   "id": "1ycZX",
+   "themes": "mate,mateIn1,middlegame,smotheredMate",
+   "headline": "Ce coup permet un mat immédiat",
+   "why": "Un mat à l’étouffée : le roi est entouré de ses propres pièces. L’adversaire mate avec Cxd6#.",
+   "plan": "Il fallait Cg6, qui empêchait ce mat.",
+   "tip": "Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3)."
+  },
+  {
+   "tag": "allowed:capturingDefender",
+   "id": "1xVVV",
+   "themes": "intermezzo,opening",
+   "headline": "Attention : tactique en vue",
+   "why": "Après Fxc6+, la prise élimine le défenseur de ta dame en d4, qui devient prenable. Tu perds la dame et un cavalier contre un fou et un pion.",
+   "plan": "Mieux : Dd7 (9… Dd7 10. Fe3 Td8 11. O-O)."
+  },
+  {
+   "tag": "positional+",
+   "id": "1eVND",
+   "themes": "bishopEndgame,endgame",
+   "headline": "Bon coup",
+   "why": "Ta pièce s’installe sur un avant-poste : aucun pion adverse ne peut la chasser."
+  },
+  {
+   "tag": "missed:material",
+   "id": "2LuTm",
+   "themes": "endgame,pawnEndgame,quietMove",
+   "headline": "Tu pouvais faire dame",
+   "why": "Avec Re3, plus rien n’empêche ton pion d’aller à dame.",
+   "plan": "42… Re3 43. h5 f2 44. h6 f1=D",
+   "tip": "Quand l’adversaire laisse une pièce sans défense, prends le temps de la compter."
+  },
+  {
+   "tag": "ignored:threat",
+   "id": "3dizv",
+   "themes": "advancedPawn,endgame,knightEndgame",
+   "headline": "Tu n’as pas paré la menace",
+   "why": "Ton cavalier en b3 était déjà attaqué : il fallait s’en occuper (h5).",
+   "plan": "Mieux : h5 (65. h5 Rxb3 66. h6 gxh6).",
+   "tip": "Réflexe avant chaque coup : « qu’est-ce que l’adversaire peut prendre après mon coup ? »"
+  },
+  {
+   "tag": "positional",
+   "id": "03FZ5",
+   "themes": "endgame,zugzwang",
+   "headline": "Le meilleur coup était Re7",
+   "why": "Ton coup ne perd pas de matériel tout de suite, mais tes chances passent de 50 % à 44 %.",
+   "plan": "Mieux : Re7 (45… Re7 46. Fb5 Cd5+ 47. Rd3)."
+  },
+  {
+   "tag": "none",
+   "id": "1Cdff",
+   "themes": "bodenMate,mate,mateIn2,middlegame,queensideAttack,sacrifice",
+   "headline": "Excellent",
+   "why": "Précis : rien à redire."
+  },
+  {
+   "tag": "pawns:passed",
+   "id": "3rPHY",
+   "themes": "defensiveMove,endgame,pawnEndgame",
+   "headline": "Le moteur préfère Rc5",
+   "why": "Ce coup laisse l’adversaire créer un pion passé : rien ne l’arrêtera plus sur sa colonne.",
+   "plan": "Mieux : Rc5 (45… Rc5 46. bxa6 Rc6 47. Rb4)."
+  },
+  {
+   "tag": "allowedMate:doubleCheck",
+   "id": "1b6Gx",
+   "themes": "doubleCheck,mate,mateIn1,middlegame",
+   "headline": "Ce coup permet un mat immédiat",
+   "why": "Un mat par échec double. L’adversaire mate avec Cd3#.",
+   "plan": "Il fallait Dd2, qui empêchait ce mat.",
+   "tip": "Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3)."
+  },
+  {
+   "tag": "defended",
+   "id": "0NYWd",
+   "themes": "backRankMate,endgame,mate,mateIn3,sacrifice",
+   "headline": "Bonne défense",
+   "why": "Tu mets ta tour hors de danger."
+  },
+  {
+   "tag": "allowed:pin",
+   "id": "2fRLP",
+   "themes": "middlegame,pin",
+   "headline": "Ce coup permet un clouage adverse",
+   "why": "Après Tg1, ta dame en g2 est clouée devant le roi : elle ne peut plus bouger. Tu perds la dame contre une tour.",
+   "plan": "Mieux : Ch3 (19… Ch3 20. De3 Dh6 21. Rd2).",
+   "tip": "Évite d’aligner ta pièce la plus précieuse derrière une autre sur une ligne ouverte."
+  },
+  {
+   "tag": "allowed:trappedPiece",
+   "id": "3U0R8",
+   "themes": "middlegame,trappedPiece",
+   "headline": "Attention : tactique en vue",
+   "why": "Après Tb3, ta dame en c3 est piégée : toutes ses cases de fuite sont contrôlées. Tu perds la dame contre une tour.",
+   "plan": "Mieux : Dd6, qui permet de gagner un fou (25… Dd6 26. Fxb6 De6 27. Db2 cxb6)."
+  },
+  {
+   "tag": "found:skewer",
+   "id": "0dP0I",
+   "themes": "mate,mateIn2,middlegame,sacrifice,smotheredMate",
+   "headline": "Enfilade !",
+   "why": "Enfilade : la dame adverse en e6 doit s’écarter, et le cavalier adverse en e5, derrière, tombe."
+  },
+  {
+   "tag": "missed:fork",
+   "id": "3fKRb",
+   "themes": "kingsideAttack,middlegame",
+   "headline": "Tu pouvais gagner la dame et une tour : fourchette !",
+   "why": "Avec Ce5+, ton cavalier attaque en même temps le pion adverse en f7, le roi adverse en d7 et la dame adverse en c6 : impossible de tout sauver.",
+   "plan": "17. Ce5+ Re8 18. Cxc6 bxc6 19. Cc7+",
+   "tip": "Quand l’adversaire laisse une pièce sans défense, prends le temps de la compter."
+  },
+  {
+   "tag": "allowed:promotion",
+   "id": "3hgyu",
+   "themes": "advancedPawn,intermezzo,middlegame,promotion,underPromotion",
+   "headline": "Ce coup permet une tactique adverse",
+   "why": "Après exd8=C+, le pion se promeut en cavalier : une sous-promotion avec échec. Tu perds une tour contre un pion.",
+   "plan": "Mieux : Txd4, qui permet de gagner deux pions (20… Txd4 21. Txd4 Fxd4 22. Ce4 Rxe7)."
+  },
+  {
+   "tag": "allowed:discoveredCheck",
+   "id": "18Hk9",
+   "themes": "discoveredAttack,discoveredCheck,middlegame",
+   "headline": "Attention : tactique en vue",
+   "why": "Après Ff4+, échec à la découverte : le roi est attaqué par une pièce cachée, et la pièce qui a bougé est libre de frapper ailleurs. Tu perds la dame et un pion contre un fou et un cavalier.",
+   "plan": "Mieux : O-O. Tu roques : ton roi est à l’abri et ta tour entre en jeu.",
+   "tip": "Quand une pièce adverse est devant une tour ou un fou, demande-toi ce qu’elle découvre en bougeant."
+  },
+  {
+   "tag": "pieces:activity",
+   "id": "3ofOR",
+   "themes": "defensiveMove,middlegame",
+   "headline": "Le moteur préfère De7",
+   "why": "Ton coup réduit l’activité de tes pièces ; le meilleur coup leur donnait beaucoup plus de cases.",
+   "plan": "Mieux : De7 (16… De7 17. exf6 Dh7 18. Dxh7+)."
+  },
+  {
+   "tag": "found:hangingCapture",
+   "id": "3IxPj",
+   "themes": "middlegame,sacrifice",
+   "headline": "Bien vu !",
+   "why": "La prise du cavalier adverse en b4 gagne du matériel : l’échange est en ta faveur."
+  },
+  {
+   "tag": "king:shield",
+   "id": "1mEoA",
+   "themes": "middlegame,sacrifice",
+   "headline": "Il y avait mieux : De7",
+   "why": "Ce coup de pion affaiblit l’abri de ton roi : les cases autour de lui deviennent des cibles.",
+   "plan": "Mieux : De7 (22… De7 23. Dxh6 Df6 24. Dh3)."
+  },
+  {
+   "tag": "missed:pin",
+   "id": "3dbie",
+   "themes": "deflection,endgame,fork",
+   "headline": "Tu pouvais gagner un fou et deux pions : clouage !",
+   "why": "Avec De6, le fou adverse en e4 est cloué devant le roi : il ne peut plus bouger.",
+   "plan": "31… De6 32. Rf2 Dxe4 33. Td7+ Fb7",
+   "tip": "Quand l’adversaire laisse une pièce sans défense, prends le temps de la compter."
+  },
+  {
+   "tag": "pawns:isolated",
+   "id": "3DyWy",
+   "themes": "defensiveMove,endgame",
+   "headline": "Le moteur préfère Tf2",
+   "why": "Ton coup crée un pion isolé (h5) : sans voisin, il sera difficile à défendre.",
+   "plan": "Mieux : Tf2 (33… Tf2 34. Txf2 Dxf2 35. Ff3)."
+  },
+  {
+   "tag": "missed:skewer",
+   "id": "2JbJo",
+   "themes": "endgame,pin",
+   "headline": "Tu pouvais gagner la dame et un pion : enfilade !",
+   "why": "Avec Dxa2+, enfilade : le roi adverse en d2 doit s’écarter, et la dame adverse en g2, derrière, tombe.",
+   "plan": "44… Dxa2+ 45. Rc3 Dxg2 46. Txb5 Dc6",
+   "tip": "Cherche toujours dans l’ordre : échecs, prises, menaces."
+  },
+  {
+   "tag": "pawns:backward",
+   "id": "34pHU",
+   "themes": "defensiveMove,endgame,rookEndgame",
+   "headline": "Le moteur préfère Tc3+",
+   "why": "Ton coup laisse un pion arriéré, fixé sur une colonne semi-ouverte.",
+   "plan": "Mieux : Tc3+ (41… Tc3+ 42. Re2 gxh4 43. gxh4)."
+  },
+  {
+   "tag": "allowed:discoveredAttack",
+   "id": "9qjvA",
+   "themes": "advantage,discoveredAttack,master,masterVsMaster,middlegame,short",
+   "headline": "Attention : tactique en vue",
+   "why": "Après Cb4, en bougeant, la pièce adverse libère la ligne de la dame adverse vers ton cavalier en e3 : c’est une attaque à la découverte. Tu perds un cavalier contre un pion.",
+   "plan": "Mieux : Da7 (1… Da7 2. Dc4 Fd7 3. Fb2).",
+   "tip": "Quand une pièce adverse est devant une tour ou un fou, demande-toi ce qu’elle découvre en bougeant."
+  }
+ ]
+}

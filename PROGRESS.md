@@ -81,7 +81,10 @@ Ordre de travail (cocher au fur et à mesure) :
 # PHASE 5 (19/11) — coach expert (cœur de l’app) — voir COACH_ARCHITECTURE.md
 - [x] M0 : COACH_ARCHITECTURE.md (pipeline, explications ancrées moteur, Glicko-2 × 26 compétences, curriculum ZPD, UX, LLM futur, évaluation)
 - [x] M1 : géométrie + SEE (rayons X) + 20 détecteurs (src/coach/geometry.ts, motifs.ts), vérification sur la ligne du moteur (verifyOnLine), corpus étiqueté 25 coups + 23 cas statiques (tests/coach-motifs.test.ts), benchmark Lichess (tools/bench/motif-bench.mts)
-- [ ] M2 : score attendu, classification calibrée, moments critiques, moteur d’explication FR + pipeline (Worker)
+- [x] M2 : score attendu, classification calibrée, moments critiques, moteur d’explication FR + pipeline (Worker)
+  - src/coach/{winprob,classify,lang,explain,skills,pipeline,hints,language,worker,client}.ts ; tests/coach-pipeline.test.ts (Stockfish natif)
+  - Bench explications (bench/explain-bench.json, 400 gaffes Lichess, SF d12) : 0 affirmation non soutenue / 132 pertes matérielles et 139 mats ; motif cohérent avec l’étiquette Lichess 66 % (borne basse) ; raison spécifique 90 %
+  - Commande : `npx -y tsx tools/bench/explain-bench.mts 400`
 - [ ] M3 : modèle du joueur (Glicko-2), preuves, curriculum, puzzles personnels, diagnostic
 - [ ] M4 : UX (carte coach accueil, bilan mené par le coach, aides en partie, feedback puzzle, écran Mes progrès, test de placement)
 - [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne

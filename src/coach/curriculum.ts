@@ -6,7 +6,7 @@ import { isDue, newItem } from '../lib/srs';
 import { isUnlocked, recommendedBot } from '../lib/plan';
 import { LESSONS } from '../data/lessons';
 import { SKILLS, SKILL, type SkillId } from './skills';
-import { newModel, sync, skillOf, globalRating, levelIdx, pSuccess, weaknesses, evidenceFor, confidence, applyGame, type CoachModel, type WeekGoals } from './model';
+import { newModel, sync, skillOf, globalRating, levelIdx, pSuccess, weaknesses, posteriors, evidenceFor, confidence, applyGame, type CoachModel, type WeekGoals } from './model';
 import type { CoachReview } from './pipeline';
 
 export interface Activity { id: string; kind: 'mistakes' | 'review' | 'lesson' | 'puzzles' | 'play' | 'endgame' | 'diag'; skill: SkillId | null; title: string; why: string; evidence?: string; route: string; minutes: number; gain: number; difficulty?: number }
@@ -28,7 +28,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
   const g = globalRating(m); const lv = levelIdx(g); const out: Activity[] = [];
   const doneToday = s.plan.date === today() ? s.plan.done : [];
   const novelty = (id: string) => (doneToday.includes(id) ? 0.25 : 1);
-  const weak = weaknesses(m, 6); const wk = new Map(weak.map((w) => [w.skill, w]));
+  const weak = weaknesses(m, 6); const wk = new Map(weak.map((w) => [w.skill, w])); const post = posteriors(m, now);
   // 1. tes erreurs à revoir (répétition espacée)
   const dueMist = Object.values(s.srs).filter((x) => x.kind === 'mistake' && isDue(x, now)).length;
   if (dueMist) out.push({ id: 'mistakes', kind: 'mistakes', skill: null, title: `Rejoue ${dueMist} de tes erreurs`, why: 'Des positions tirées de tes parties, revues au bon moment pour ne plus refaire la même faute.', route: '#/review/mistakes', minutes: Math.min(10, 2 * dueMist), gain: (0.95 + 0.03 * Math.min(dueMist, 8)) * novelty('mistakes') });
@@ -37,11 +37,12 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
   if (unrev) out.push({ id: 'review:' + unrev.id, kind: 'review', skill: null, title: 'Fais le bilan de ta dernière partie', why: 'Le coach y trouve les moments clés et en tire trois leçons.', route: `#/game/${unrev.id}`, minutes: 4, gain: 1.05 });
   // 3. compétences : puzzles ciblés ou leçon
   for (const sk of SKILLS) {
-    const st = skillOf(m, sk.id, now); const imp = Math.sqrt(sk.importance[lv]); const gp = gap(m, sk.id, g);
+    const st0 = skillOf(m, sk.id, now); const P = post[sk.id]; const st = P && st0.n ? { ...st0, r: P.mean, rd: Math.min(st0.rd, P.sd) } : st0;
+    const imp = Math.sqrt(sk.importance[lv]); const gp = sig((g - st.r) / 200) + 0.25 * st.rd / 350;
     const w = wk.get(sk.id); const ev = w?.evidence[0];
     if (sk.theme) {
       const d = zpdDifficulty(st.r, st.rd); // p ≈ 0,75, un peu plus facile si la note est incertaine
-      const id = 'weak:' + sk.theme; const G = imp * gp * zpd(pSuccess(st.r, d)) * novelty(id) * (w ? 1.25 : 1);
+      const id = 'weak:' + sk.theme; const G = imp * gp * zpd(pSuccess(st.r, d)) * novelty(id) * (w ? (weak[0]?.skill === sk.id ? 2 : 1.35) : 1);
       out.push({ id, kind: 'puzzles', skill: sk.id, title: `Puzzles : ${sk.label.toLowerCase()}`, why: w ? 'C’est ton point faible prioritaire.' : st.rd > 220 ? 'Le coach connaît encore mal ce domaine chez toi.' : 'Pour consolider ce domaine.', evidence: ev, route: `#/puzzles/theme/${sk.theme}`, minutes: 6, gain: G, difficulty: d });
     }
     if (sk.lesson && !s.lessons[sk.lesson]?.done && LESSONS.some((l) => l.id === sk.lesson)) {
@@ -57,7 +58,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
   const b = recommendedBot(s);
   out.push({ id: 'play', kind: 'play', skill: null, title: 'Joue une partie', why: recent ? 'Mets en pratique ce que tu viens de travailler.' : 'Le coach a besoin de te voir jouer pour mieux t’aider.', route: `#/play/${b}`, minutes: 10, gain: (recent ? 0.35 : 0.75) * novelty('play') });
   // 5. test de placement s'il n'a jamais été fait et que le modèle est vide
-  if (!m.diag && m.ev.length < 15) out.push({ id: 'diag', kind: 'diag', skill: null, title: 'Test de niveau (2 min)', why: '6 positions pour que le coach cerne tes forces et tes faiblesses.', route: '#/coach/test', minutes: 2, gain: 1.2 });
+  if (!m.diag && m.ev.length < 15) out.push({ id: 'diag', kind: 'diag', skill: null, title: 'Test de niveau (3 min)', why: '6 à 8 positions qui s’adaptent à tes réponses, pour que le coach cerne ton niveau.', route: '#/coach/test', minutes: 2, gain: 1.2 });
   return out.sort((a, b2) => b2.gain - a.gain);
 }
 /** Plan du jour du coach : 3 à 4 activités variées (pas deux fois la même compétence ni le même type). */

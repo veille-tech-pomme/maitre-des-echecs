@@ -34,7 +34,7 @@ async function run(name, browserType, ctxOpts) {
   await check('accueil', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(400); await shot('01-accueil'); });
   await check('coach : mes progrès', async () => { await page.goto(URL0 + '#/coach'); await page.waitForSelector('.radar'); await sleep(300); await shot('40-coach-progres'); });
   await check('coach : test de niveau', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(900); await shot('41-test-niveau');
-    for (let i = 0; i < 6; i++) { await page.waitForSelector('text=Je ne sais pas', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 20000 }); await page.click('text=Je ne sais pas'); await sleep(1500); }
+    for (let i = 0; i < 10 && !(await page.locator('.diag-result').count()); i++) { await page.waitForSelector('text=Je ne sais pas', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 20000 }); await page.click('text=Je ne sais pas'); await sleep(1500); }
     await page.waitForSelector('.diag-result', { timeout: 20000 }); await shot('42-test-resultat'); });
   await check('coach : erreurs à rejouer (vide)', async () => { await page.goto(URL0 + '#/review/mistakes'); await page.waitForSelector('.empty'); });
   await check('parcours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await shot('04-parcours'); });

@@ -20,7 +20,7 @@ export interface State {
   streak: { count: number; best: number; last: string };
   activity: Record<string, number>; // date -> xp gagné
   lessons: Record<string, { done: boolean; stars: number; step: number; best?: number }>;
-  puzzle: { rating: number; games: number; history: { t: number; r: number }[]; solved: number; failed: number; seen: string[]; streak: number; bestStreak: number };
+  puzzle: { rating: number; declared?: number; games: number; history: { t: number; r: number }[]; solved: number; failed: number; seen: string[]; streak: number; bestStreak: number };
   themes: Record<string, ThemeStat>;
   daily: Record<string, boolean>;
   rush: { best3: number; best5: number; survival: number; runs: number };

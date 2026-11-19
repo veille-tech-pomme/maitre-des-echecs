@@ -91,8 +91,9 @@ export function globalRating(m: CoachModel): number {
 export const levelIdx = (r: number) => (r < 1000 ? 0 : r < 1800 ? 1 : 2);
 export interface SkillView { id: SkillId; label: string; family: Family; r: number; rd: number; conf: number; n: number; delta: number }
 export function skillViews(m: CoachModel, now = Date.now()): SkillView[] {
-  const g = globalRating(m);
-  return SKILLS.map((s) => { const st = skillOf(m, s.id, now); return { id: s.id, label: s.label, family: s.family, r: Math.round(st.r), rd: Math.round(st.rd), conf: confidence(st.rd), n: st.n, delta: Math.round(st.r - g) }; });
+  const g = globalRating(m); const post = posteriors(m, now);
+  return SKILLS.map((s) => { const st = skillOf(m, s.id, now); const P = st.n ? post[s.id] : undefined; const r = P ? P.mean : st.r, rd = P ? Math.min(st.rd, P.sd) : st.rd;
+    return { id: s.id, label: s.label, family: s.family, r: Math.round(r), rd: Math.round(rd), conf: confidence(rd), n: st.n, delta: Math.round(r - g) }; });
 }
 /** Radar : une valeur 0–100 par famille, relative à la note globale (50 = ton niveau moyen). */
 export function radar(m: CoachModel): { family: Family; value: number; conf: number }[] {
@@ -137,16 +138,43 @@ export function evidenceFor(m: CoachModel, k: SkillId): { lines: string[]; refs:
   if (found) lines.push(`${found} fois trouvé${found > 1 ? 'es' : 'e'} en partie : c’est en progrès.`);
   return { lines, refs, pattern };
 }
+// ——— a posteriori hiérarchique (Bayes empirique) ———
+// Chaque note Glicko part d'un a priori N(base, 300²) ; on en extrait la vraisemblance (moyenne, précision), puis on la
+// recombine avec un a priori hiérarchique : compétence ~ N(μ_famille, τ²), μ_famille ~ N(note globale, τf²). Avec peu
+// d'observations, une compétence emprunte l'information de sa famille au lieu de sauter aux extrêmes.
+const PRIOR_RD = 300, TAU_S = 150, TAU_F = 90;
+const Phi = (z: number) => { const t = 1 / (1 + 0.2316419 * Math.abs(z)); const d = 0.3989423 * Math.exp(-z * z / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; };
+export interface SkillPost { mean: number; sd: number; nObs: number }
+export function posteriors(m: CoachModel, now = Date.now()): Partial<Record<SkillId, SkillPost>> {
+  const g = globalRating(m); const lik: Partial<Record<SkillId, { mu: number; prec: number }>> = {};
+  for (const s of SKILLS) { const st = m.skills[s.id]; if (!st || !st.n) continue; const rd = skillOf(m, s.id, now).rd; const prec = Math.max(0, 1 / (rd * rd) - 1 / (PRIOR_RD * PRIOR_RD)); if (prec < 1e-7) continue; lik[s.id] = { mu: (st.r / (rd * rd) - m.base / (PRIOR_RD * PRIOR_RD)) / prec, prec }; }
+  const out: Partial<Record<SkillId, SkillPost>> = {};
+  for (const f of FAMILIES) {
+    const ks = SKILLS.filter((s) => s.family === f);
+    // μ_famille : moyenne des vraisemblances marginalisées (variance 1/prec + τ²), a priori centré sur g
+    let sw = 1 / (TAU_F * TAU_F), sm = g / (TAU_F * TAU_F);
+    for (const s of ks) { const L = lik[s.id]; if (!L) continue; const w = 1 / (1 / L.prec + TAU_S * TAU_S); sw += w; sm += w * L.mu; }
+    const muF = sm / sw, varF = 1 / sw;
+    for (const s of ks) {
+      const L = lik[s.id]; const pp = 1 / (TAU_S * TAU_S + varF);
+      const prec = (L?.prec || 0) + pp; const mean = ((L ? L.prec * L.mu : 0) + pp * muF) / prec;
+      out[s.id] = { mean, sd: Math.sqrt(1 / prec), nObs: m.skills[s.id]?.n || 0 };
+    }
+  }
+  return out;
+}
 export function weaknesses(m: CoachModel, max = 4): WeaknessInfo[] {
-  const g = globalRating(m); const lv = levelIdx(g); const out: WeaknessInfo[] = [];
+  const g = globalRating(m); const lv = levelIdx(g); const out: WeaknessInfo[] = []; const post = posteriors(m);
   for (const s of SKILLS) {
-    const st = m.skills[s.id]; const evd = evidenceFor(m, s.id);
-    const gap = st ? g - st.r : 0;
-    const byRating = !!st && st.n >= 3 && gap > Math.max(100, 0.8 * st.rd) && st.rd < 200;
+    const st = m.skills[s.id]; const evd = evidenceFor(m, s.id); const P = post[s.id];
+    const gap = P && st ? g - P.mean : 0;
+    // probabilité a posteriori que l'écart dépasse 100 points
+    const pWeak = P && st && st.n >= 2 ? Phi((gap - 100) / P.sd) : 0;
+    const byRating = pWeak >= 0.25;
     const byPattern = evd.pattern >= 3;
     if (!byRating && !byPattern) continue;
-    const score = Math.sqrt(s.importance[lv]) * (Math.max(0, gap) / 200 + (byPattern ? 0.6 + 0.1 * evd.pattern : 0)) * (st ? 0.5 + 0.5 * confidence(st.rd) : 0.7);
-    out.push({ skill: s.id, label: s.label, score, gap: Math.round(gap), conf: st ? confidence(st.rd) : 0.3, evidence: evd.lines, refs: evd.refs });
+    const score = (0.75 + 0.25 * Math.sqrt(s.importance[lv])) * (pWeak + Math.max(0, gap) / 1000 + (byPattern ? 0.3 + 0.05 * evd.pattern : 0));
+    out.push({ skill: s.id, label: s.label, score, gap: Math.round(gap), conf: P ? Math.max(0, Math.min(1, 1 - P.sd / 350)) : 0.3, evidence: evd.lines, refs: evd.refs });
   }
   return out.sort((a, b) => b.score - a.score).slice(0, max);
 }

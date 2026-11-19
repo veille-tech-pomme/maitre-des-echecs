@@ -9,7 +9,7 @@ import { radar, skillViews, weaknesses, strengths, globalRating, observe, confid
 import { coachPlan, weekProgress, ensureModel } from '../coach/curriculum';
 import { FAMILY_LABEL, FAMILIES, SKILL, MOTIF_SKILL, type Family } from '../coach/skills';
 import { review as srsReview } from '../lib/srs';
-import { diagStart, diagTarget, diagAnswer, diagDone, diagResult, DIAG_THEMES, type DiagState } from '../coach/diagnostic';
+import { diagStart, diagTarget, diagAnswer, diagDone, diagResult, diagPlanned, DIAG_THEMES, DIAG_MIN, DIAG_MAX, type DiagState } from '../coach/diagnostic';
 import { ACT_ICON, useCoachSync } from '../coach/ui/common';
 import { themeName } from '../data/themes';
 import { go } from '../lib/router';
@@ -43,7 +43,7 @@ export function CoachPage() {
       <NavBar back="#/" backLabel="Accueil" />
       <LargeTitle title="Mes progrès" sub={m.ev.length ? `Niveau estimé ${g} · ${m.games} partie${m.games > 1 ? 's' : ''} analysée${m.games > 1 ? 's' : ''} · ${m.ev.length} observations` : 'Le coach apprend à te connaître à chaque puzzle, leçon et partie analysée.'} />
       {!m.diag && m.ev.length < 15 && (
-        <a class="cc-main" href="#/coach/test"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Faire le test de niveau</b><small>6 positions, environ 2 minutes</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
+        <a class="cc-main" href="#/coach/test"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Faire le test de niveau</b><small>{DIAG_MIN} à {DIAG_MAX} positions, environ 3 minutes</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
       )}
       <div class="cp-grid">
         <div>
@@ -97,8 +97,9 @@ export function CoachPage() {
 
 export function DiagnosticPage() {
   const s0 = useMemo(() => getState(), []);
-  const start = s0.puzzle.games >= 10 ? s0.puzzle.rating : s0.puzzle.rating || 900;
-  const [st, setSt] = useState<DiagState>(() => diagStart(start));
+  // a priori : note puzzle établie (σ 200), sinon niveau déclaré à l'accueil (σ 300), sinon rien (σ 450)
+  const est = s0.puzzle.games >= 10; const start = est ? s0.puzzle.rating : s0.puzzle.declared ?? (s0.puzzle.rating || 900);
+  const [st, setSt] = useState<DiagState>(() => diagStart(start, est ? 200 : s0.puzzle.declared ? 300 : 450));
   const [p, setP] = useState<BankPuzzle | null | undefined>(undefined);
   const [res, setRes] = useState<boolean | null>(null);
   const t0 = useRef(Date.now()); const seen = useRef<string[]>([...s0.puzzle.seen]);
@@ -141,7 +142,7 @@ export function DiagnosticPage() {
   return (
     <div class="page puzzle-session">
       <div class="game-top"><a class="nb-btn round" href="#/" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a>
-        <div class="gt-title diag-top"><span>Test de niveau</span><span class="diag-dots" aria-label={`Position ${st.i + 1} sur ${DIAG_THEMES.length}`}>{DIAG_THEMES.map((_, i) => <i class={i < st.items.length ? (st.items[i].ok ? 'ok' : 'ko') : i === st.i ? 'cur' : ''} />)}</span></div><span class="pill tnum">{st.i + 1}/{DIAG_THEMES.length}</span></div>
+        <div class="gt-title diag-top"><span>Test de niveau</span><span class="diag-dots" aria-label={`Position ${st.i + 1} sur ${diagPlanned(st)}`}>{Array.from({ length: diagPlanned(st) }, (_, i) => <i class={i < st.items.length ? (st.items[i].ok ? 'ok' : 'ko') : i === st.i ? 'cur' : ''} />)}</span></div><span class="pill tnum">{st.i + 1}/{diagPlanned(st)}</span></div>
       <div class="play-grid">
         {p === undefined ? <div class="loading" aria-label="Chargement" /> : p ? (
           <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup onMistake={() => answer(false)} onSolved={() => answer(true)} />

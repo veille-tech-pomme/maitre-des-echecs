@@ -27,7 +27,7 @@ export function Onboarding() {
     setState((s) => {
       s.onboarded = true; s.settings.name = name.trim();
       const order = ['debutant', 'intermediaire', 'avance'];
-      if (l) { for (const k of order.slice(1, order.indexOf(l) + 1)) s.lessons['unlock-' + k] = { done: false, stars: 0, step: 0 }; s.puzzle.rating = l === 'intermediaire' ? 1100 : l === 'avance' ? 1500 : 800; }
+      if (l) { for (const k of order.slice(1, order.indexOf(l) + 1)) s.lessons['unlock-' + k] = { done: false, stars: 0, step: 0 }; s.puzzle.rating = l === 'intermediaire' ? 1100 : l === 'avance' ? 1500 : 800; s.puzzle.declared = s.puzzle.rating; }
     });
     unlockAudio();
     location.hash = test ? '#/coach/test' : l && l !== 'debutant' ? '#/learn' : '#/lesson/d-echiquier';
@@ -76,7 +76,7 @@ export function Onboarding() {
         )}
         <div class="ob-actions">
           {step < 2 ? <button class="btn primary lg" onClick={next}>{step === 0 ? 'Commencer' : 'Continuer'}</button>
-            : <>{lvl !== 'debutant' && <button class="btn secondary lg" onClick={() => finish(lvl, true)}><Icon name="gauge" size={18} />Test de niveau (2 min)</button>}<button class="btn primary lg" onClick={() => finish(lvl)}>C’est parti</button></>}
+            : <>{lvl !== 'debutant' && <button class="btn secondary lg" onClick={() => finish(lvl, true)}><Icon name="gauge" size={18} />Test de niveau (3 min)</button>}<button class="btn primary lg" onClick={() => finish(lvl)}>C’est parti</button></>}
         </div>
       </div>
     </div>

@@ -115,13 +115,15 @@ const TIPS: Record<string, string[]> = {
   pin: ['Évite d’aligner ta pièce la plus précieuse derrière une autre sur une ligne ouverte.'],
   skewer: ['Roi et dame sur la même ligne, c’est dangereux : une enfilade guette.'],
   discovered: ['Quand une pièce adverse est devant une tour ou un fou, demande-toi ce qu’elle découvre en bougeant.'],
-  mate: ['Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3).', 'Avant de jouer, vérifie les échecs que l’adversaire peut donner.'],
+  mate: ['Avant de jouer, vérifie les échecs que l’adversaire peut donner.', 'Compte les cases de fuite de ton roi après ton coup.'],
   missed: ['Cherche toujours dans l’ordre : échecs, prises, menaces.', 'Quand l’adversaire laisse une pièce sans défense, prends le temps de la compter.'],
+  smothered: ['Quand ton roi est entouré de ses propres pièces, surveille chaque case d’où un cavalier adverse pourrait donner échec.'],
+  backrank: ['Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3) : ta dernière rangée est fragile.'],
   opening: ['Dans l’ouverture : développe cavaliers et fous, contrôle le centre, roque tôt.'],
 };
 function tipFor(tag: string, level: Level, seed: string): string | undefined {
   if (level === 'advanced') return undefined;
-  const k = tag.startsWith('allowed:fork') ? 'fork' : tag.startsWith('allowed:pin') ? 'pin' : tag.startsWith('allowed:skewer') ? 'skewer' : tag.startsWith('allowed:discovered') ? 'discovered' : tag.includes('Mate') ? 'mate' : tag.startsWith('missed') ? 'missed' : tag.startsWith('allowed:hanging') || tag === 'hanging' ? 'hanging' : tag.startsWith('opening') ? 'opening' : '';
+  const k = tag.startsWith('allowed:fork') ? 'fork' : tag.startsWith('allowed:pin') ? 'pin' : tag.startsWith('allowed:skewer') ? 'skewer' : tag.startsWith('allowed:discovered') ? 'discovered' : tag.startsWith('missed') ? 'missed' : tag.includes('Mate:smothered') ? 'smothered' : tag.includes('Mate:backRank') ? 'backrank' : tag.includes('Mate') ? 'mate' : tag.startsWith('missed') ? 'missed' : tag.startsWith('allowed:hanging') || tag === 'hanging' ? 'hanging' : tag.startsWith('opening') ? 'opening' : '';
   return k ? pick(TIPS[k], seed) : undefined;
 }
 const lineLen = (l: Level) => (l === 'beginner' ? 2 : l === 'intermediate' ? 4 : 6);
@@ -219,7 +221,7 @@ export function explainMove(c: MoveCtx): Explanation {
     if (replyPv[0]) out.arrows.push({ orig: replyPv[0].slice(0, 2), dest: replyPv[0].slice(2, 4), brush: 'red' });
     addBest(); out.plan = best ? `Il fallait ${bestSan}${best.mate != null && best.mate > 0 ? `, qui matait en ${best.mate}` : best.mate != null && best.mate < 0 ? ', qui retardait le mat' : ', qui empêchait ce mat'}.` : undefined;
     out.tags.push('allowedMate' + (pat.key ? ':' + pat.key : '')); out.facts.push({ kind: 'allowedMate', n, pattern: pat.key, line: replyPv.slice(0, 2 * n - 1) });
-    out.tip = tipFor('allowedMate', level, seed); return out;
+    out.tip = tipFor('allowedMate' + (pat.key ? ':' + pat.key : ''), level, seed); return out;
   }
   if (!good && best?.mate != null && best.mate > 0) {
     const pat = matePattern(c.fenBefore, best.pv);

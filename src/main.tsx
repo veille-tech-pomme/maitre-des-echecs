@@ -52,17 +52,17 @@ function App() {
   switch (a) {
     case undefined: page = <Home />; break;
     case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
-    case 'lesson': page = <LessonPage id={b} />; break;
-    case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
+    case 'lesson': page = <LessonPage key={b} id={b} />; break;
+    case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
     case 'review': page = b === 'mistakes' ? <MistakesSession /> : <ReviewHub />; break;
     case 'coach': page = b === 'test' ? <DiagnosticPage /> : <CoachPage />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;
-    case 'game': page = <GameReviewPage id={b} />; break;
+    case 'game': page = <GameReviewPage key={b} id={b} />; break;
     case 'analysis': page = <Analysis />; break;
     case 'openings': page = b ? <OpeningDetail id={b} line={c} /> : <OpeningsHub />; break;
     case 'repertoire': page = <RepertoireTrainer id={b} />; break;
     case 'train': page = b === 'coords' ? <Coordinates /> : b === 'name' ? <NameSquare /> : b === 'vision' ? <KnightVision /> : b === 'memory' ? <MemoryTrainer /> : b === 'mates' ? <MateDrills /> : b === 'guess' ? <GuessMove /> : <TrainingHub />; break;
-    case 'endgames': page = b ? <EndgameDrill id={b} /> : <EndgamesHub />; break;
+    case 'endgames': page = b ? <EndgameDrill key={b} id={b} /> : <EndgamesHub />; break;
     case 'profile': page = <Profile />; break;
     case 'settings': page = <Settings />; break;
     case 'premium': page = <Premium />; break;

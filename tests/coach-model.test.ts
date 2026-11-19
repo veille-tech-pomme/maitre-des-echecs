@@ -1,7 +1,7 @@
 // Modèle du joueur (Glicko-2 par compétence), curriculum et test de placement — joueurs simulés.
 import { describe, it, expect } from 'vitest';
 import { glicko2, newModel, observe, sync, weaknesses, evidenceFor, applyGame, radar, globalRating, rawToEvents } from '../src/coach/model';
-import { coachPlan, ensureModel, ensureWeek, weekProgress, addMistakes, zpd, coachHeadline } from '../src/coach/curriculum';
+import { coachPlan, ensureModel, ensureWeek, weekProgress, addMistakes, zpd, coachHeadline, themeTarget, zpdDifficulty } from '../src/coach/curriculum';
 import { defaultState, pushCoach } from '../src/lib/store';
 import { runRecoBench } from '../tools/bench/reco-sim';
 
@@ -63,5 +63,16 @@ describe('joueurs simulés (bench)', () => {
     expect(r.strongMisflagged).toBeLessThanOrEqual(0.02); expect(r.planTargetsWeakness).toBeGreaterThanOrEqual(0.7);
     expect(r.puzzlesInZone60to90).toBeGreaterThanOrEqual(0.6); expect(r.skillRMSE).toBeLessThan(140);
     expect(r.diagnosticMAE6items).toBeLessThan(170);
+  });
+});
+
+describe('puzzles par thème : difficulté zone proximale', () => {
+  it('vise ~75 % de réussite sur la compétence du thème', () => {
+    const s: any = defaultState(); expect(themeTarget(s, 'fork')).toBeNull();
+    const m = ensureModel(s); let t = Date.now() - 86400000;
+    for (let i = 0; i < 30; i++) { t += 60000; observe(m, { skill: 'fork', s: i % 3 === 0 ? 1 : 0, d: 1200, w: 1, src: 'puzzle', ref: 'p' + i, t } as any, t); }
+    const d = themeTarget(s, 'fork')!; const r = m.skills.fork!.r;
+    expect(d).toBeLessThan(r); expect(d).toBe(zpdDifficulty(r, m.skills.fork!.rd));
+    const p = 1 / (1 + Math.pow(10, (d - r) / 400)); expect(p).toBeGreaterThan(0.7); expect(p).toBeLessThan(0.82);
   });
 });

@@ -89,7 +89,8 @@ export function GameReviewPage({ id }: { id: string }) {
   const opp = game.color === 'w' ? 'b' : 'w';
   const W = 600, H = 90; const pts = rv.es.map((e, i) => [(i / Math.max(1, rv.es.length - 1)) * W, H - e * H]);
   const rt = retry != null ? rv.retries[retry] : null;
-  const goPly = (p: number) => { setPly(p); setRetry(null); };
+  const toBoard = () => requestAnimationFrame(() => { const b = document.querySelector('.review-board, .board-wrap, cg-board'); if (b && b.getBoundingClientRect().top < 0 || (b && b.getBoundingClientRect().top > innerHeight * 0.5)) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const goPly = (p: number) => { setPly(p); setRetry(null); toBoard(); };
   const shapes: DrawShape[] = cur?.ex ? cur.ex.arrows.filter((a) => a.orig !== a.dest).map((a) => ({ orig: a.orig as any, dest: a.dest as any, brush: a.brush })) : cur && !CLASSES[cur.cls].good && cur.best !== cur.uci ? [{ orig: cur.best.slice(0, 2) as any, dest: cur.best.slice(2, 4) as any, brush: 'green' }] : [];
   const hl = new Map<string, string>(); if (cur) { hl.set(cur.uci.slice(2, 4), 'cls-' + cur.cls); for (const mk of cur.ex?.marks || []) if (mk.sq !== cur.uci.slice(2, 4)) hl.set(mk.sq, 'mk-' + mk.kind); }
   const phases: [string, string][] = [['opening', 'Ouverture'], ['middlegame', 'Milieu'], ['endgame', 'Finale']];
@@ -117,7 +118,7 @@ export function GameReviewPage({ id }: { id: string }) {
         ))}</div>
       </>}
       {rv.retries.length > 0 && retry == null && (
-        <div class="retry-bar"><Icon name="repeat" size={20} /><p>{rv.retries.length} moment{rv.retries.length > 1 ? 's' : ''} clé{rv.retries.length > 1 ? 's' : ''} à rejouer. Ils rejoignent aussi tes révisions.</p><button class="btn small primary" onClick={() => { setRetry(0); setRetryRes(null); setPly(rv.retries[0].ply); }}>Rejouer</button></div>
+        <div class="retry-bar"><Icon name="repeat" size={20} /><p>{rv.retries.length} moment{rv.retries.length > 1 ? 's' : ''} clé{rv.retries.length > 1 ? 's' : ''} à rejouer. Ils rejoignent aussi tes révisions.</p><button class="btn small primary" onClick={() => { setRetry(0); setRetryRes(null); setPly(rv.retries[0].ply); toBoard(); }}>Rejouer</button></div>
       )}
       <svg class="eval-graph" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" onClick={(e) => { const r = (e.currentTarget as SVGElement).getBoundingClientRect(); goPly(Math.round(((e.clientX - r.left) / r.width) * (rv.es.length - 1))); }} role="img" aria-label="Courbe des chances de gain des Blancs">
         <rect width={W} height={H} class="eg-bg" />

@@ -170,11 +170,16 @@ export function MistakesSession() {
       observe(m, { skill: sk, s: ok && !failed.current ? 1 : 0, d: globalRating(m), w: 0.5, src: 'puzzle', ref: id });
     });
   };
-  if (!id || !mk) return (
+  if (!id || !mk) {
+    const pending = Object.values(s.srs).filter((x) => x.kind === 'mistake' && x.due > Date.now()).sort((a, b) => a.due - b.due);
+    const wait = pending.length ? Math.max(1, Math.round((pending[0].due - Date.now()) / 60000)) : 0;
+    const when = wait < 60 ? `dans ${wait} min` : wait < 1440 ? `dans ${Math.round(wait / 60)} h` : `dans ${Math.round(wait / 1440)} j`;
+    const idle = pending.length ? `${pending.length} position${pending.length > 1 ? 's' : ''} tirée${pending.length > 1 ? 's' : ''} de tes parties ${pending.length > 1 ? 'sont programmées' : 'est programmée'} : la prochaine revient ${when}. Les revoir un peu plus tard les grave mieux en mémoire.` : 'Après chaque bilan, le coach transforme tes moments clés en exercices personnels.';
+    return (
     <div class="page"><NavBar back="#/review" backLabel="Révisions" />
-      <div class="empty"><div class="empty-icon"><Icon name="checkCircle" size={30} /></div><h3>{k ? 'Séance terminée' : 'Aucune erreur à rejouer'}</h3><p>{k ? `Tu as revu ${k} position${k > 1 ? 's' : ''} tirée${k > 1 ? 's' : ''} de tes parties. Elles reviendront au bon moment.` : 'Après chaque bilan, le coach transforme tes moments clés en exercices personnels.'}</p><a class="btn primary" href="#/">Retour à l’accueil</a></div>
+      <div class="empty"><div class="empty-icon"><Icon name="checkCircle" size={30} /></div><h3>{k ? 'Séance terminée' : pending.length ? 'Rien à rejouer pour l’instant' : 'Aucune erreur à rejouer'}</h3><p>{k ? `Tu as revu ${k} position${k > 1 ? 's' : ''} tirée${k > 1 ? 's' : ''} de tes parties. Elles reviendront au bon moment.` : idle}</p><a class="btn primary" href="#/">Retour à l’accueil</a></div>
     </div>
-  );
+  ); }
   return (
     <div class="page puzzle-session">
       <div class="game-top"><a class="nb-btn round" href="#/review" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">Tes erreurs</div><span class="pill tnum">{k + 1}/{due.length}</span></div>

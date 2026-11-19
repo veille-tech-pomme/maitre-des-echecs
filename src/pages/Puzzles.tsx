@@ -125,7 +125,11 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
       if (mode === 'daily') setP(dailyPuzzle(await loadPuzzles()));
       else if (mode === 'review') { const due = Object.values(st.srs).filter((x) => x.kind === 'puzzle' && isDue(x)).sort((a, b) => a.due - b.due); setP(due[0] ? await findPuzzle(due[0].id.slice(2)) : null); }
       else if (custom) setP(await pickPuzzle({ rating: ((custom.min || 400) + (custom.max || 3000)) / 2, ...custom, seen: st.puzzle.seen }));
-      else setP(await pickPuzzle({ rating: st.puzzle.rating, theme, seen: st.puzzle.seen }));
+      else {
+        // Thème : difficulté choisie par le coach (zone proximale, ≈ 75 % de réussite attendue) quand il connaît la compétence.
+        const zt = theme && st.coach ? (await import('../coach/curriculum')).themeTarget(st, theme) : null;
+        setP(await pickPuzzle({ rating: zt ?? st.puzzle.rating, theme, seen: st.puzzle.seen }));
+      }
     } catch { setP(null); }
   };
   useEffect(() => { next(); }, [theme, mode, query?.toString()]);

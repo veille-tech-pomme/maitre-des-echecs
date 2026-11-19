@@ -40,7 +40,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
     const st = skillOf(m, sk.id, now); const imp = Math.sqrt(sk.importance[lv]); const gp = gap(m, sk.id, g);
     const w = wk.get(sk.id); const ev = w?.evidence[0];
     if (sk.theme) {
-      const d = Math.round(st.r - 191 - 0.25 * Math.max(0, st.rd - 80)); // p ≈ 0,75, un peu plus facile si la note est incertaine
+      const d = zpdDifficulty(st.r, st.rd); // p ≈ 0,75, un peu plus facile si la note est incertaine
       const id = 'weak:' + sk.theme; const G = imp * gp * zpd(pSuccess(st.r, d)) * novelty(id) * (w ? 1.25 : 1);
       out.push({ id, kind: 'puzzles', skill: sk.id, title: `Puzzles : ${sk.label.toLowerCase()}`, why: w ? 'C’est ton point faible prioritaire.' : st.rd > 220 ? 'Le coach connaît encore mal ce domaine chez toi.' : 'Pour consolider ce domaine.', evidence: ev, route: `#/puzzles/theme/${sk.theme}`, minutes: 6, gain: G, difficulty: d });
     }
@@ -109,6 +109,13 @@ export function addMistakes(s: State, m: CoachModel, r: CoachReview, gameId: str
   }
   const ids = Object.keys(m.mistakes); if (ids.length > 120) for (const k of ids.slice(0, ids.length - 120)) { delete m.mistakes[k]; delete s.srs[k]; }
   return n;
+}
+/** Difficulté visée pour p ≈ 0,75 (zone proximale), un peu plus facile quand la note est incertaine. */
+export const zpdDifficulty = (r: number, rd: number) => Math.round(r - 191 - 0.25 * Math.max(0, rd - 80));
+/** Difficulté de puzzle visée pour un thème, d'après la note de la compétence correspondante (null si le coach ne la connaît pas). */
+export function themeTarget(s: State, theme: string): number | null {
+  const sk = SKILLS.find((x) => x.theme === theme); if (!sk || !s.coach) return null;
+  const st = skillOf(s.coach, sk.id); return st.n ? zpdDifficulty(st.r, st.rd) : null;
 }
 /** Intègre une partie analysée : observations du modèle + erreurs personnelles. */
 export function ingestReview(s: State, r: CoachReview, gameId: string) {

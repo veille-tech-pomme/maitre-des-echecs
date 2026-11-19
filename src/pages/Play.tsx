@@ -1,7 +1,7 @@
 import { BotAvatar } from '../components/BotAvatar';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Board } from '../components/Board';
-import { Modal, toast, LargeTitle, NavBar, Item } from '../components/ui';
+import { Modal, toast, LargeTitle, NavBar, Item, AutoNext } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { BOT_GROUPS, BOTS, botById, type Bot } from '../data/bots';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, captured, material, gameOverText, sanFr, type Move } from '../lib/chess';
@@ -241,11 +241,11 @@ export function Game({ botId }: { botId: string }) {
         <div class="over">
           <BotAvatar bot={bot} size={64} />
           <p class="big-result">{over?.text}</p>
-          <div class="col">
-            <button class="btn primary lg" onClick={() => go(`/game/${over!.id}`)}><Icon name="microscope" size={18} />Voir le bilan</button>
-            <button class="btn secondary" onClick={() => { setOver(null); setSetup(true); }}><Icon name="reset" size={18} />Rejouer</button>
-            <a class="btn plain" href="#/play">Changer d’adversaire</a>
-          </div>
+          {/* pas d'impasse : la revanche part seule (couleurs inversées), le bilan est à un toucher à côté */}
+          {over && <AutoNext key={over.id} ms={8000} count stop="Pas maintenant" onGo={() => start(color === 'w' ? 'b' : 'w')}
+            extra={<button class="btn secondary lg" onClick={() => go(`/game/${over.id}`)}><Icon name="microscope" size={18} />Voir le bilan</button>}>
+            <Icon name="swords" size={18} />Revanche</AutoNext>}
+          <a class="btn plain" href="#/play">Changer d’adversaire</a>
         </div>
       </Modal>
     </div>

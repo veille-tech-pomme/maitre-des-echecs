@@ -147,3 +147,4 @@
 .session-head.center { justify-content: center; } .seg.small button { min-height: 32px; font-size: 14px; }
 .game-head { display: flex; gap: 10px; align-items: flex-start; margin: 0; } .game-head > .ico { color: var(--gold); flex: none; margin-top: 3px; }
 .line-card { display: flex; gap: 12px; align-items: center; }
+.over .auto-next { margin-top: 12px; } .over .an-row .btn { padding-left: 12px; padding-right: 12px; }

@@ -17,6 +17,14 @@ async function clickSq(page, sq, orient = 'white') {
   let f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; if (orient === 'black') { f = 7 - f; r = 7 - r; }
   await page.mouse.click(b.x + s * (f + 0.5), b.y + s * (7 - r + 0.5)); await sleep(150);
 }
+/** résout le puzzle affiché (identifiant data-pz) : FEN avant le coup adverse, l'utilisateur joue les coups impairs */
+async function solvePz(page, scope) {
+  const id = await page.locator(scope + ' [data-pz], ' + scope + '[data-pz]').first().getAttribute('data-pz'); const z = puzzleById(id); if (!z) throw new Error('puzzle introuvable : ' + id);
+  const orient = z.f.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = z.m.split(' '); await sleep(1300);
+  const PR = { q: 'Dame', n: 'Cavalier', r: 'Tour', b: 'Fou' };
+  for (let i = 1; i < mv.length; i += 2) { await clickSq(page, mv[i].slice(0, 2), orient); await clickSq(page, mv[i].slice(2, 4), orient); if (mv[i][4]) await page.click(`.promo-piece[aria-label="${PR[mv[i][4]]}"]`); await sleep(900); }
+  return id;
+}
 async function run(name, browserType, ctxOpts) {
   let browser;
   try { browser = await browserType.launch(); } catch (e) { console.log(`⚠️ ${name}: lancement impossible (${String(e.message).split('\n')[0]})`); return false; }
@@ -42,10 +50,34 @@ async function run(name, browserType, ctxOpts) {
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1'))); if (st.puzzle.declared) throw new Error('niveau déclaré présent');
     if (!st.obMate?.ok || st.settings.name !== 'Camille') throw new Error('premier mat ou prénom non enregistré');
   });
-  await check('leçon exercice (pion)', async () => {
-    await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.lesson-grid'); await sleep(500);
-    for (let i = 0; i < 6 && !(await page.locator('cg-board').count()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(300); }
-    await shot('03-lecon-exercice');
+  // R3 : plus de cul-de-sac
+  await check('leçon verrouillée → une prochaine action', async () => {
+    await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.locked-lesson'); await shot('03-lecon-verrouillee');
+    if ((await page.locator('.locked-lesson .center-col .btn').count()) < 3) throw new Error('pas assez d’actions');
+    if (!(await page.locator('.locked-lesson a[href^="#/lesson/"]').count())) throw new Error('pas de lien vers la leçon qui ouvre celle-ci');
+    await page.click('text=Je connais déjà'); await page.waitForSelector('.lesson-grid');
+  });
+  await check('leçon : étape réussie → avance seule ; fin → leçon suivante seule', async () => {
+    await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await page.goto(URL0 + '#/lesson/d-mat'); await page.waitForSelector('.lesson-grid'); await sleep(400);
+    const MATES = { 'Mat du couloir': ['d1', 'd8'], 'L’escalier des tours': ['h1', 'h8'], 'Dame et roi': ['a1', 'a8'], 'Le mat du berger': ['h5', 'f7'] };
+    let autos = 0, reads = 0;
+    for (let i = 0; i < 24 && !(await page.locator('.done-screen').count()); i++) {
+      const title = (await page.locator('.lesson-side h2').innerText()).trim();
+      if (MATES[title]) {
+        await sleep(300); await clickSq(page, MATES[title][0]); await clickSq(page, MATES[title][1]);
+        await page.waitForFunction((t) => document.querySelector('.done-screen') || document.querySelector('.lesson-side h2')?.textContent.trim() !== t, title, { timeout: 8000 }); autos++; continue;
+      }
+      if (/^Entraînement/.test(title)) await page.waitForSelector('.lesson-board [data-pz]', { timeout: 15000 }).catch(() => {});
+      if (await page.locator('.lesson-board [data-pz]').count()) {
+        const id = await solvePz(page, '.lesson-board');
+        await page.waitForFunction((r) => document.querySelector('.done-screen') || document.querySelector('.lesson-side h2')?.textContent.trim() !== 'Entraînement : mats en 1' || document.querySelector('.lesson-board [data-pz]')?.getAttribute('data-pz') !== r, id, { timeout: 8000 }); continue;
+      }
+      await page.click('.lesson-actions .btn.primary'); reads++; await sleep(350);
+    }
+    await page.waitForSelector('.done-screen .auto-next'); await shot('03b-lecon-terminee'); const t0 = Date.now();
+    await page.waitForFunction(() => location.hash.startsWith('#/lesson/') && location.hash !== '#/lesson/d-mat', null, { timeout: 10000 });
+    console.log(`    ${autos} étapes réussies enchaînées seules, ${reads} lectures « Continuer », leçon suivante ouverte seule en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    if (autos < 4) throw new Error('enchaînement des exercices : ' + autos);
   });
   await check('pour toi : 1re carte', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.feed-card:not(.skeleton)', { timeout: 20000 }); await sleep(600); await shot('01-pour-toi'); });
   await check('diagnostic : les 4 premières cartes', async () => {
@@ -98,11 +130,23 @@ async function run(name, browserType, ctxOpts) {
   await check('coach : mes progrès', async () => { await page.goto(URL0 + '#/coach'); await page.waitForSelector('.radar'); await sleep(300); await shot('40-coach-progres'); });
   await check('coach : bilan du diagnostic', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('.diag-result .big'); await shot('41-diagnostic-bilan');
     if ((await page.locator('.nb-left a').first().getAttribute('href')) !== '#/coach') throw new Error('retour du bilan ≠ Mes progrès'); });
-  await check('coach : erreurs à rejouer (vide)', async () => { await page.goto(URL0 + '#/review/mistakes'); await page.waitForSelector('.empty'); });
+  await check('coach : erreurs à rejouer (vide) → une prochaine action', async () => { await page.goto(URL0 + '#/review/mistakes'); await page.waitForSelector('.empty'); if (!(await page.locator('.empty a[href="#/"]').count())) throw new Error('impasse'); });
   await check('parcours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await shot('04-parcours'); });
   await check('puzzle classé', async () => {
     await page.goto(URL0 + '#/puzzles/rated'); await page.waitForSelector('cg-board', { timeout: 15000 }); await sleep(1500); await shot('05-puzzle');
     const b = page.locator('button', { hasText: /Indice/ }).first(); if (await b.count()) { await b.click(); await sleep(400); await shot('05b-puzzle-indice'); }
+  });
+  await check('puzzles classés : enchaînement automatique', async () => {
+    for (let k = 0; k < 2; k++) {
+      const id = await solvePz(page, '.page'); const t0 = Date.now();
+      await page.waitForFunction((r) => { const e = document.querySelector('.puzzle-session[data-pz]'); return e && e.getAttribute('data-pz') !== r; }, id, { timeout: 8000 });
+      console.log(`    puzzle ${k + 1} résolu → suivant seul en ${Date.now() - t0} ms`); await page.waitForSelector('cg-board');
+    }
+    if (await page.locator('text=Puzzle suivant').count()) throw new Error('bouton « Puzzle suivant » encore présent');
+  });
+  await check('puzzle du jour → puzzles classés seuls', async () => {
+    await page.goto(URL0 + '#/puzzles/daily'); await page.waitForFunction(() => document.querySelector('.gt-title')?.textContent === 'Puzzle du jour' && document.querySelector('.puzzle-session[data-pz] cg-board')); await solvePz(page, '.page'); await sleep(300); await shot('05c-puzzle-du-jour-reussi');
+    await page.waitForFunction(() => location.hash === '#/puzzles/rated', null, { timeout: 8000 });
   });
   await check('puzzles hub', async () => { await page.goto(URL0 + '#/puzzles'); await page.waitForSelector('.mode-grid, .theme-grid', { timeout: 10000 }); await shot('06-puzzles'); });
   await check('contre la montre', async () => { await page.goto(URL0 + '#/puzzles/rush'); await sleep(800); await shot('07-rush'); });
@@ -114,12 +158,17 @@ async function run(name, browserType, ctxOpts) {
     await sleep(4000);
     await clickSq(page, 'g1'); await clickSq(page, 'f3'); await sleep(5000); await shot('09-partie-ia');
     await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 30000 }); await page.click('.actionbar >> text=Indice'); await page.waitForSelector('.coach-hint', { timeout: 30000 }); await page.click('.actionbar >> text=Indice suivant'); await sleep(300); await shot('09c-indice-idee');
-    page.once('dialog', (d) => d.accept()); await page.click('text=Abandonner'); await sleep(1200); await shot('09b-fin-partie');
+    page.once('dialog', (d) => d.accept()); await page.click('text=Abandonner'); await page.waitForSelector('.over .auto-next'); await sleep(900); await shot('09b-fin-partie');
+    const r1 = await page.locator('.over .an-row .btn').nth(0).boundingBox(); const r2 = await page.locator('.over .an-row .btn').nth(1).boundingBox();
+    const t = await page.locator('.over .an-row').innerText(); if (!/Revanche/.test(t) || !/Voir le bilan/.test(t)) throw new Error('fin de partie : ' + t);
+    if (Math.abs(r1.y - r2.y) > 4) throw new Error('Revanche et Voir le bilan ne sont pas côte à côte');
+    if (!(await page.locator('.over .an-count').count())) throw new Error('pas de compte à rebours');
+    await page.click('.over .an-stop'); // « Pas maintenant » : la revanche ne part pas
   });
   await check('analyse', async () => { await page.goto(URL0 + '#/analysis'); await page.waitForSelector('cg-board'); await sleep(4000); await shot('10-analyse'); });
   await check('ouvertures', async () => { await page.goto(URL0 + '#/openings'); await page.waitForSelector('.opening-grid'); await shot('11-ouvertures'); await page.goto(URL0 + '#/openings/italienne'); await sleep(800); await shot('11b-ouverture'); });
   await check('finales', async () => { await page.goto(URL0 + '#/endgames'); await page.waitForSelector('.opening-grid'); await shot('12-finales'); });
-  await check('révisions', async () => { await page.goto(URL0 + '#/review'); await sleep(500); await shot('13-revisions'); });
+  await check('révisions', async () => { await page.goto(URL0 + '#/review'); await sleep(500); await shot('13-revisions'); if ((await page.locator('.empty').count()) && !(await page.locator('.empty a[href="#/"]').count())) throw new Error('révisions vides sans suite'); });
   await check('profil', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.badge-grid'); await shot('14-profil'); });
   await check('réglages', async () => { await page.goto(URL0 + '#/settings'); await page.waitForSelector('.swatches'); await shot('15-reglages'); });
   await check('premium', async () => { await page.goto(URL0 + '#/premium'); await page.waitForSelector('.plans'); await page.getByText('7 jours gratuits, puis 29,99 €/an, annulable à tout moment', { exact: false }).first().waitFor(); await shot('16-premium'); });
@@ -141,7 +190,10 @@ async function run(name, browserType, ctxOpts) {
   await check('thème clair', async () => { await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); s.settings.theme = 'light'; localStorage.setItem(k, JSON.stringify(s)); }); await page.goto(URL0 + '#/'); await page.reload(); await page.waitForSelector('.feed-card:not(.skeleton), .feed-end'); await sleep(600); await shot('17-pour-toi-clair'); });
   await check('bilan de partie', async () => {
     const id = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); const g = s.games?.[0]; return g?.id; }); if (!id) throw new Error('aucune partie enregistrée');
-    await page.goto(URL0 + '#/game/' + id); await page.click('text=Lancer le bilan'); await page.waitForSelector('.coach-summary', { timeout: 90000 }); await sleep(800); await shot('18-bilan');
+    await page.goto(URL0 + '#/game/' + id); await page.waitForSelector('.review cg-board', { timeout: 10000 }); // l'échiquier est là tout de suite
+    if (await page.locator('text=Lancer le bilan').count()) throw new Error('le bilan ne démarre pas seul');
+    await page.waitForSelector('.coach-overlay:not(.pend)', { timeout: 90000 }); await shot('18a-bilan-surimpression');
+    await page.waitForSelector('.coach-summary:not(.pending)', { timeout: 90000 }); await sleep(800); await shot('18-bilan');
     await page.click('.review-moves .mv >> nth=2'); await page.waitForSelector('.coach-box h4'); await sleep(300); await shot('18b-bilan-coup');
   });
   await check('packs + moteur chargés', async () => { const l = [...loaded]; const pk = l.filter((u) => u.includes('packs/')), sf = l.filter((u) => u.includes('stockfish')); if (!pk.length || !sf.length) throw new Error('packs ' + pk.length + ' moteur ' + sf.length); console.log('    packs :', pk.length, '· moteur :', sf.map((u) => u.split('/').pop()).join(', ')); });
@@ -154,7 +206,7 @@ const wk = await run('iphone', webkit, { ...iphone });
 if (!wk) await run('iphone-chromium', chromium, { ...iphone, defaultBrowserType: undefined });
 srv.kill();
 // WebKit + COOP/COEP locaux : le worker multi-thread est refusé puis le moteur repart en mono-thread (repli voulu, absent en production sans COEP).
-const real = errors.filter((e) => !/favicon|Failed to load resource.*(404)/.test(e) && !/^\[iphone\].*(Cross-Origin-Embedder-Policy|stockfish-18-lite\.js.*access control checks)/.test(e));
+const real = errors.filter((e) => !/favicon|Failed to load resource.*(404)/.test(e) && !/^\[iphone\].*(Cross-Origin-Embedder-Policy|(stockfish-18-lite\.js|packs\/\w+\/b\d+\.gz).*access control checks)/.test(e)); // WebKit : téléchargement annulé par page.goto
 console.log(`\nErreurs console : ${real.length}`); real.slice(0, 40).forEach((e) => console.log(' - ' + e));
 console.log(`Échecs de vérification : ${failures}`);
 process.exit(real.length || failures ? 1 : 0);

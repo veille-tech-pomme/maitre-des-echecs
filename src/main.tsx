@@ -52,7 +52,7 @@ function App() {
     case undefined: page = <Feed />; break;
     case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
     case 'lesson': page = <LessonPage key={b} id={b} />; break;
-    case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
+    case 'puzzles': page = b === 'rated' ? <PuzzleSession key="rated" mode="rated" /> : b === 'daily' ? <PuzzleSession key="daily" mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession key="review" mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession key={"custom" + query?.toString()} mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
     case 'review': page = b === 'mistakes' ? <MistakesSession /> : <ReviewHub />; break;
     case 'coach': page = b === 'test' ? <DiagnosticPage /> : <CoachPage />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;

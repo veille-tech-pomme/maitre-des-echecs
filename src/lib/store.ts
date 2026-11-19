@@ -81,8 +81,12 @@ export function getState() { return state; }
 export function setState(fn: (s: State) => void) {
   const next = structuredClone(state); fn(next); state = next;
   subs.forEach((f) => f());
-  if (typeof localStorage !== 'undefined') { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }, 150); }
+  if (typeof localStorage !== 'undefined') { clearTimeout(saveTimer); dirty = true; saveTimer = setTimeout(flush, 150); }
 }
+let dirty = false;
+/** écriture immédiate (fin du délai, ou page masquée / fermée : rien ne se perd si l'app est quittée juste après une action) */
+function flush() { if (!dirty) return; dirty = false; clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+if (typeof addEventListener !== 'undefined' && typeof document !== 'undefined') { addEventListener('pagehide', flush); document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); }); }
 export function replaceState(s: State) { state = s; subs.forEach((f) => f()); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 export function subscribe(f: () => void) { subs.add(f); return () => subs.delete(f); }
 export function useStore<T>(sel: (s: State) => T): T {

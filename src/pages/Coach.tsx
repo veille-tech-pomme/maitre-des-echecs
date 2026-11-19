@@ -1,10 +1,9 @@
 // « Mes progrès » (#/coach) et résultat du diagnostic (#/coach/test : le test lui-même se fait dans le fil « Pour toi »).
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 import { useStore, setState, getState } from '../lib/store';
-import { LargeTitle, NavBar, Progress } from '../components/ui';
+import { LargeTitle, NavBar, Progress, AutoNext } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MoveTrainer } from '../components/MoveTrainer';
-import { pickPuzzle, type BankPuzzle } from '../lib/puzzlebank';
 import { radar, skillViews, weaknesses, strengths, globalRating, observe, confidence } from '../coach/model';
 import { coachPlan, weekProgress, ensureModel } from '../coach/curriculum';
 import { FAMILY_LABEL, FAMILIES, SKILL, MOTIF_SKILL, type Family } from '../coach/skills';
@@ -12,7 +11,6 @@ import { review as srsReview } from '../lib/srs';
 import { diagResult, DIAG_THEMES, FEED_DIAG, feedDiagCount } from '../coach/diagnostic';
 import { ACT_ICON, useCoachSync } from '../coach/ui/common';
 import { themeName } from '../data/themes';
-import { go } from '../lib/router';
 
 function Radar({ data }: { data: { family: Family; value: number; conf: number }[] }) {
   const S = 300, C = S / 2, R = 104; const n = data.length;
@@ -150,7 +148,7 @@ export function MistakesSession() {
     const idle = pending.length ? `${pending.length} position${pending.length > 1 ? 's' : ''} tirée${pending.length > 1 ? 's' : ''} de tes parties ${pending.length > 1 ? 'sont programmées' : 'est programmée'} : la prochaine revient ${when}. Les revoir un peu plus tard les grave mieux en mémoire.` : 'Après chaque bilan, le coach transforme tes moments clés en exercices personnels.';
     return (
     <div class="page"><NavBar back="#/review" backLabel="Révisions" />
-      <div class="empty"><div class="empty-icon"><Icon name="checkCircle" size={30} /></div><h3>{k ? 'Séance terminée' : pending.length ? 'Rien à rejouer pour l’instant' : 'Aucune erreur à rejouer'}</h3><p>{k ? `Tu as revu ${k} position${k > 1 ? 's' : ''} tirée${k > 1 ? 's' : ''} de tes parties. Elles reviendront au bon moment.` : idle}</p><a class="btn primary" href="#/">Retour à l’accueil</a></div>
+      <div class="empty"><div class="empty-icon"><Icon name="checkCircle" size={30} /></div><h3>{k ? 'Séance terminée' : pending.length ? 'Rien à rejouer pour l’instant' : 'Aucune erreur à rejouer'}</h3><p>{k ? `Tu as revu ${k} position${k > 1 ? 's' : ''} tirée${k > 1 ? 's' : ''} de tes parties. Elles reviendront au bon moment.` : idle}</p><div class="col center-col"><a class="btn primary" href="#/">Retour à Pour toi</a>{!k && <a class="btn plain" href="#/play">Jouer une partie à analyser</a>}</div></div>
     </div>
   ); }
   return (
@@ -161,7 +159,7 @@ export function MistakesSession() {
         <aside class="side">
           <div class="coach-box cls-mistake"><div class="coach-head"><Icon name="brainCircuit" size={20} /><b>Tiré de ta partie</b></div><p>Dans cette position, tu avais joué un coup faible : « {mk.prompt} ». Trouve le meilleur coup.</p></div>
           {state === 'ko' && <p class="muted">Pas encore. Cherche les échecs, les prises et les menaces.</p>}
-          {state === 'ok' && <button class="btn primary lg next-btn" onClick={() => { failed.current = false; setStateL('play'); setK(k + 1); }}>Suivante<Icon name="right" size={18} stroke={2.5} /></button>}
+          {state === 'ok' && <div class="next-btn" key={id}><AutoNext ms={failed.current ? 3000 : 1300} stop={null} onGo={() => { failed.current = false; setStateL('play'); setK(k + 1); }}>Suivante<Icon name="right" size={18} stroke={2.5} /></AutoNext></div>}
           <div class="actionbar">
             {state !== 'ok' && <button class="tool" onClick={() => { failed.current = true; grade(false); setStateL('play'); setK(k + 1); }}><Icon name="eye" size={22} />Passer</button>}
             {mk.game && <a class="tool" href={`#/game/${mk.game}`}><Icon name="microscope" size={22} />La partie</a>}

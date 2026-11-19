@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { MoveTrainer } from '../components/MoveTrainer';
-import { LineChart, Progress, toast, LargeTitle, NavBar, Item, Stars } from '../components/ui';
+import { LineChart, Progress, toast, LargeTitle, NavBar, Item, Stars, AutoNext } from '../components/ui';
+import { go } from '../lib/router';
 import { Icon } from '../components/Icon';
 import { useStore, getState, setState, today, addXp } from '../lib/store';
 import { loadPuzzles, dailyPuzzle, type Puzzle } from '../lib/puzzles';
@@ -134,14 +135,14 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
   };
   useEffect(() => { next(); }, [theme, mode, query?.toString()]);
   if (p === undefined) return <div class="page"><div class="loading" aria-label="Chargement du puzzle" /></div>;
-  if (!p) return <div class="page"><NavBar back="#/puzzles" backLabel="Puzzles" close /><div class="empty"><div class="empty-icon"><Icon name={mode === 'review' ? 'checkCircle' : 'search'} size={30} /></div><h3>{mode === 'review' ? 'Rien à réviser pour l’instant' : 'Aucun puzzle trouvé'}</h3><p>{mode === 'review' ? 'Les puzzles ratés reviennent ici au bon moment (répétition espacée).' : 'Élargis la tranche de classement ou change de thème. Hors ligne, seuls les packs déjà téléchargés sont disponibles.'}</p><a class="btn primary" href="#/puzzles/rated">Puzzles classés</a></div></div>;
+  if (!p) return <div class="page"><NavBar back="#/puzzles" backLabel="Puzzles" close /><div class="empty"><div class="empty-icon"><Icon name={mode === 'review' ? 'checkCircle' : 'search'} size={30} /></div><h3>{mode === 'review' ? 'Rien à réviser pour l’instant' : 'Aucun puzzle trouvé'}</h3><p>{mode === 'review' ? 'Les puzzles ratés reviennent ici au bon moment (répétition espacée).' : 'Élargis la tranche de classement ou change de thème. Hors ligne, seuls les packs déjà téléchargés sont disponibles.'}</p><div class="col center-col"><a class="btn primary" href="#/puzzles/rated">Puzzles classés</a><a class="btn plain" href="#/">Retour à Pour toi</a></div></div></div>;
   const rated = mode === 'rated' || mode === 'theme' || mode === 'daily';
   const record = (ok: boolean) => { if (recorded.current) return; recorded.current = true; const d = recordPuzzle(p, ok, mode === 'custom' ? 'rush' : mode === 'review' ? 'review' : mode); setDelta(rated ? d : null); setCount((c) => c + 1); if (count + 1 >= 5) setState((st) => markPlanDone(st, theme ? 'weak:' + theme : 'puzzles')); if (mode === 'review') setState((st) => markPlanDone(st, 'srs')); };
   const userWhite = new Chess(p.f).turn() === 'b';
   const title = mode === 'daily' ? 'Puzzle du jour' : mode === 'review' ? 'Révision' : mode === 'theme' ? themeName(theme!) : mode === 'custom' ? (custom?.theme ? themeName(custom.theme) : 'Sur mesure') : 'Puzzles classés';
   const op = (p as BankPuzzle).o;
   return (
-    <div class="page puzzle-session">
+    <div class="page puzzle-session" data-pz={p.i}>
       <div class="game-top"><a class="nb-btn round" href={mode === 'custom' ? '#/puzzles/custom' : '#/puzzles'} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{title}</div><span class="pill tnum">{mode === 'review' ? `${Object.values(s.srs).filter((x) => x.kind === 'puzzle' && isDue(x)).length} restants` : mode === 'custom' ? `${custom?.min ?? ''}–${custom?.max ?? ''}` : s.puzzle.rating}</span></div>
       <div class="play-grid">
         <MoveTrainer key={p.i + sol} fen={p.f} line={p.m.split(' ')} setup hintLevel={hint} showSolutionSignal={sol}
@@ -161,11 +162,12 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
             </div>
           )}
           {failed && !solved && <p class="muted small">Ce puzzle reviendra dans tes révisions. Tu peux continuer à chercher.</p>}
-          {(solved || failed) && mode !== 'daily' && <button class="btn primary lg next-btn" onClick={() => next()}>Puzzle suivant<Icon name="right" size={18} stroke={2.5} /></button>}
-          {mode === 'daily' && solved && <a class="btn primary lg next-btn" href="#/puzzles/rated">Puzzles classés<Icon name="right" size={18} stroke={2.5} /></a>}
+          {/* enchaînement automatique : vite après une réussite nette, le temps de lire la solution sinon */}
+          {solved && <div class="next-btn" key={p.i}><AutoNext ms={failed ? 4500 : mode === 'daily' ? 2200 : 1300} stop={failed || mode === 'daily' ? 'Rester sur ce puzzle' : null} onGo={() => (mode === 'daily' ? go('/puzzles/rated') : next())}>{mode === 'daily' ? 'Puzzles classés' : 'Suivant'}<Icon name="right" size={18} stroke={2.5} /></AutoNext></div>}
           <div class="actionbar">
             {!solved && <button class="tool" onClick={() => { setHint(hint + 1); if (!failed && hint >= 1) { setFailed(true); record(false); } }}><Icon name="bulb" size={22} />Indice{hint ? ` ${hint}` : ''}</button>}
             {!solved && <button class="tool" onClick={() => { if (!failed) { setFailed(true); record(false); } setSol((x) => x + 1); setSolved(true); }}><Icon name="eye" size={22} />Solution</button>}
+            {failed && !solved && mode !== 'daily' && <button class="tool" onClick={() => next()}><Icon name="right" size={22} />Passer</button>}
             {(solved || failed) && <a class="tool" href={`#/analysis?fen=${encodeURIComponent(p.f)}&moves=${encodeURIComponent(p.m)}`}><Icon name="microscope" size={22} />Analyser</a>}
           </div>
         </aside>
@@ -333,7 +335,7 @@ export function PuzzlePath({ id }: { id: string }) {
           <div class="celebrate"><Icon name={pass ? 'trophy' : 'dumbbell'} size={52} stroke={1.8} /></div><h1>{ok} sur {list.length}</h1>
           {pass && <div class="stars-big"><Stars n={stars} size={30} /></div>}
           <p class="muted">{pass ? `Étape ${stage + 1} validée.` : `Il faut ${STAGE_PASS} réussites pour valider. Réessaie.`}</p>
-          <div class="col center-col">{pass && stage + 1 < path.stages.length && <button class="btn primary lg" onClick={() => begin(stage + 1)}>Étape suivante</button>}<button class={'btn ' + (pass ? 'secondary' : 'primary lg')} onClick={() => begin(stage)}>Recommencer</button><button class="btn plain" onClick={() => setStage(null)}>Retour au parcours</button></div>
+          <div class="col center-col">{pass && stage + 1 < path.stages.length && <AutoNext ms={5000} count onGo={() => begin(stage + 1)}>Étape suivante</AutoNext>}<button class={'btn ' + (pass ? 'secondary' : 'primary lg')} onClick={() => begin(stage)}>Recommencer</button><button class="btn plain" onClick={() => setStage(null)}>Retour au parcours</button></div>
         </div>
       );
     }
@@ -342,7 +344,7 @@ export function PuzzlePath({ id }: { id: string }) {
         <div class="game-top"><button class="nb-btn round" onClick={() => setStage(null)} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></button><div class="gt-title">{path.title} · étape {stage + 1}</div><span class="pill tnum">{k + 1}/{list.length}</span></div>
         <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup onMistake={() => { if (res.length === k) { setRes((r) => [...r, false]); recordPuzzle(p, false, 'theme'); } }}
           onSolved={() => { if (res.length === k) { setRes((r) => [...r, true]); recordPuzzle(p, true, 'theme'); } setTimeout(() => setK((x) => x + 1), 600); }} />
-        {res.length > k && !res[k] && <button class="btn primary lg next-btn" onClick={() => setK((x) => x + 1)}>Puzzle suivant</button>}
+        {res.length > k && !res[k] && <button class="btn plain next-btn" onClick={() => setK((x) => x + 1)}>Passer ce puzzle</button>}
         <div class="rush-dots">{res.map((r) => <span class={r ? 'ok' : 'ko'}><Icon name={r ? 'check' : 'close'} size={12} stroke={3} /></span>)}</div>
       </div>
     );

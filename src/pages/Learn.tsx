@@ -55,11 +55,11 @@ export function Learn() {
               <ol class="path">
                 {ls.map((l, i) => {
                   const st = s.lessons[l.id]; const un = isUnlocked(s, l.id);
-                  const href = locked ? '#/premium' : un ? `#/lesson/${l.id}` : undefined;
+                  const href = locked ? '#/premium' : `#/lesson/${l.id}`; // verrouillée : la page de la leçon propose la suite (jamais un toast sans issue)
                   const cur = nl?.id === l.id;
                   return (
                     <li class={'node ' + (st?.done ? 'done' : un ? 'open' : 'locked') + (cur ? ' current' : '')}>
-                      <a href={href} aria-disabled={!href ? 'true' : undefined} onClick={(e) => { if (!href) { e.preventDefault(); toast('Termine la leçon précédente pour débloquer celle-ci', 'lock'); } }}>
+                      <a href={href} aria-label={un || locked ? undefined : `${l.title} (verrouillée)`}>
                         <span class="node-icon">{locked ? <Icon name="crown" size={18} /> : st?.done ? <Icon name="check" size={20} stroke={3} /> : un ? <b class="tnum">{i + 1}</b> : <Icon name="lock" size={17} />}</span>
                         <span class="node-text"><b>{l.title}</b><small>{l.summary}</small></span>
                         <span class="node-meta">{st?.done ? <Stars n={st.stars} size={12} /> : <small>{l.minutes} min</small>}</span>

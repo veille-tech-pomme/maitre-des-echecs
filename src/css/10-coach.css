@@ -79,3 +79,17 @@
 cg-board square.mk-danger { box-shadow: inset 0 0 0 3px rgba(255, 69, 58, .9); border-radius: 4px; }
 cg-board square.mk-target { box-shadow: inset 0 0 0 3px rgba(242, 181, 68, .95); border-radius: 4px; }
 cg-board square.mk-hint, cg-board square.mk-good { box-shadow: inset 0 0 0 3px rgba(10, 132, 255, .9); border-radius: 4px; }
+/* Bilan (R3) : le coach commente en surimpression, sans bloquer l'échiquier */
+.coach-overlay { position: absolute; z-index: 6; left: 26px; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--glass); backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px); box-shadow: var(--shadow-lg); border: .5px solid var(--sep); font-size: 15px; line-height: 20px; font-weight: 600; pointer-events: none; animation: overlay-in .32s var(--ease); }
+.coach-overlay .cls-badge { flex: none; }
+.coach-overlay.pend { font-weight: 500; color: var(--text-2); }
+@keyframes overlay-in { from { opacity: 0; transform: translateY(8px); } }
+.reduce-motion .coach-overlay { animation: none; }
+.review-moves .mv.pend { opacity: .55; }
+/* R3 · bilan sur téléphone : l'échiquier (et la bulle du coach) d'abord, l'avis détaillé juste en dessous */
+@media (max-width: 759.98px) {
+  .page.review { display: flex; flex-direction: column; }
+  .page.review > .play-grid { display: contents; }
+  .page.review > .game-top { order: -3; } .page.review > .opening-name { order: -2; } .page.review .board-col { order: -1; margin-bottom: 14px; }
+  .page.review > .eval-graph { margin-top: 12px; }
+}

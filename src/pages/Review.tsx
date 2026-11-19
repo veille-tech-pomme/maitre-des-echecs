@@ -15,7 +15,7 @@ export function ReviewHub() {
   const total = duePz.length + dueOp.length + dueMk.length;
   return (
     <div class="page">
-      <NavBar back="#/puzzles" backLabel="Puzzles" />
+      <NavBar back="#/learn" backLabel="Apprendre" />
       <h1 class="page-title">Révisions</h1>
       <p class="muted page-sub">Ce que tu rates revient juste avant que tu l’oublies : 1 jour, 4 jours, 10 jours, 25 jours…</p>
       <div class="stat-strip">
@@ -25,7 +25,7 @@ export function ReviewHub() {
       </div>
       {total === 0 ? (
         <Empty icon="checkCircle" title="Tout est à jour" text={nextDue ? `Prochaine révision ${new Date(nextDue.due).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}.` : 'Rate un puzzle ou entraîne-toi sur une ouverture pour remplir ta mémoire.'}>
-          <a class="btn primary" href="#/puzzles/rated">Faire des puzzles</a>
+          <div class="col center-col"><a class="btn primary" href="#/">Retour à Pour toi</a><a class="btn plain" href="#/puzzles/rated">Faire des puzzles classés</a></div>
         </Empty>
       ) : (
         <div class="list">

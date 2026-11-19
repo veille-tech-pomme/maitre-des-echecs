@@ -82,7 +82,8 @@
 .opening-name { font-weight: 600; color: var(--tint); font-size: 15px; display: flex; align-items: center; gap: 6px; margin: 0; }
 .coach-note { display: flex; gap: 10px; align-items: center; color: var(--text-2); font-size: 15px; }
 .hint-box { display: flex; gap: 10px; align-items: flex-start; } .hint-box .ico { color: var(--gold); flex: none; margin-top: 2px; } .hint-box p + p { margin-top: 6px; }
-.done-screen .next-title { margin: -6px 0 4px; }
+.done-screen .next-title { margin: 0 0 2px; }
+.done-screen .row.done-links { flex-direction: row; margin-top: 6px; gap: 4px; } .done-screen .row.done-links .btn { width: auto; flex: 1; }
 .lesson-top .nb-btn.round { flex: none; }
 .feedback { min-height: 52px; font-size: 16px; animation: none; }
 .feedback > span { display: flex; gap: 10px; align-items: center; }

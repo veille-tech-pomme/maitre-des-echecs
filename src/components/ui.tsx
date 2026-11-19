@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { onEvent } from '../lib/store';
 import { play } from '../lib/sound';
@@ -139,3 +139,25 @@ export function Stars({ n, of = 3, size = 14 }: { n: number; of?: number; size?:
 }
 /** Ferme un écran plein écran : retour arrière si possible, sinon lien de repli. */
 export const backOr = (e: Event) => { if (history.length > 1) { e.preventDefault(); history.back(); } };
+
+/** Enchaînement automatique (pas de cul-de-sac) : un bouton qui se remplit puis agit seul après `ms`.
+ *  Toucher = tout de suite ; « Rester ici » = arrêt. Le compte à rebours se met en pause quand l'onglet est caché. */
+export function AutoNext({ ms, onGo, children, cls = 'primary lg', stop = 'Rester ici', count = false, extra }: { ms: number; onGo: () => void; children: ComponentChildren; cls?: string; stop?: string | null; count?: boolean; extra?: ComponentChildren }) {
+  const [on, setOn] = useState(true); const [left, setLeft] = useState(ms); const go = useRef(onGo); go.current = onGo; const fired = useRef(false);
+  const fire = () => { if (fired.current) return; fired.current = true; go.current(); };
+  useEffect(() => {
+    if (!on) return;
+    let last = Date.now(); let acc = 0;
+    const t = setInterval(() => { const now = Date.now(); if (!document.hidden) acc += now - last; last = now; setLeft(Math.max(0, ms - acc)); if (acc >= ms) { clearInterval(t); fire(); } }, 100);
+    return () => clearInterval(t);
+  }, [on]);
+  return (
+    <div class="auto-next">
+      <div class="an-row">
+        <button class={'btn ' + cls + ' fc-next' + (on ? ' auto' : '')} style={{ '--auto-ms': ms / 1000 + 's' } as any} onClick={fire}>{children}{on && count && <span class="an-count tnum" aria-hidden="true">{Math.ceil(left / 1000)}</span>}</button>
+        {extra}
+      </div>
+      {on && stop && <button class="btn plain small an-stop" onClick={() => setOn(false)}>{stop}</button>}
+    </div>
+  );
+}

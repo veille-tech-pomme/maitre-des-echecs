@@ -71,3 +71,9 @@
 /* onglets : gris lisibles (contraste AA) et teinte active adaptée au thème clair */
 :root { --tab-off: #8E8E93; } [data-theme='light'] { --tab-off: #6E6E73; }
 .tabbar a { color: var(--tab-off); } .tabbar a.on { color: var(--tint); }
+/* Enchaînement automatique (R3) */
+.auto-next { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; }
+.auto-next .an-row { display: flex; gap: 10px; } .auto-next .an-row > .btn { flex: 1; }
+.auto-next .an-count { display: inline-grid; place-items: center; min-width: 26px; height: 26px; margin-left: 8px; border-radius: 99px; background: color-mix(in srgb, var(--on-gold) 16%, transparent); font-size: 14px; }
+.auto-next .an-stop { align-self: center; }
+.reduce-motion .fc-next.auto::after { animation: none; }

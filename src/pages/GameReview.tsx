@@ -1,5 +1,5 @@
 // Bilan de partie mené par le coach : résumé, 3 leçons, moments clés à rejouer, puis coup par coup.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Board, type DrawShape } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { EvalBar, Progress, PremiumLock, backOr } from '../components/ui';
@@ -9,7 +9,7 @@ import { reviewsLeft, consumeReview, FREE_REVIEWS_PER_DAY } from '../lib/feature
 import { usePremium } from '../lib/entitlements';
 import { botById } from '../data/bots';
 import { formatScore } from '../lib/engine';
-import { sanFr, START_FEN } from '../lib/chess';
+import { sanFr, START_FEN, Chess } from '../lib/chess';
 import { checkBadges } from '../lib/progress';
 import { markPlanDone } from '../lib/plan';
 import { openingName } from '../data/openings';
@@ -35,6 +35,14 @@ function legacyTags(moves: CoachMove[]): string[] {
   }
   return [...out];
 }
+const EMPTY: CoachReview = { v: 2, moves: [], accuracy: { w: 0, b: 0 }, counts: { w: {}, b: {} }, critical: [], retries: [], lessons: [], events: [], summary: '', es: [], phaseAcc: {} };
+type PMove = CoachMove & { pend?: boolean };
+/** coups de la partie avant analyse : l'échiquier se parcourt tout de suite, le coach commente par-dessus au fil de l'analyse */
+function skeleton(sans: string[]): PMove[] {
+  const c = new Chess(); const out: PMove[] = [];
+  sans.forEach((san, i) => { const before = c.fen(); const m = c.move(san); if (!m) return; out.push({ ply: i, uci: m.from + m.to + (m.promotion || ''), san: m.san, color: m.color, cls: 'good', dE: 0, eBest: 0, ePlayed: 0, fenBefore: before, fenAfter: c.fen(), best: '', bestLine: [], whiteCp: 0, ex: null, pend: true }); });
+  return out;
+}
 const moveNo = (m: CoachMove) => `${Math.floor(m.ply / 2) + 1}${m.color === 'w' ? '.' : '…'} ${sanFr(m.san)}`;
 
 export function GameReviewPage({ id }: { id: string }) {
@@ -47,6 +55,13 @@ export function GameReviewPage({ id }: { id: string }) {
   const [retry, setRetry] = useState<number | null>(null); const [retryRes, setRetryRes] = useState<'ok' | 'ko' | null>(null);
   const sig = useRef({ cancelled: false });
   useEffect(() => () => { sig.current.cancelled = true; }, []);
+  const skel = useMemo(() => skeleton(game?.moves || []), [game?.id]);
+  /** tant que l'utilisateur ne navigue pas, l'échiquier suit l'analyse (le coach commente en direct) */
+  const follow = useRef(true);
+  // le bilan démarre seul : partie revue (gratuit), partie qui vient de finir, ou Premium ; sinon un bouton, sans bloquer l'échiquier
+  const auto = !!game && !rv && (game.reviewed || ent.premium || (reviewsLeft() > 0 && Date.now() - game.date < 20 * 60000));
+  useEffect(() => { if (auto) run(); }, [id]);
+  useEffect(() => { if (partial && follow.current) setPly(partial.moves.length); }, [partial?.moves.length]);
   if (!game) return <div class="page"><h1>Partie introuvable</h1><a href="#/profile">Mes parties</a></div>;
   const bot = botById(game.botId);
   const run = async () => {
@@ -65,25 +80,15 @@ export function GameReviewPage({ id }: { id: string }) {
       });
       addXp(15, 'Bilan de partie'); checkBadges();
       setRv(r); setPartial(null);
+      // l'échiquier suivait l'analyse : on s'arrête sur le premier moment clé, commenté en surimpression
+      if (follow.current) { follow.current = false; setPly(r.critical.length ? r.critical[0].ply + 1 : r.moves.length); }
     } catch (e: any) { if (!sig.current.cancelled) setErr(String(e?.message || e)); }
     setRunning(false);
   };
   const left = reviewsLeft();
-  const view = rv || partial;
-  if (!view) return (
-    <div class="page center-page">
-      <div class="game-top"><a class="nb-btn round" href="#/play" onClick={backOr} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><span /><span /></div>
-      <div class="celebrate"><Icon name="brainCircuit" size={52} stroke={1.8} /></div>
-      <h1>Bilan avec le coach</h1>
-      <p class="muted">Contre {bot.name} · {game.result} · {Math.ceil(game.moves.length / 2)} coups</p>
-      {running ? (<div class="review-progress"><Progress value={prog} label="Analyse" /><p class="muted tnum">{prog < 0.95 ? `Stockfish analyse chaque position… ${Math.round(prog * 100)} %` : 'Le coach rédige ton bilan…'}</p></div>)
-        : game.reviewed || left > 0 ? (<><div class="center-col"><button class="btn primary lg" onClick={run}>Lancer le bilan</button></div>{!ent.premium && !game.reviewed && <p class="muted small">Bilans gratuits restants aujourd’hui : {left}/{FREE_REVIEWS_PER_DAY}</p>}</>)
-        : <PremiumLock title="Tu as utilisé tes 3 bilans gratuits du jour" text="Reviens demain pour 3 nouveaux bilans gratuits, ou passe Premium pour des bilans illimités avec le coach approfondi." />}
-      {err && <p class="error">{err}</p>}
-    </div>
-  );
-  const rvv = view; const pending = !rv;
-  const cur = ply > 0 ? rvv.moves[ply - 1] ?? null : null;
+  const rvv: CoachReview = rv || { ...(partial || EMPTY), moves: [...(partial?.moves || []), ...skel.slice(partial?.moves.length || 0)] };
+  const pending = !rv;
+  const cur: PMove | null = ply > 0 ? rvv.moves[ply - 1] ?? null : null;
   const fen = cur ? cur.fenAfter : START_FEN;
   const evals = [rvv.moves[0] ? 20 : 0, ...rvv.moves.map((m) => m.whiteCp)];
   const ev = evals[ply] ?? 0;
@@ -93,9 +98,9 @@ export function GameReviewPage({ id }: { id: string }) {
   const W = 600, H = 90; const pts = rvv.es.map((e, i) => [(i / Math.max(1, rvv.es.length - 1)) * W, H - e * H]);
   const rt = retry != null ? rvv.retries[retry] : null;
   const toBoard = () => requestAnimationFrame(() => { const b = document.querySelector('.review-board, .board-wrap, cg-board'); if (b && b.getBoundingClientRect().top < 0 || (b && b.getBoundingClientRect().top > innerHeight * 0.5)) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  const goPly = (p: number) => { setPly(p); setRetry(null); toBoard(); };
-  const shapes: DrawShape[] = cur?.ex ? cur.ex.arrows.filter((a) => a.orig !== a.dest).map((a) => ({ orig: a.orig as any, dest: a.dest as any, brush: a.brush })) : cur && !CLASSES[cur.cls].good && cur.best !== cur.uci ? [{ orig: cur.best.slice(0, 2) as any, dest: cur.best.slice(2, 4) as any, brush: 'green' }] : [];
-  const hl = new Map<string, string>(); if (cur) { hl.set(cur.uci.slice(2, 4), 'cls-' + cur.cls); for (const mk of cur.ex?.marks || []) if (mk.sq !== cur.uci.slice(2, 4)) hl.set(mk.sq, 'mk-' + mk.kind); }
+  const goPly = (p: number) => { follow.current = false; setPly(p); setRetry(null); toBoard(); };
+  const shapes: DrawShape[] = cur?.pend ? [] : cur?.ex ? cur.ex.arrows.filter((a) => a.orig !== a.dest).map((a) => ({ orig: a.orig as any, dest: a.dest as any, brush: a.brush })) : cur && !CLASSES[cur.cls].good && cur.best !== cur.uci ? [{ orig: cur.best.slice(0, 2) as any, dest: cur.best.slice(2, 4) as any, brush: 'green' }] : [];
+  const hl = new Map<string, string>(); if (cur && !cur.pend) { hl.set(cur.uci.slice(2, 4), 'cls-' + cur.cls); for (const mk of cur.ex?.marks || []) if (mk.sq !== cur.uci.slice(2, 4)) hl.set(mk.sq, 'mk-' + mk.kind); }
   const phases: [string, string][] = [['opening', 'Ouverture'], ['middlegame', 'Milieu'], ['endgame', 'Finale']];
   return (
     <div class="page review">
@@ -103,9 +108,11 @@ export function GameReviewPage({ id }: { id: string }) {
       {op && <p class="opening-name center-text">{op}</p>}
       {pending ? (
       <section class="coach-summary pending" aria-live="polite" aria-labelledby="cs-t">
-        <div class="cc-head"><span class="cc-avatar" aria-hidden="true"><Icon name="brainCircuit" size={22} /></span><div class="grow"><div class="cc-eyebrow">Analyse en cours</div><div class="cc-title" id="cs-t">Les premiers coups sont déjà commentés</div></div></div>
-        <Progress value={prog} label="Analyse" />
-        <p class="muted small tnum">{rvv.moves.length} coups sur {game.moves.length} · le bilan complet et les leçons arrivent ensuite.</p>
+        <div class="cc-head"><span class="cc-avatar" aria-hidden="true"><Icon name="brainCircuit" size={22} /></span><div class="grow"><div class="cc-eyebrow">{running ? 'Analyse en cours' : 'Bilan avec le coach'}</div><div class="cc-title" id="cs-t">{running ? (partial ? 'Le coach commente au fil de l’analyse' : 'Le coach regarde ta partie') : `Contre ${bot.name} · ${Math.ceil(game.moves.length / 2)} coups`}</div></div></div>
+        {running ? <><Progress value={prog} label="Analyse" /><p class="muted small tnum">{partial ? `${partial.moves.length} coups commentés sur ${game.moves.length}` : `Stockfish analyse chaque position… ${Math.round(prog * 100)} %`} · tu peux parcourir la partie en attendant.</p></>
+          : game.reviewed || left > 0 ? <div class="row"><button class="btn primary" onClick={run}><Icon name="sparkles" size={17} />Lancer le bilan</button>{!ent.premium && !game.reviewed && <span class="muted small">{left}/{FREE_REVIEWS_PER_DAY} gratuits aujourd’hui</span>}</div>
+          : <><p class="muted small">Tes 3 bilans gratuits du jour sont utilisés : 3 nouveaux demain. Premium les rend illimités.</p><div class="row"><a class="btn small primary" href={`#/play/${bot.id}`}><Icon name="swords" size={16} />Revanche</a><a class="btn small secondary" href="#/">Pour toi</a><a class="btn small plain" href="#/premium">Premium</a></div></>}
+        {err && <p class="error">{err}</p>}
       </section>) : (
       <section class="coach-summary" aria-labelledby="cs-t">
         <div class="cc-head"><span class="cc-avatar" aria-hidden="true"><Icon name="brainCircuit" size={22} /></span><div class="grow"><div class="cc-eyebrow">L’avis du coach</div><div class="cc-title" id="cs-t">{rvv.summary.split(' : ')[0]}</div></div></div>
@@ -129,13 +136,13 @@ export function GameReviewPage({ id }: { id: string }) {
       {!pending && rvv.retries.length > 0 && retry == null && (
         <div class="retry-bar"><Icon name="repeat" size={20} /><p>{rvv.retries.length} moment{rvv.retries.length > 1 ? 's' : ''} clé{rvv.retries.length > 1 ? 's' : ''} à rejouer. Ils rejoignent aussi tes révisions.</p><button class="btn small primary" onClick={() => { setRetry(0); setRetryRes(null); setPly(rvv.retries[0].ply); toBoard(); }}>Rejouer</button></div>
       )}
-      <svg class="eval-graph" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" onClick={(e) => { const r = (e.currentTarget as SVGElement).getBoundingClientRect(); goPly(Math.round(((e.clientX - r.left) / r.width) * (rvv.es.length - 1))); }} role="img" aria-label="Courbe des chances de gain des Blancs">
+      {rvv.es.length > 1 && <svg class="eval-graph" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" onClick={(e) => { const r = (e.currentTarget as SVGElement).getBoundingClientRect(); goPly(Math.round(((e.clientX - r.left) / r.width) * (rvv.es.length - 1))); }} role="img" aria-label="Courbe des chances de gain des Blancs">
         <rect width={W} height={H} class="eg-bg" />
         <path d={`M0,${H} ` + pts.map(([x, y]) => `L${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + ` L${W},${H} Z`} class="eg-white" />
         <line x1="0" x2={W} y1={H / 2} y2={H / 2} class="eg-mid" />
         {rvv.critical.map((c) => <circle cx={pts[c.ply + 1]?.[0]} cy={pts[c.ply + 1]?.[1]} r="5" fill={CLASSES[rvv.moves[c.ply].cls].color} />)}
         <line x1={pts[ply]?.[0]} x2={pts[ply]?.[0]} y1="0" y2={H} class="eg-cur" />
-      </svg>
+      </svg>}
       <div class="play-grid">
         <div class="board-col with-eval">
           <EvalBar cp={ev} orientation={orient} label={formatScore(ev)} />
@@ -144,6 +151,8 @@ export function GameReviewPage({ id }: { id: string }) {
           ) : (
             <Board fen={fen} viewOnly orientation={orient} lastMove={cur ? [cur.uci.slice(0, 2), cur.uci.slice(2, 4)] : null} shapes={shapes} highlight={hl} />
           )}
+          {!rt && cur && (cur.pend ? (running && <div class="coach-overlay pend" key={'p' + ply} aria-hidden="true"><span class="thinking" />Le coach regarde ce coup…</div>)
+            : <div class="coach-overlay" key={'o' + ply} role="status"><span class="cls-badge" style={{ background: CLASSES[cur.cls].color }}>{CLASSES[cur.cls].symbol}</span><span>{cur.ex?.headline || (CLASSES[cur.cls].good || cur.best === cur.uci ? `${moveNo(cur)} · ${CLASSES[cur.cls].label}` : `${CLASSES[cur.cls].label} · le moteur préférait ${sanOf(cur.fenBefore, cur.best)}`)}</span></div>)}
         </div>
         <aside class="side">
           {rt ? (
@@ -158,6 +167,8 @@ export function GameReviewPage({ id }: { id: string }) {
                 <button class="btn small secondary" onClick={() => goPly(rt.ply + 1)}>Voir l’explication</button>
               </div>
             </div>
+          ) : cur?.pend ? (
+            <p class="muted">{moveNo(cur)} · {running ? 'le commentaire arrive dès que Stockfish a vu ce coup.' : 'lance le bilan pour le commentaire du coach.'}</p>
           ) : cur ? (
             <div class={'coach-box cls-' + cur.cls}>
               <div class="coach-head"><span class="cls-badge" style={{ background: CLASSES[cur.cls].color }}>{CLASSES[cur.cls].symbol}</span><b>{moveNo(cur)} · {CLASSES[cur.cls].label}</b></div>
@@ -180,7 +191,7 @@ export function GameReviewPage({ id }: { id: string }) {
             <tbody>{(Object.keys(CLASSES) as MoveClass[]).map((c) => (rvv.counts.w[c] || rvv.counts.b[c]) ? <tr><td><span class="cls-dot" style={{ background: CLASSES[c].color }}>{CLASSES[c].symbol}</span> {CLASSES[c].label}</td><td>{rvv.counts[game.color][c] || 0}</td><td>{rvv.counts[opp][c] || 0}</td></tr> : null)}</tbody>
           </table>
           <div class="review-moves">
-            {rvv.moves.map((m, i) => <button class={'mv ' + (ply === i + 1 ? 'cur' : '')} onClick={() => goPly(i + 1)}>{i % 2 === 0 && <span class="num">{i / 2 + 1}.</span>}{sanFr(m.san)}<span class="cls-mini" style={{ color: CLASSES[m.cls].color }}>{['brilliant', 'great', 'inaccuracy', 'mistake', 'miss', 'blunder'].includes(m.cls) ? CLASSES[m.cls].symbol : ''}</span></button>)}
+            {rvv.moves.map((m, i) => <button class={'mv ' + (ply === i + 1 ? 'cur' : '') + ((m as PMove).pend ? ' pend' : '')} onClick={() => goPly(i + 1)}>{i % 2 === 0 && <span class="num">{i / 2 + 1}.</span>}{sanFr(m.san)}<span class="cls-mini" style={{ color: CLASSES[m.cls].color }}>{!(m as PMove).pend && ['brilliant', 'great', 'inaccuracy', 'mistake', 'miss', 'blunder'].includes(m.cls) ? CLASSES[m.cls].symbol : ''}</span></button>)}
           </div>
           <a class="btn secondary" href={`#/analysis?pgn=${encodeURIComponent(game.pgn)}`}><Icon name="microscope" size={18} />Ouvrir dans l’analyse</a>
           <div class="actionbar">

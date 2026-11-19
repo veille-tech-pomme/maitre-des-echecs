@@ -19,7 +19,8 @@ export function Onboarding() {
   const [miss, setMiss] = useState(0);
   const t0 = useRef(0);
   useEffect(() => { if (step === 1) { t0.current = Date.now(); toastPrefs.quietXp = true; return () => { toastPrefs.quietXp = false; }; } }, [step]);
-  useEffect(() => { if (!won) return; const t = setTimeout(finish, AUTO_MS); return () => clearTimeout(t); }, [won]);
+  // le minuteur s'arrête dès que l'accueil est fini (sinon il renvoyait vers « Pour toi » 4 s après un « Continuer » manuel)
+  useEffect(() => { if (!won || done) return; const t = setTimeout(finish, AUTO_MS); return () => clearTimeout(t); }, [won, done]);
   if (done) return null;
   const nm = name.trim();
   const start = () => { unlockAudio(); setStep(1); };

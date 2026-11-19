@@ -1,4 +1,4 @@
-# Coach — architecture (v1)
+# Coach — architecture (v2)
 
 > Objectif : faire du coach le **cœur** de Maître des Échecs. Il comprend *pourquoi* un coup est bon ou
 > mauvais, il sait ce que tu maîtrises et ce qui te manque, et il choisit la prochaine activité qui
@@ -107,6 +107,25 @@ Détecteurs (`motifs.ts`). Chacun renvoie `{key, squares, pieces, gain}` et des 
 * Plan : le meilleur coup **et l’idée** (motif du meilleur coup, sinon le trait positionnel qui s’améliore).
 * Flèches : rouge = coup adverse qui punit, verte = meilleur coup, surlignage = cible / pièce en prise.
 
+### 2.4 Thèmes lus sur la ligne entière (v2, `coach/themes.ts`)
+Clouage, enfilade, rayons X, déviation, attraction, surcharge, élimination du défenseur, pièce piégée, pièce en prise
+(défense en rayons X comptée), mat du couloir, découvertes : détectés sur toute la ligne du moteur (format puzzle
+Lichess), et retenus seulement s’ils expliquent la pièce réellement perdue (`themeExplains`).
+
+### 2.5 Raisons stratégiques (v2, `coach/strategy.ts`)
+1. **La menace d’abord** : sur la réfutation, menace de mat après la réponse (coup nul), série d’échecs, matériel
+   perdu au-delà de l’horizon tactique (avec la « pointe », la prise qui fixe la perte), pion passé qui file.
+2. **Attribution** : termes d’évaluation classiques calculés au bout calme (jamais au milieu d’un échange) de la
+   ligne jouée et de la meilleure ligne — sécurité du roi (trous, colonnes ouvertes, attaquants de la zone, roi au
+   centre), structure (isolé, doublé, arriéré, passé ; pions en prise exclus ; la faiblesse doit persister à deux
+   profondeurs), activité (avant-postes, cavalier au bord, mauvais fou, colonnes, cases sûres), développement,
+   espace. Le terme le plus dégradé (normalisé par un seuil) devient la raison, avec les cases ou colonnes en cause.
+   Saillance : si le coup lui-même porte la faiblesse (pion de l’abri, cavalier au bord, coup de pion lent), elle
+   est privilégiée.
+3. **Prophylaxie** : la réponse clé de l’adversaire était-elle illégale ou perdante après le meilleur coup ?
+4. **Plans de structures** (conseil) : pion isolé (pour / contre), Carlsbad, chaîne française, chaîne est-indienne,
+   roques opposés.
+
 ## 3. Modèle du joueur
 * **26 compétences** (`SKILLS`) en 6 familles : tactique (fourchette, clouage, enfilade, découverte, mat en 1,
   mats en 2+, couloir, sacrifice/attraction, défense, coup calme), vigilance (pièces en prise, menaces adverses),
@@ -164,7 +183,10 @@ service payant n’est requis aujourd’hui ; rien n’est envoyé hors de l’a
 ## 7. Performance
 * Code du coach dans des modules chargés à la demande (`src/coach/*`), absent du premier chargement.
 * Analyse symbolique + génération de texte dans `coach/worker.ts` (Web Worker) ; Stockfish dans son propre Worker.
-* Partie complète de 40 coups : ≈ 120 recherches multi-PV ; budget mobile ≈ 25–40 s en mono-thread, avec progression.
+* Bilan adaptatif (v2) : coups de théorie en recherche minimale, premier passage à profondeur −3 avec résultats
+  progressifs, approfondissement des seules positions critiques, cache par position. Sous ralentissement 4× de tout
+  le navigateur en mono-thread : premiers coups commentés en ≈ 3 s, partie de 80 demi-coups en ≈ 24 s
+  (`bench/review-speed.json`) ; 99,3 % des classifications identiques au bilan complet (`bench/adaptive-bench.json`).
 * Modèle et curriculum : O(compétences × activités), < 2 ms.
 
 ## 8. Évaluation
@@ -181,9 +203,14 @@ service payant n’est requis aujourd’hui ; rien n’est envoyé hors de l’a
 * **Navigateur** (`tools/tmp/review-time.mjs`) : durée du bilan et images/s du fil principal pendant l’analyse.
 * Résultats : `bench/coach-bench.json` et section PROGRESS.md.
 
+* **Positionnel** (`tools/bench/positional-bench.mts`) : erreurs positionnelles annotées à la main (catégorie
+  attendue), fautes tactiques exclues automatiquement ; un jeu « tenu à l’écart » annoté avant exécution.
+* **Placement et faiblesses** : a posteriori hiérarchique (compétence → famille → note globale) ; test de placement
+  avec a priori du niveau déclaré et longueur adaptative (6–8 positions).
+
 ## 9. Limites assumées
-* Les explications positionnelles restent plus sommaires que les explications tactiques (pas de réseau entraîné
-  pour « comprendre » les plans), d’où la formulation prudente.
+* Les raisons positionnelles viennent de termes d’évaluation faits main, pas d’un réseau entraîné : elles nomment un
+  facteur vérifiable (case, colonne, pion) mais pas toujours le plan profond ; le bench positionnel est petit (20 cas).
 * Hors ligne, pas de base de finales parfaite : Stockfish seul au-delà des schémas reconnus.
 * GitHub Pages ne permet pas les en-têtes COOP/COEP : Stockfish tourne en mono-thread en ligne. Mesuré sur ordinateur : ≈ 0,25 s par demi-coup (25 demi-coups en 6,4 s) ; sur un téléphone d’entrée de gamme, compter 2 à 4 fois plus.
 * Les explications « positionnelles » de second ordre (ex. pourquoi d3 vaut mieux que Tf1 quand les deux perdent du matériel) restent formulées à partir de la menace la plus proche, pas d’un plan à long terme.

@@ -184,5 +184,193 @@
    "seo": 100,
    "LCP": "0.4 s"
   }
+ },
+ "v2": {
+  "themes": "voir bench/theme-bench.json",
+  "explanations": {
+   "positions": 400,
+   "depth": 12,
+   "flaggedAsError": 0.902,
+   "specificReason": 0.948,
+   "tacticMotifAgreement": 0.709,
+   "tacticClaims": 86,
+   "mateClaimsCorrect": 1,
+   "mateClaims": 139,
+   "materialClaimsSupported": 1,
+   "materialClaims": 150,
+   "unsupportedClaims": 0,
+   "engineAgreesWithLichessRefutation": 0.978,
+   "tacticNamedWhenLabelled": 0.631,
+   "tacticLabelled": 103
+  },
+  "positional": {
+   "dev": {
+    "cases": 16,
+    "excludedTactical": [
+     "k-nd7",
+     "d-qh4",
+     "k-nh2"
+    ],
+    "depth": 16,
+    "categoryAccuracy": 0.813,
+    "genericFallback": 0.125
+   },
+   "heldOut": {
+    "cases": 4,
+    "excludedTactical": [
+     "h-g4",
+     "h-nh4",
+     "h-h3",
+     "h-g5ruy",
+     "h-nh4it"
+    ],
+    "depth": 16,
+    "categoryAccuracy": 1,
+    "genericFallback": 0
+   }
+  },
+  "recommendation": [
+   {
+    "players": 200,
+    "puzzlesPerPlayer": 80,
+    "skillRMSE": 131,
+    "weakDetected": 0.87,
+    "weakTop1": 0.495,
+    "weakTop3": 0.75,
+    "strongMisflagged": 0.005,
+    "planTargetsWeakness": 0.67,
+    "puzzlesInZone60to90": 0.74,
+    "diagnosticMAE6items": 134,
+    "diagnosticMAEadaptive": 116,
+    "diagnosticItemsAdaptive": 8,
+    "diagnosticMAEwithDeclaredLevel": 94,
+    "diagnosticItemsWithDeclared": 8,
+    "skillRMSEposterior": 105
+   },
+   {
+    "players": 200,
+    "puzzlesPerPlayer": 160,
+    "skillRMSE": 115,
+    "weakDetected": 0.975,
+    "weakTop1": 0.66,
+    "weakTop3": 0.9,
+    "strongMisflagged": 0.005,
+    "planTargetsWeakness": 0.805,
+    "puzzlesInZone60to90": 0.81,
+    "diagnosticMAE6items": 134,
+    "diagnosticMAEadaptive": 116,
+    "diagnosticItemsAdaptive": 8,
+    "diagnosticMAEwithDeclaredLevel": 94,
+    "diagnosticItemsWithDeclared": 8,
+    "skillRMSEposterior": 94
+   },
+   {
+    "players": 200,
+    "puzzlesPerPlayer": 320,
+    "skillRMSE": 89,
+    "weakDetected": 0.995,
+    "weakTop1": 0.86,
+    "weakTop3": 0.975,
+    "strongMisflagged": 0,
+    "planTargetsWeakness": 0.9,
+    "puzzlesInZone60to90": 0.842,
+    "diagnosticMAE6items": 134,
+    "diagnosticMAEadaptive": 116,
+    "diagnosticItemsAdaptive": 8,
+    "diagnosticMAEwithDeclaredLevel": 94,
+    "diagnosticItemsWithDeclared": 8,
+    "skillRMSEposterior": 78
+   }
+  ],
+  "adaptiveReview": {
+   "games": 4,
+   "moves": 137,
+   "depthFull": 14,
+   "depthFirstPass": 11,
+   "classAgreement": 0.993,
+   "explanationTagAgreement": 1,
+   "nodesRatio": null
+  },
+  "reviewSpeed4x": {
+   "method": "Chromium mobile 390×844, moteur mono-thread (crossOriginIsolated forcé à false), tout le navigateur ralenti 4× par SIGSTOP/SIGCONT (fil principal ET workers Stockfish ; le ralentissement CDP ne touche pas les workers), profondeur 14, parties de démonstration g1–g3 + partie de 80 demi-coups g9",
+   "before": {
+    "rate": 4,
+    "single": true,
+    "threads": false,
+    "reviews": {
+     "g1": {
+      "plies": 25,
+      "firstMovesMs": 26538,
+      "totalMs": 26760,
+      "moves": 25,
+      "fps": 59,
+      "long": 1
+     },
+     "g2": {
+      "plies": 14,
+      "firstMovesMs": 7420,
+      "totalMs": 7640,
+      "moves": 14,
+      "fps": 59,
+      "long": 0
+     },
+     "g3": {
+      "plies": 18,
+      "firstMovesMs": 7382,
+      "totalMs": 7601,
+      "moves": 18,
+      "fps": 59,
+      "long": 0
+     },
+     "g9": {
+      "plies": 80,
+      "firstMovesMs": 32583,
+      "totalMs": 32848,
+      "moves": 80,
+      "fps": 60,
+      "long": 0
+     }
+    }
+   },
+   "after": {
+    "rate": 4,
+    "single": true,
+    "threads": false,
+    "reviews": {
+     "g1": {
+      "plies": 25,
+      "firstMovesMs": 2551,
+      "totalMs": 12575,
+      "moves": 25,
+      "fps": 57,
+      "long": 3
+     },
+     "g2": {
+      "plies": 14,
+      "firstMovesMs": 2648,
+      "totalMs": 5412,
+      "moves": 14,
+      "fps": 57,
+      "long": 1
+     },
+     "g3": {
+      "plies": 18,
+      "firstMovesMs": 2500,
+      "totalMs": 3238,
+      "moves": 18,
+      "fps": 56,
+      "long": 1
+     },
+     "g9": {
+      "plies": 80,
+      "firstMovesMs": 3073,
+      "totalMs": 23809,
+      "moves": 80,
+      "fps": 59,
+      "long": 1
+     }
+    }
+   }
+  }
  }
 }

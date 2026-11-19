@@ -371,6 +371,34 @@
      }
     }
    }
+  },
+  "live": {
+   "date": "2026-11-19",
+   "url": "https://veille-tech-pomme.github.io/maitre-des-echecs/",
+   "lighthouseMobile": {
+    "performance": 99,
+    "accessibility": 100,
+    "bestPractices": 100,
+    "seo": 100
+   },
+   "lighthouseDesktop": {
+    "performance": 100,
+    "accessibility": 100,
+    "bestPractices": 100,
+    "seo": 100
+   },
+   "firstLoadKiB": 156,
+   "e2eLive": "0 échec, 0 erreur console",
+   "review4xLive": {
+    "g1_25plies": {
+     "firstMovesMs": 3130,
+     "totalMs": 14632
+    },
+    "g9_80plies": {
+     "firstMovesMs": 2548,
+     "totalMs": 23832
+    }
+   }
   }
  }
 }

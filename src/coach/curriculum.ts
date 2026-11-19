@@ -31,7 +31,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
   const weak = weaknesses(m, 6); const wk = new Map(weak.map((w) => [w.skill, w]));
   // 1. tes erreurs à revoir (répétition espacée)
   const dueMist = Object.values(s.srs).filter((x) => x.kind === 'mistake' && isDue(x, now)).length;
-  if (dueMist) out.push({ id: 'mistakes', kind: 'mistakes', skill: null, title: `Rejoue ${dueMist} de tes erreurs`, why: 'Des positions tirées de tes parties, revues au bon moment pour ne plus refaire la même faute.', route: '#/review', minutes: Math.min(10, 2 * dueMist), gain: (0.95 + 0.03 * Math.min(dueMist, 8)) * novelty('mistakes') });
+  if (dueMist) out.push({ id: 'mistakes', kind: 'mistakes', skill: null, title: `Rejoue ${dueMist} de tes erreurs`, why: 'Des positions tirées de tes parties, revues au bon moment pour ne plus refaire la même faute.', route: '#/review/mistakes', minutes: Math.min(10, 2 * dueMist), gain: (0.95 + 0.03 * Math.min(dueMist, 8)) * novelty('mistakes') });
   // 2. bilan de la dernière partie
   const unrev = s.games.slice().reverse().find((x) => !x.reviewed && x.moves.length >= 10 && now - x.date < 7 * 86400000);
   if (unrev) out.push({ id: 'review:' + unrev.id, kind: 'review', skill: null, title: 'Fais le bilan de ta dernière partie', why: 'Le coach y trouve les moments clés et en tire trois leçons.', route: `#/game/${unrev.id}`, minutes: 4, gain: 1.05 });
@@ -41,7 +41,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
     const w = wk.get(sk.id); const ev = w?.evidence[0];
     if (sk.theme) {
       const d = Math.round(st.r - 191 - 0.25 * Math.max(0, st.rd - 80)); // p ≈ 0,75, un peu plus facile si la note est incertaine
-      const id = 'pz:' + sk.id; const G = imp * gp * zpd(pSuccess(st.r, d)) * novelty(id) * (w ? 1.25 : 1);
+      const id = 'weak:' + sk.theme; const G = imp * gp * zpd(pSuccess(st.r, d)) * novelty(id) * (w ? 1.25 : 1);
       out.push({ id, kind: 'puzzles', skill: sk.id, title: `Puzzles : ${sk.label.toLowerCase()}`, why: w ? 'C’est ton point faible prioritaire.' : st.rd > 220 ? 'Le coach connaît encore mal ce domaine chez toi.' : 'Pour consolider ce domaine.', evidence: ev, route: `#/puzzles/theme/${sk.theme}`, minutes: 6, gain: G, difficulty: d });
     }
     if (sk.lesson && !s.lessons[sk.lesson]?.done && LESSONS.some((l) => l.id === sk.lesson)) {
@@ -80,7 +80,7 @@ export function ensureWeek(s: State, m: CoachModel): WeekGoals {
   const goals: WeekGoals['goals'] = [];
   if (focus && SKILL[focus].theme) goals.push({ id: 'focus', label: `15 puzzles « ${SKILL[focus].label.toLowerCase()} »`, target: 15, done: 0, route: `#/puzzles/theme/${SKILL[focus].theme}` });
   goals.push({ id: 'reviews', label: 'Analyser 3 parties avec le coach', target: 3, done: 0, route: '#/play' });
-  goals.push({ id: 'mistakes', label: 'Rejouer 5 de tes erreurs', target: 5, done: 0, route: '#/review' });
+  goals.push({ id: 'mistakes', label: 'Rejouer 5 de tes erreurs', target: 5, done: 0, route: '#/review/mistakes' });
   goals.push({ id: 'days', label: 'T’entraîner 5 jours', target: 5, done: 0, route: '#/' });
   m.week = { start: ws, focus, goals }; return m.week;
 }

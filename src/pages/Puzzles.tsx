@@ -115,10 +115,11 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
   const [p, setP] = useState<BankPuzzle | Puzzle | null | undefined>(undefined);
   const [failed, setFailed] = useState(false); const [solved, setSolved] = useState(false); const [delta, setDelta] = useState<number | null>(null);
   const [hint, setHint] = useState(0); const [sol, setSol] = useState(0); const recorded = useRef(false); const [count, setCount] = useState(0);
+  const [why, setWhy] = useState<{ headline: string; why: string; plan?: string; tip?: string } | null>(null); const whyFor = useRef('');
   const s = useStore((x) => x);
   const custom = mode === 'custom' && query ? { theme: query.get('theme') || undefined, opening: query.get('opening') || undefined, min: +(query.get('min') || 0) || undefined, max: +(query.get('max') || 0) || undefined } : null;
   const next = async () => {
-    recorded.current = false; setFailed(false); setSolved(false); setDelta(null); setHint(0); setSol(0); setP(undefined);
+    recorded.current = false; setFailed(false); setSolved(false); setDelta(null); setHint(0); setSol(0); setP(undefined); setWhy(null); whyFor.current = '';
     const st = getState();
     try {
       if (mode === 'daily') setP(dailyPuzzle(await loadPuzzles()));
@@ -141,11 +142,20 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
       <div class="play-grid">
         <MoveTrainer key={p.i + sol} fen={p.f} line={p.m.split(' ')} setup hintLevel={hint} showSolutionSignal={sol}
           onMistake={() => { if (!failed) { setFailed(true); record(false); } }}
+          onWrong={(idx, uci, fb) => { const key = p.i + idx + uci; whyFor.current = key; import('../coach/client').then((cc) => cc.explainPuzzleMiss(fb, uci, p.m.split(' ').slice(idx), cc.currentElo())).then((ex) => { if (whyFor.current === key) setWhy({ headline: ex.headline, why: ex.why, plan: ex.plan, tip: ex.tip }); }).catch(() => {}); }}
           onSolved={() => { setSolved(true); if (!failed) record(true); }} />
         <aside class="side">
           {(mode === 'daily' || mode === 'custom' || solved || failed) && <p class="muted small puzzle-meta">Difficulté {p.r}</p>}
           {delta != null && <p class={'delta big ' + (delta >= 0 ? 'up' : 'down')}><Icon name={delta >= 0 ? 'up' : 'down'} size={18} stroke={3} />{Math.abs(delta)} <span class="muted">· {s.puzzle.rating}</span></p>}
           {(solved || failed) && <p class="muted small">Thèmes : {p.t.filter((t) => THEME_FR[t] && !['endgame', 'middlegame', 'opening', 'short', 'long', 'veryLong', 'oneMove', 'crushing', 'advantage'].includes(t)).map(themeName).join(', ') || '—'}{op ? ` · ${familyFr(op)}` : ''}</p>}
+          {why && (
+            <div class="coach-box cls-mistake" aria-live="polite">
+              <div class="coach-head"><Icon name="brainCircuit" size={18} /><b>Pourquoi ça ne marche pas</b></div>
+              <h4>{why.headline}</h4><p>{why.why}</p>
+              {solved && why.plan && <p class="cb-line">{why.plan}</p>}
+              {!solved && why.tip && <p class="cb-tip"><Icon name="bulb" size={16} />{why.tip}</p>}
+            </div>
+          )}
           {failed && !solved && <p class="muted small">Ce puzzle reviendra dans tes révisions. Tu peux continuer à chercher.</p>}
           {(solved || failed) && mode !== 'daily' && <button class="btn primary lg next-btn" onClick={() => next()}>Puzzle suivant<Icon name="right" size={18} stroke={2.5} /></button>}
           {mode === 'daily' && solved && <a class="btn primary lg next-btn" href="#/puzzles/rated">Puzzles classés<Icon name="right" size={18} stroke={2.5} /></a>}

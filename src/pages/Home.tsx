@@ -1,35 +1,33 @@
 import { useState } from 'preact/hooks';
 import { useStore, levelFromXp, streakAlive, today } from '../lib/store';
-import { dailyPlan, nextLesson, weaknesses } from '../lib/plan';
+import { nextLesson } from '../lib/plan';
+import { lazy } from '../lib/lazy';
 import { LESSONS, LEVELS } from '../data/lessons';
 import { Progress, LargeTitle } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { usePremium } from '../lib/entitlements';
 import { trialBanner, dismissTrialBanner } from '../lib/notify';
 import { isDue } from '../lib/srs';
-import { LEVEL_VIS, planIcon } from '../lib/visual';
+import { LEVEL_VIS } from '../lib/visual';
+
+const CoachCard = lazy(() => import('../coach/ui/CoachCard'), 'CoachCard', () => <section class="coach-card skeleton" aria-busy="true" />);
 
 export function Home() {
   const s = useStore((x) => x);
   const ent = usePremium();
   const [, f] = useState(0);
-  const [more, setMore] = useState(false);
   const lvl = levelFromXp(s.xp);
-  const plan = dailyPlan(s);
   const nl = nextLesson(s);
   const doneCount = LESSONS.filter((l) => s.lessons[l.id]?.done).length;
-  const weak = weaknesses(s).slice(0, 3);
   const due = Object.values(s.srs).filter((x) => isDue(x)).length;
   const tb = trialBanner();
   const hour = new Date().getHours();
   const hello = hour < 6 ? 'Bonne nuit' : hour < 18 ? 'Bonjour' : 'Bonsoir';
-  const planDone = plan.filter((p) => p.done).length;
   const streak = streakAlive(s) ? s.streak.count : 0;
   const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const nlLevel = nl && LEVELS.find((l) => l.id === nl.level)!;
   const levelLessons = nl ? LESSONS.filter((l) => l.level === nl.level) : [];
   const levelDone = levelLessons.filter((l) => s.lessons[l.id]?.done).length;
-  const firstOpen = plan.find((p) => !p.done);
   return (
     <div class="page home">
       <div class="home-grid">
@@ -59,27 +57,13 @@ export function Home() {
         </a>
       )}
 
+      <CoachCard />
+
       <div class="stat-strip">
         <a class="stat-tile" href="#/profile" style={{ '--c': '#FF9F0A' } as any}><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{streak}</b><small>{streak > 1 ? 'jours' : streak ? 'jour' : 'à lancer'}</small></a>
         <a class="stat-tile" href="#/profile" style={{ '--c': '#F2B544' } as any}><span class="st-top"><Icon name="star" size={13} />Niveau</span><b>{lvl.level}</b><small>{lvl.into}/{lvl.need} XP</small></a>
         <a class="stat-tile" href="#/puzzles" style={{ '--c': '#0A84FF' } as any}><span class="st-top"><Icon name="puzzle" size={13} />Puzzles</span><b>{s.puzzle.rating}</b><small>{s.puzzle.solved} résolus</small></a>
       </div>
-
-      <section class="plan-card">
-        <div class="section-title"><h2>Ton plan du jour</h2><span class="pill tnum">{planDone}/{plan.length}</span></div>
-        <div class="list">
-          {plan.map((p) => {
-            const v = planIcon(p.id);
-            return (
-              <a class={'item ' + (p.done ? 'done' : '') + (p === firstOpen ? ' next' : '')} href={p.route}>
-                <span class="it-icon" style={{ '--c': v.color } as any}><Icon name={v.icon} size={18} stroke={2.2} /></span>
-                <span class="it-main"><span class="it-title">{p.title}</span><span class="it-sub">{p.why}</span></span>
-                <span class="plan-check" aria-label={p.done ? 'Fait' : 'À faire'}>{p.done && <Icon name="check" size={15} stroke={3} />}</span>
-              </a>
-            );
-          })}
-        </div>
-      </section>
 
       <section class="hs-tiles">
       <div class="section-title"><h2>Raccourcis</h2></div>
@@ -90,17 +74,6 @@ export function Home() {
         <a class="tile" href="#/analysis"><span class="tl-icon" style="--c:#64D2FF"><Icon name="microscope" size={20} /></span><b>Analyse</b><small>Stockfish 18</small></a>
       </div>
       </section>
-
-      {weak.length > 0 && (
-        <section class="hs-weak">
-          <div class="section-title"><h2>À travailler</h2>{weak.length > 1 && <button class="btn plain small" onClick={() => setMore(!more)} aria-expanded={more}>{more ? 'Moins' : 'Tout voir'}</button>}</div>
-          <div class="list">
-            {(more ? weak : weak.slice(0, 1)).map((w) => (
-              <a class="item" href={w.route}><span class="it-icon" style="--c:#FF453A"><Icon name="target" size={18} /></span><span class="it-main"><span class="it-title">{w.label}</span><span class="it-sub">{w.evidence}</span></span><Icon name="right" size={18} class="chev" stroke={2.4} /></a>
-            ))}
-          </div>
-        </section>
-      )}
 
       {!ent.premium && (
         <a class="card promo hs-promo" href="#/premium">

@@ -1,0 +1,81 @@
+/* ===== Coach : carte d'accueil, bilan, « Mes progrès », test de niveau ===== */
+.coach-card { position: relative; background: var(--surface); border-radius: var(--r-lg); padding: 18px 16px 8px; margin-bottom: 12px; box-shadow: inset 0 0 0 .5px var(--sep), var(--shadow); }
+.coach-card.skeleton { min-height: 288px; }
+.cc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cc-avatar { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; color: var(--on-gold); background: linear-gradient(145deg, var(--gold-2), var(--gold)); }
+.cc-eyebrow { font-size: 13px; line-height: 18px; color: var(--text-2); font-weight: 500; }
+.cc-title { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -.02em; }
+.cc-text { color: var(--text-2); font-size: 15px; line-height: 20px; margin: 0 0 14px; }
+.cc-main { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--r); background: var(--gold-soft); color: var(--text); margin-bottom: 6px; transition: transform .12s var(--ease); }
+.cc-main:active { transform: scale(.98); }
+.cc-main .it-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; background: var(--gold); color: var(--on-gold); }
+.cc-main b { display: block; font-size: 17px; line-height: 22px; } .cc-main small { display: block; color: var(--text-2); font-size: 14px; line-height: 19px; }
+.cc-main .cc-go { margin-left: auto; color: var(--tint); flex: none; }
+.coach-card .list { box-shadow: none; background: none; margin: 0; }
+.coach-card .item { padding-left: 2px; padding-right: 2px; } .coach-card .item + .item::before { left: 44px; }
+.cc-foot { display: flex; align-items: center; gap: 10px; padding: 10px 2px 8px; border-top: .5px solid var(--sep); font-size: 15px; color: var(--text-2); }
+.cc-foot a { margin-left: auto; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; }
+.cc-goal { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; } .cc-goal .progress { max-width: 120px; }
+.evidence { display: flex; gap: 6px; align-items: flex-start; font-size: 14px; line-height: 19px; color: var(--text-2); margin: 4px 0 0; }
+.evidence .ico { flex: none; margin-top: 2px; color: var(--text-3); }
+
+/* Bilan mené par le coach */
+.coach-summary { background: var(--surface); border-radius: var(--r-lg); padding: 18px 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.coach-summary .cs-text { font-size: 17px; line-height: 24px; margin: 10px 0 14px; }
+.cs-acc { display: flex; gap: 10px; } .cs-acc > div { flex: 1; background: var(--surface-2); border-radius: var(--r-sm); padding: 10px 12px; }
+.cs-acc b { display: block; font-size: 28px; line-height: 32px; font-variant-numeric: tabular-nums; } .cs-acc small { color: var(--text-2); font-size: 13px; }
+.cs-phases { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.lessons3 { display: grid; gap: 10px; margin-bottom: 12px; }
+.lesson3 { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); }
+.lesson3 .l3-n { width: 28px; height: 28px; border-radius: 50%; background: var(--gold-soft); color: var(--tint); display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; }
+.lesson3 h4 { margin-bottom: 4px; } .lesson3 p { margin: 0 0 8px; color: var(--text-2); font-size: 15px; line-height: 20px; }
+.lesson3 .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-box .cb-line { font-size: 14px; color: var(--text-2); margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.coach-box .cb-tip { display: flex; gap: 8px; font-size: 14px; line-height: 19px; color: var(--text-2); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; margin: 4px 0 10px; }
+.coach-box .cb-tip .ico { color: var(--tint); flex: none; margin-top: 1px; }
+.coach-box h4 { margin: 2px 0 0; }
+.retry-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r); background: var(--surface); margin-bottom: 10px; box-shadow: inset 4px 0 0 var(--gold), var(--shadow); }
+.retry-bar p { margin: 0; flex: 1; font-size: 15px; }
+
+/* Indices en partie */
+.coach-hint { border-radius: var(--r); padding: 12px 14px; background: var(--surface); box-shadow: inset 4px 0 0 var(--blue), var(--shadow); animation: enter .22s var(--ease); margin-bottom: 8px; }
+.coach-hint .hb-lvl { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: .04em; }
+.coach-hint p { margin: 4px 0 0; font-size: 15px; line-height: 20px; }
+.hint-steps { display: flex; gap: 4px; margin-left: auto; } .hint-steps i { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); } .hint-steps i.on { background: var(--blue); }
+
+/* Mes progrès */
+.coach-page .radar { display: block; width: 100%; max-width: 340px; margin: 4px auto 0; }
+.radar .rd-grid { fill: none; stroke: var(--sep); } .radar .rd-axis { stroke: var(--sep); }
+.radar .rd-shape { fill: color-mix(in srgb, var(--gold) 26%, transparent); stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; }
+.radar .rd-mid { fill: none; stroke: var(--text-3); stroke-dasharray: 3 4; }
+.radar text { fill: var(--text-2); font-size: 12px; font-weight: 500; }
+.radar .rd-dot { fill: var(--gold); }
+.skill-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 10px 14px; }
+.skill-row + .skill-row { border-top: .5px solid var(--sep); }
+.skill-row .sk-name { font-size: 16px; font-weight: 500; } .skill-row .sk-val { font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 15px; }
+.skill-bar { grid-column: 1 / -1; position: relative; height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.skill-bar > span { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 99px; background: var(--c, var(--gold)); }
+.skill-bar > i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text-2); left: 50%; }
+.skill-row .sk-conf { grid-column: 1 / -1; font-size: 12px; color: var(--text-3); }
+.weak-card { background: var(--surface); border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px; box-shadow: inset 4px 0 0 var(--red), var(--shadow); }
+.weak-card h4 { display: flex; gap: 8px; align-items: center; } .weak-card .row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.strong-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.strong-chips .pill { font-size: 14px; padding: 6px 12px; background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--text); }
+.goal-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: var(--text); }
+.goal-row + .goal-row { border-top: .5px solid var(--sep); }
+.goal-row .grow { flex: 1; min-width: 0; } .goal-row small { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.goal-row .progress { margin-top: 6px; }
+
+/* Test de niveau */
+.diag-top { display: flex; align-items: center; gap: 12px; }
+.diag-dots { display: flex; gap: 6px; } .diag-dots i { width: 22px; height: 6px; border-radius: 99px; background: var(--surface-3); } .diag-dots i.ok { background: var(--green); } .diag-dots i.ko { background: var(--red); } .diag-dots i.cur { background: var(--gold); }
+.diag-result { text-align: center; padding: 24px 16px; }
+.diag-result .big { font-size: 56px; line-height: 60px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+
+@media (min-width: 1024px) {
+  .home-grid > .coach-card { grid-area: plan; }
+  .coach-page .cp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; align-items: start; }
+}
+cg-board square.mk-danger { box-shadow: inset 0 0 0 3px rgba(255, 69, 58, .9); border-radius: 4px; }
+cg-board square.mk-target { box-shadow: inset 0 0 0 3px rgba(242, 181, 68, .95); border-radius: 4px; }
+cg-board square.mk-hint, cg-board square.mk-good { box-shadow: inset 0 0 0 3px rgba(10, 132, 255, .9); border-radius: 4px; }

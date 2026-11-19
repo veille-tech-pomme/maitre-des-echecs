@@ -17,13 +17,20 @@ async function linesFor(fens: string[], depth = 12) {
   for (const f of fens) { const c = new Chess(f); if (c.isGameOver()) { out.push([]); continue; } out.push((await e.analyse(f, { depth, multipv: 3 })).lines); }
   return out;
 }
-async function review(sans: string[], user: 'w' | 'b', elo = 1200) {
+async function review(sans: string[], user: 'w' | 'b', elo = 1200, result?: any) {
   const ch = new Chess(); const fens = [ch.fen()]; const ucis: string[] = [];
   for (const s of sans) { const m = ch.move(s); ucis.push(m.from + m.to + (m.promotion || '')); fens.push(ch.fen()); }
-  return buildReview({ startFen: START, moves: ucis, lines: await linesFor(fens), elo, user, oppElo: elo, book: isBookFen, gameId: 't' });
+  return buildReview({ startFen: START, moves: ucis, lines: await linesFor(fens), elo, user, oppElo: elo, book: isBookFen, gameId: 't', result });
 }
 
 describe('pipeline du coach', () => {
+  it('bilan conscient du résultat : abandon précoce ≠ « très belle partie »', async () => {
+    const r = await review(['e4', 'e5', 'Nf3', 'Nc6'], 'w', 1200, '0-1');
+    expect(r.summary).toMatch(/^Partie abandonnée tôt/);
+    expect(r.summary).toMatch(/ne lâche rien/);
+    expect(r.summary).not.toMatch(/bravo/);
+    const d = await review(['e4', 'e5'], 'w', 1200, '1/2-1/2'); expect(d.summary).toMatch(/^Partie nulle/);
+  }, 60000);
   it('piège Blackburne-Shilling : gaffes blanches, mat permis, leçons et exercices', async () => {
     const r = await review(['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nd4', 'Nxe5', 'Qg5', 'Nxf7', 'Qxg2', 'Rf1', 'Qxe4+', 'Be2', 'Nf3#'], 'w');
     expect(r.moves).toHaveLength(14);

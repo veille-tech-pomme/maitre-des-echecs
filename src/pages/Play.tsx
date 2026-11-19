@@ -7,7 +7,10 @@ import { BOT_GROUPS, BOTS, botById, type Bot } from '../data/bots';
 import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, captured, material, gameOverText, sanFr, type Move } from '../lib/chess';
 import { engine, type PvLine } from '../lib/engine';
 import { botMove } from '../lib/bot-move';
-import { assessMove, CLASS_INFO, type ReviewMove } from '../lib/review';
+import { CLASSES, type MoveClass } from '../coach/classify';
+import type { Explanation } from '../coach/explain';
+import type { Hint } from '../coach/hints';
+const coachClient = () => import('../coach/client');
 import { playForMove, play } from '../lib/sound';
 import { useStore, setState, addXp, getState } from '../lib/store';
 import { recommendedBot, markPlanDone } from '../lib/plan';
@@ -53,7 +56,7 @@ export function BotSelect() {
   );
 }
 
-interface Coach { review: ReviewMove; undoable: boolean }
+interface Coach { cls: MoveClass; ex: Explanation; san: string; best: string; undoable: boolean }
 export function Game({ botId }: { botId: string }) {
   const bot = botById(botId);
   const settings = useStore((s) => s.settings);
@@ -65,7 +68,7 @@ export function Game({ botId }: { botId: string }) {
   const [hist, setHist] = useState<Move[]>([]);
   const [thinking, setThinking] = useState(false);
   const [coach, setCoach] = useState<Coach | null>(null);
-  const [hint, setHint] = useState<string | null>(null);
+  const [hint, setHint] = useState<{ fen: string; hs: Hint[]; lvl: number } | null>(null);
   const [chat, setChat] = useState<string>('');
   const [over, setOver] = useState<{ text: string; result: string; id: string } | null>(null);
   const [takebacks, setTakebacks] = useState(0);
@@ -115,8 +118,10 @@ export function Game({ botId }: { botId: string }) {
       setThinking(true);
       const lb = await analyse(before); const la = await analyse(n.fen());
       if (!alive.current) return true;
-      const rv = assessMove(before, m, lb, la, nh.length - 1, hist);
-      setCoach({ review: rv, undoable: ['mistake', 'blunder', 'miss'].includes(rv.cls) });
+      const cc = await coachClient(); if (!alive.current) return true;
+      const uci = m.from + m.to + (m.promotion || '');
+      const rv = cc.assessLive(before, uci, lb, la, cc.currentElo(), nh.length - 1, hist.map((x) => x.san));
+      setCoach({ cls: rv.cls, ex: rv.ex, san: m.san, best: lb[0]?.move || uci, undoable: ['mistake', 'blunder', 'miss'].includes(rv.cls) });
       if (rv.cls === 'blunder') { play('error'); setThinking(false); return true; } // attend la décision (reprendre ou continuer)
       setThinking(false);
     }
@@ -133,10 +138,14 @@ export function Game({ botId }: { botId: string }) {
     const n = new Chess(); for (const m of hist.slice(0, k)) tryMove(n, m.san);
     setCh(n); setHist(hist.slice(0, k)); setCoach(null); setHint(null); setTakebacks((t) => t + 1); setOver(null);
   }
+  /** Indices gradués : 1. Menaces → 2. Idée → 3. Coup. */
   async function getHint() {
-    if (thinking) return; setThinking(true);
-    const r = await engine.analyse(ch.fen(), { depth: 14 }); setThinking(false);
-    if (r.best) { setHint(r.best); const c = new Chess(ch.fen()); const m = tryMove(c, r.best); if (m) toast(`Indice : regarde ${sanFr(m.san).replace(/[+#]/g, '')}`, 'bulb'); }
+    if (thinking) return; const fen = ch.fen();
+    if (hint && hint.fen === fen) { setHint({ ...hint, lvl: Math.min(hint.hs.length, hint.lvl + 1) }); return; }
+    setThinking(true);
+    try { const cc = await coachClient(); const hs = await cc.coachHints(fen, 12); if (alive.current) setHint({ fen, hs, lvl: 1 }); }
+    catch { toast('Indice indisponible', 'info'); }
+    setThinking(false);
   }
   function end(c: Chess, h: Move[], resigned = false) {
     let result: '1-0' | '0-1' | '1/2-1/2' = '1/2-1/2'; let text = gameOverText(c) || '';
@@ -178,6 +187,7 @@ export function Game({ botId }: { botId: string }) {
   const capsOf = (list: string[], c: 'white' | 'black') => <span class="caps cg-wrap" aria-label={`${list.length} pièce${list.length > 1 ? 's' : ''} prise${list.length > 1 ? 's' : ''}`}>{list.map((t) => <piece class={`${ROLE[t]} ${c}`} />)}</span>;
   const op = openingName(hist.map((m) => m.san));
   const myTurn = !over && !thinking && turnColor(ch) === orient;
+  const curHint = hint && hint.fen === ch.fen() ? hint.hs[hint.lvl - 1] : null;
   return (
     <div class="page game">
       <div class="game-top">
@@ -192,27 +202,36 @@ export function Game({ botId }: { botId: string }) {
             {thinking ? <span class="thinking" aria-label="Réfléchit">…</span> : capsOf(botCaps, color === 'w' ? 'white' : 'black')}{!thinking && mat < 0 && <small class="adv">+{-mat}</small>}
           </div>
           {chat && <div class="bubble" key={chat}>{chat}</div>}
-          <Board fen={ch.fen()} orientation={orient} turn={turnColor(ch)} movable={thinking || over || (coach?.undoable && coach.review.cls === 'blunder') ? 'none' : orient}
+          <Board fen={ch.fen()} orientation={orient} turn={turnColor(ch)} movable={thinking || over || (coach?.undoable && coach.cls === 'blunder') ? 'none' : orient}
             dests={legalDests(ch)} lastMove={hist.length ? [hist[hist.length - 1].from, hist[hist.length - 1].to] : null} check={!!checkSquare(ch)}
             onMove={(f, t, p) => { onMove(f, t, p); return true; }} promotionCheck={(f, t) => isPromotion(ch, f, t)}
-            shapes={hint ? [{ orig: hint.slice(0, 2) as any, dest: hint.slice(2, 4) as any, brush: 'blue' }] : coach && coach.undoable ? [{ orig: coach.review.best.slice(0, 2) as any, dest: coach.review.best.slice(2, 4) as any, brush: 'green' }] : []} />
+            shapes={curHint ? curHint.arrows.map((a) => ({ orig: a.orig as any, dest: a.dest as any, brush: a.brush })) : coach && coach.undoable ? coach.ex.arrows.map((a) => ({ orig: a.orig as any, dest: a.dest as any, brush: a.brush })) : []}
+            highlight={curHint ? new Map(curHint.marks.map((mk) => [mk.sq, 'mk-' + mk.kind])) : coach && coach.undoable ? new Map(coach.ex.marks.map((mk) => [mk.sq, 'mk-' + mk.kind])) : undefined} />
           <div class="player-bar me">
             <span class="me-avatar">{(settings.name || 'T').slice(0, 1).toUpperCase()}</span><span class="pb-name"><b>{settings.name || 'Toi'}</b>{myTurn && <small class="your-turn">À toi de jouer</small>}</span>
             {capsOf(myCaps, color === 'w' ? 'black' : 'white')}{mat > 0 && <small class="adv">+{mat}</small>}
           </div>
         </div>
         <aside class="side">
+          {curHint && (
+            <div class="coach-hint" aria-live="polite">
+              <div class="hb-lvl"><Icon name="bulb" size={14} />Indice {hint!.lvl}/{hint!.hs.length} · {curHint.title}<span class="hint-steps" aria-hidden="true">{hint!.hs.map((_, i) => <i class={i < hint!.lvl ? 'on' : ''} />)}</span></div>
+              <p>{curHint.text}</p>
+            </div>
+          )}
           {coach && (
-            <div class={'coach-box cls-' + coach.review.cls}>
-              <div class="coach-head"><span class="cls-badge" style={{ background: CLASS_INFO[coach.review.cls].color }}>{CLASS_INFO[coach.review.cls].symbol}</span><b>{sanFr(coach.review.san)} · {CLASS_INFO[coach.review.cls].label}</b></div>
-              <p>{coach.review.coach}</p>
-              {coach.undoable && <div class="row"><button class="btn small primary" onClick={takeback}><Icon name="undo" size={16} />Reprendre ce coup</button>{coach.review.cls === 'blunder' && <button class="btn small secondary" onClick={continueAfterBlunder}>Continuer quand même</button>}</div>}
+            <div class={'coach-box cls-' + coach.cls}>
+              <div class="coach-head"><span class="cls-badge" style={{ background: CLASSES[coach.cls].color }}>{CLASSES[coach.cls].symbol}</span><b>{sanFr(coach.san)} · {CLASSES[coach.cls].label}</b></div>
+              {coach.ex.headline && coach.ex.headline !== CLASSES[coach.cls].label && <h4>{coach.ex.headline}</h4>}
+              <p>{coach.ex.why}</p>
+              {coach.undoable && coach.ex.plan && <p class="cb-line">{coach.ex.plan}</p>}
+              {coach.undoable && <div class="row"><button class="btn small primary" onClick={takeback}><Icon name="undo" size={16} />Reprendre ce coup</button>{coach.cls === 'blunder' && <button class="btn small secondary" onClick={continueAfterBlunder}>Continuer quand même</button>}</div>}
             </div>
           )}
           {hist.length > 0 && <div class="moves-inline" aria-label="Coups joués">{hist.map((m, i) => <span class={'mv ' + (i === hist.length - 1 ? 'cur' : '')}>{i % 2 === 0 ? <i>{i / 2 + 1}.</i> : ''}{sanFr(m.san)}</span>)}</div>}
           {takebacks > 0 && <p class="muted small">Coups repris : {takebacks}</p>}
           <div class="actionbar">
-            <button class="tool" onClick={getHint} disabled={thinking || !!over}><Icon name="bulb" size={22} />Indice</button>
+            <button class="tool" onClick={getHint} disabled={thinking || !!over || !!(curHint && hint!.lvl >= hint!.hs.length)}><Icon name="bulb" size={22} />{curHint ? (hint!.lvl < hint!.hs.length ? 'Indice suivant' : 'Indice') : 'Indice'}</button>
             <button class="tool" onClick={takeback} disabled={thinking || hist.length === 0}><Icon name="undo" size={22} />Annuler</button>
             <button class="tool" onClick={() => { if (confirm('Abandonner la partie ?')) end(ch, hist, true); }} disabled={!!over || hist.length < 2}><Icon name="flag" size={22} />Abandonner</button>
           </div>

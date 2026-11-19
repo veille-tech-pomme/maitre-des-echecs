@@ -8,10 +8,11 @@ export function ReviewHub() {
   const s = useStore((x) => x);
   const items = Object.values(s.srs);
   const duePz = items.filter((x) => x.kind === 'puzzle' && isDue(x));
+  const dueMk = items.filter((x) => x.kind === 'mistake' && isDue(x));
   const dueOp = items.filter((x) => (x.kind === 'opening' || x.kind === 'repertoire') && isDue(x));
   const mastered = items.filter(isMastered).length;
   const nextDue = items.filter((x) => !isDue(x)).sort((a, b) => a.due - b.due)[0];
-  const total = duePz.length + dueOp.length;
+  const total = duePz.length + dueOp.length + dueMk.length;
   return (
     <div class="page">
       <NavBar back="#/puzzles" backLabel="Puzzles" />
@@ -28,6 +29,7 @@ export function ReviewHub() {
         </Empty>
       ) : (
         <div class="list">
+          {dueMk.length > 0 && <Item href="#/review/mistakes" icon="brainCircuit" color="#5E5CE6" title={`${dueMk.length} erreur${dueMk.length > 1 ? 's' : ''} de tes parties`} sub="Les moments clés repérés par le coach" large />}
           {duePz.length > 0 && <Item href="#/puzzles/review" icon="puzzle" color="#FF9F0A" title={`${duePz.length} puzzle${duePz.length > 1 ? 's' : ''} à revoir`} sub="Ceux que tu avais ratés" large />}
           {dueOp.map((it) => {
             if (it.kind === 'repertoire') { const r = s.repertoire.find((x) => 'r:' + x.id === it.id); return r && <Item href={`#/repertoire/${r.id}`} icon="star" color="#F2B544" title={r.name} sub="Ton répertoire" large />; }

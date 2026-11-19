@@ -87,7 +87,7 @@
 .item.is-done .it-title { color: var(--text-2); }
 @media (min-width: 1024px) {
   .home-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); column-gap: 24px; align-items: start;
-    grid-template-areas: "lt lt" "banner banner" "hero plan" "stats plan" "tiles weak" "promo weak"; }
+    grid-template-areas: "lt lt" "banner banner" "hero plan" "stats plan" "tiles plan" "promo plan"; }
   .home-grid > .lt { grid-area: lt; } .home-grid > .banner { grid-area: banner; } .home-grid > .hero-card { grid-area: hero; }
   .home-grid > .stat-strip { grid-area: stats; } .home-grid > .plan-card { grid-area: plan; } .home-grid > .hs-tiles { grid-area: tiles; }
   .home-grid > .hs-weak { grid-area: weak; } .home-grid > .hs-promo { grid-area: promo; margin-top: 16px; }

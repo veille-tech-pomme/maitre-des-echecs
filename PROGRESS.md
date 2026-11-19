@@ -89,5 +89,12 @@ Ordre de travail (cocher au fur et à mesure) :
   - src/coach/{model,curriculum,diagnostic}.ts ; State.coach + State.coachQ (file d’évènements, pushCoach) ; hooks recordPuzzle / leçons / finales ; SRS kind 'mistake'
   - Bench joueurs simulés (bench/reco-bench.json, 200 joueurs) à 160 puzzles : faiblesse détectée 93 %, top-3 86 %, plan qui la cible 78 %, puzzles dans la zone 60–90 % : 67 %, RMSE 115 ; à 320 puzzles : 98 % / 96 % / 88 % / 76 %, RMSE 89. Test de placement (6 items, a posteriori bayésien) : erreur moyenne ≈ 130.
   - Commande : `npx -y tsx tools/bench/reco-bench.mts 200`
-- [ ] M4 : UX (carte coach accueil, bilan mené par le coach, aides en partie, feedback puzzle, écran Mes progrès, test de placement)
+- [x] M4 : UX (carte coach accueil, bilan mené par le coach, aides en partie, feedback puzzle, écran Mes progrès, test de placement)
+  - Accueil : carte « Ton coach » (chargée à la demande, squelette) juste sous la leçon en cours ; sur bureau, colonne de droite.
+  - Bilan : résumé conscient du résultat (abandon, nulle, mat), 3 leçons reliées à une activité, rejouer les moments clés, ligne de réfutation Premium.
+  - Partie : indices gradués (Menaces → Idée → Coup) avec flèches, explication vérifiée du dernier coup.
+  - Puzzles : « Pourquoi ça ne marche pas » sans divulguer la solution.
+  - #/coach (radar 6 familles, forces, faiblesses avec preuves, objectifs de la semaine), #/coach/test (test bayésien 6 positions), #/review/mistakes (erreurs de partie en répétition espacée).
+  - Play et Puzzles chargés à la demande : 1er chargement 155 Kio (174 avant).
+  - e2e local : 2 × 32 vérifications, 0 erreur console.
 - [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne

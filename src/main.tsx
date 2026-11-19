@@ -16,8 +16,10 @@ import { Learn, CoursePage } from './pages/Learn';
 const trainM = () => import('./pages/Training');
 const TrainingHub = lazy(trainM, 'TrainingHub'), Coordinates = lazy(trainM, 'Coordinates'), NameSquare = lazy(trainM, 'NameSquare'), KnightVision = lazy(trainM, 'KnightVision'), MemoryTrainer = lazy(trainM, 'MemoryTrainer'), MateDrills = lazy(trainM, 'MateDrills'), GuessMove = lazy(trainM, 'GuessMove');
 import { LessonPage } from './pages/Lesson';
-import { PuzzlesHub, PuzzleSession, Rush, PuzzleCustom, Battle, PuzzlePaths, PuzzlePath } from './pages/Puzzles';
-import { BotSelect, Game } from './pages/Play';
+const pzM = () => import('./pages/Puzzles');
+const PuzzlesHub = lazy(pzM, 'PuzzlesHub'), PuzzleSession = lazy<any>(pzM, 'PuzzleSession'), Rush = lazy(pzM, 'Rush'), PuzzleCustom = lazy(pzM, 'PuzzleCustom'), Battle = lazy(pzM, 'Battle'), PuzzlePaths = lazy(pzM, 'PuzzlePaths'), PuzzlePath = lazy<any>(pzM, 'PuzzlePath');
+const playM = () => import('./pages/Play');
+const BotSelect = lazy(playM, 'BotSelect'), Game = lazy<{ botId: string }>(playM, 'Game');
 const GameReviewPage = lazy(() => import('./pages/GameReview'), 'GameReviewPage');
 const Analysis = lazy(() => import('./pages/Analysis'), 'Analysis');
 const openM = () => import('./pages/Openings');
@@ -29,11 +31,13 @@ const Settings = lazy(() => import('./pages/Settings'), 'Settings');
 const Premium = lazy(() => import('./pages/Premium'), 'Premium');
 const Privacy = lazy(() => import('./pages/Privacy'), 'Privacy');
 const ReviewHub = lazy(() => import('./pages/Review'), 'ReviewHub');
+const coachM = () => import('./pages/Coach');
+const CoachPage = lazy(coachM, 'CoachPage'), DiagnosticPage = lazy(coachM, 'DiagnosticPage'), MistakesSession = lazy(coachM, 'MistakesSession');
 import { isNative } from './lib/platform';
 import { lazy } from './lib/lazy';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
-  { href: '#/', icon: 'today', label: 'Accueil', match: (p) => p.length === 0 },
+  { href: '#/', icon: 'today', label: 'Accueil', match: (p) => p.length === 0 || p[0] === 'coach' },
   { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire'].includes(p[0]) },
   { href: '#/puzzles', icon: 'puzzle', label: 'Puzzles', match: (p) => ['puzzles', 'review'].includes(p[0]) },
   { href: '#/play', icon: 'play', label: 'Jouer', match: (p) => ['play', 'game', 'analysis'].includes(p[0]) },
@@ -50,7 +54,8 @@ function App() {
     case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
     case 'lesson': page = <LessonPage id={b} />; break;
     case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
-    case 'review': page = <ReviewHub />; break;
+    case 'review': page = b === 'mistakes' ? <MistakesSession /> : <ReviewHub />; break;
+    case 'coach': page = b === 'test' ? <DiagnosticPage /> : <CoachPage />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;
     case 'game': page = <GameReviewPage id={b} />; break;
     case 'analysis': page = <Analysis />; break;
@@ -66,7 +71,7 @@ function App() {
     default: page = <Home />;
   }
   const focus = a === 'lesson' || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
-    || (a === 'openings' && c != null) || a === 'repertoire' || (a === 'train' && !!b) || (a === 'endgames' && !!b) || a === 'premium';
+    || (a === 'openings' && c != null) || a === 'repertoire' || (a === 'train' && !!b) || (a === 'endgames' && !!b) || a === 'premium' || (a === 'coach' && b === 'test') || (a === 'review' && b === 'mistakes');
   return (
     <div class={'app ' + (focus ? 'focus' : '')}>
       <nav class="sidebar" aria-label="Navigation principale">

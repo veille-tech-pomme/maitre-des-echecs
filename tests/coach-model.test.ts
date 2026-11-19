@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { glicko2, newModel, observe, sync, weaknesses, evidenceFor, applyGame, radar, globalRating, rawToEvents } from '../src/coach/model';
 import { coachPlan, ensureModel, ensureWeek, weekProgress, addMistakes, zpd, coachHeadline } from '../src/coach/curriculum';
 import { defaultState, pushCoach } from '../src/lib/store';
-import { runRecoBench } from '../tools/bench/reco-bench.mts';
+import { runRecoBench } from '../tools/bench/reco-sim';
 
 describe('Glicko-2', () => {
   it('victoire contre plus fort : la note monte, le RD baisse', () => {

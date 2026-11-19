@@ -20,7 +20,7 @@ export interface CoachReview {
   v: 2; moves: CoachMove[]; accuracy: { w: number; b: number }; counts: { w: Record<string, number>; b: Record<string, number> };
   critical: Criticality[]; retries: Retry[]; lessons: GameLesson[]; events: SkillEvent[]; summary: string; es: number[]; phaseAcc: Record<string, number>;
 }
-export interface GameInput { startFen: string; moves: string[]; lines: Line[][]; elo: number; user: 'w' | 'b'; oppElo: number; book?: (fen: string) => boolean; gameId?: string }
+export interface GameInput { startFen: string; moves: string[]; lines: Line[][]; elo: number; user: 'w' | 'b'; oppElo: number; book?: (fen: string) => boolean; gameId?: string; result?: '1-0' | '0-1' | '1/2-1/2' | '*' }
 
 const applyU = (fen: string, u: string) => { const c = new Chess(fen); c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); return c; };
 const isMateFen = (fen: string) => { try { return new Chess(fen).isCheckmate(); } catch { return false; } };
@@ -121,6 +121,8 @@ function forcedLen(fen: string, L: Line | undefined) {
   try { if (L.pv.length >= 3 && forcing(L.pv[0])) { const replies = ch.moves().length; ch.move({ from: L.pv[1].slice(0, 2), to: L.pv[1].slice(2, 4), promotion: L.pv[1][4] }); if (forcing(L.pv[2]) && replies <= 3) return 3; } } catch { /* */ }
   return 1;
 }
+/** Score attendu des Blancs après le dernier coup (0,5 si inconnu). */
+const lastEs = (moves: CoachMove[]) => { const m = moves[moves.length - 1]; return m ? (m.color === 'w' ? m.ePlayed : 1 - m.ePlayed) : 0.5; };
 function summarize(moves: CoachMove[], g: GameInput, acc: number, critical: Criticality[]): string {
   const mine = moves.filter((m) => m.color === g.user);
   const bl = mine.filter((m) => m.cls === 'blunder').length, mi = mine.filter((m) => m.cls === 'mistake' || m.cls === 'miss').length;
@@ -132,10 +134,18 @@ function summarize(moves: CoachMove[], g: GameInput, acc: number, critical: Crit
   if (bl >= 2 && acc < 85) head = 'Partie à rebondissements';
   if (matedMe && moves.length < 40) head = 'Une partie courte, riche en leçons';
   if (matedHim) head = acc >= 70 ? 'Belle victoire' : 'Victoire';
+  const won = g.result === (g.user === 'w' ? '1-0' : '0-1'), lost = g.result === (g.user === 'w' ? '0-1' : '1-0');
+  // Fin sans mat (abandon, temps, nulle) : le titre suit le résultat réel, pas seulement la précision.
+  const resigned = lost && !matedMe, wonOther = won && !matedHim;
+  if (resigned) head = moves.length < 20 ? 'Partie abandonnée tôt' : 'Défaite';
+  if (wonOther) head = acc >= 70 ? 'Belle victoire' : 'Victoire';
+  if (g.result === '1/2-1/2') head = 'Partie nulle';
   const parts = [`${head} : ${String(acc).replace('.', ',')} % de précision.`];
   if (matedMe) parts.push(`Mat au coup ${Math.floor(last.ply / 2) + 1}.`);
+  const eFinal = last ? (g.user === 'w' ? lastEs(moves) : 1 - lastEs(moves)) : 0.5;
+  if (resigned && eFinal >= 0.35) parts.push('Tu as abandonné alors que la position était encore jouable : ne lâche rien, chaque partie jouée jusqu’au bout t’apprend quelque chose.');
   if (br) parts.push(`${br} coup${br > 1 ? 's' : ''} fort${br > 1 ? 's' : ''} trouvé${br > 1 ? 's' : ''}.`);
-  if (bl + mi === 0) parts.push('Aucune vraie erreur : bravo.');
+  if (bl + mi === 0) parts.push(lost ? 'Aucune grosse erreur dans les coups joués.' : 'Aucune vraie erreur : bravo.');
   else if (turning) parts.push(`Le tournant : ${Math.floor(turning.ply / 2) + 1}${moves[turning.ply].color === 'w' ? '.' : '…'} ${sanFr(moves[turning.ply].san)}.`);
   return parts.join(' ');
 }

@@ -12,7 +12,7 @@ const LEVELS: { id: string; icon: IconName; color: string; title: string; sub: s
 const FEATS: { icon: IconName; t: string; s: string }[] = [
   { icon: 'learn', t: 'Des leçons qui expliquent', s: 'Chaque coup a son « pourquoi ».' },
   { icon: 'puzzle', t: 'Puzzles à ta mesure', s: 'Ton classement s’ajuste à chaque essai.' },
-  { icon: 'bot', t: 'Un coach pendant tes parties', s: 'Stockfish, sur ton appareil, sans pub.' },
+  { icon: 'brainCircuit', t: 'Un coach personnel', s: 'Il repère tes faiblesses, explique tes erreurs et t’entraîne dessus.' },
 ];
 const ART_FEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';
 
@@ -23,14 +23,14 @@ export function Onboarding() {
   const [name, setName] = useState('');
   const [lvl, setLvl] = useState('debutant');
   if (done) return null;
-  const finish = (l: string | null) => {
+  const finish = (l: string | null, test = false) => {
     setState((s) => {
       s.onboarded = true; s.settings.name = name.trim();
       const order = ['debutant', 'intermediaire', 'avance'];
       if (l) { for (const k of order.slice(1, order.indexOf(l) + 1)) s.lessons['unlock-' + k] = { done: false, stars: 0, step: 0 }; s.puzzle.rating = l === 'intermediaire' ? 1100 : l === 'avance' ? 1500 : 800; }
     });
     unlockAudio();
-    location.hash = l && l !== 'debutant' ? '#/learn' : '#/lesson/d-echiquier';
+    location.hash = test ? '#/coach/test' : l && l !== 'debutant' ? '#/learn' : '#/lesson/d-echiquier';
   };
   const next = () => { unlockAudio(); setStep(step + 1); };
   return (
@@ -76,7 +76,7 @@ export function Onboarding() {
         )}
         <div class="ob-actions">
           {step < 2 ? <button class="btn primary lg" onClick={next}>{step === 0 ? 'Commencer' : 'Continuer'}</button>
-            : <button class="btn primary lg" onClick={() => finish(lvl)}>C’est parti</button>}
+            : <>{lvl !== 'debutant' && <button class="btn secondary lg" onClick={() => finish(lvl, true)}><Icon name="gauge" size={18} />Test de niveau (2 min)</button>}<button class="btn primary lg" onClick={() => finish(lvl)}>C’est parti</button></>}
         </div>
       </div>
     </div>

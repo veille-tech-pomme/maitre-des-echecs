@@ -31,7 +31,12 @@ async function run(name, browserType, ctxOpts) {
     for (let i = 0; i < 6 && !(await page.locator('cg-board').count()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(300); }
     await shot('03-lecon-exercice');
   });
-  await check('accueil', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.plan-card'); await sleep(400); await shot('01-accueil'); });
+  await check('accueil', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(400); await shot('01-accueil'); });
+  await check('coach : mes progrès', async () => { await page.goto(URL0 + '#/coach'); await page.waitForSelector('.radar'); await sleep(300); await shot('40-coach-progres'); });
+  await check('coach : test de niveau', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(900); await shot('41-test-niveau');
+    for (let i = 0; i < 6; i++) { await page.waitForSelector('text=Je ne sais pas', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 20000 }); await page.click('text=Je ne sais pas'); await sleep(1500); }
+    await page.waitForSelector('.diag-result', { timeout: 20000 }); await shot('42-test-resultat'); });
+  await check('coach : erreurs à rejouer (vide)', async () => { await page.goto(URL0 + '#/review/mistakes'); await page.waitForSelector('.empty'); });
   await check('parcours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await shot('04-parcours'); });
   await check('puzzle classé', async () => {
     await page.goto(URL0 + '#/puzzles/rated'); await page.waitForSelector('cg-board', { timeout: 15000 }); await sleep(1500); await shot('05-puzzle');
@@ -46,6 +51,7 @@ async function run(name, browserType, ctxOpts) {
     await page.waitForFunction(() => document.querySelectorAll('cg-board piece').length === 32 && document.querySelectorAll('cg-board square.last-move').length === 2 && !!document.querySelector('.coach-box, .bubble'), null, { timeout: 30000 }).catch(() => {});
     await sleep(4000);
     await clickSq(page, 'g1'); await clickSq(page, 'f3'); await sleep(5000); await shot('09-partie-ia');
+    await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 30000 }); await page.click('.actionbar >> text=Indice'); await page.waitForSelector('.coach-hint', { timeout: 30000 }); await page.click('.actionbar >> text=Indice suivant'); await sleep(300); await shot('09c-indice-idee');
     page.once('dialog', (d) => d.accept()); await page.click('text=Abandonner'); await sleep(1200); await shot('09b-fin-partie');
   });
   await check('analyse', async () => { await page.goto(URL0 + '#/analysis'); await page.waitForSelector('cg-board'); await sleep(4000); await shot('10-analyse'); });
@@ -70,10 +76,12 @@ async function run(name, browserType, ctxOpts) {
     const n = await page.$$eval('.ms-row', (r) => r.length); if (n < 3) throw new Error('trop peu de coups : ' + n);
     await page.click('.ms-game >> nth=0'); await page.waitForSelector('.game-head', { timeout: 20000 }); await sleep(600); await shot('35-partie-de-maitre'); });
   await check('finales (90)', async () => { await page.goto(URL0 + '#/endgames/kbn-k'); await page.waitForSelector('cg-board'); await shot('33-finale-fou-cavalier'); });
-  await check('thème clair', async () => { await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); s.settings.theme = 'light'; localStorage.setItem(k, JSON.stringify(s)); }); await page.goto(URL0 + '#/'); await page.reload(); await page.waitForSelector('.plan-card'); await shot('17-accueil-clair'); });
+  await check('thème clair', async () => { await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); s.settings.theme = 'light'; localStorage.setItem(k, JSON.stringify(s)); }); await page.goto(URL0 + '#/'); await page.reload(); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await shot('17-accueil-clair'); });
   await check('bilan de partie', async () => {
-    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); const g = s.games?.[0]; return g?.id; }).then(async (id) => { if (!id) throw new Error('aucune partie enregistrée'); await page.goto(URL0 + '#/game/' + id); await page.click('text=Lancer le bilan'); await page.waitForSelector('.coach-box, .acc', { timeout: 60000 }); await sleep(800); await shot('18-bilan'); });
-  }).catch(() => {});
+    const id = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); const g = s.games?.[0]; return g?.id; }); if (!id) throw new Error('aucune partie enregistrée');
+    await page.goto(URL0 + '#/game/' + id); await page.click('text=Lancer le bilan'); await page.waitForSelector('.coach-summary', { timeout: 90000 }); await sleep(800); await shot('18-bilan');
+    await page.click('.review-moves .mv >> nth=2'); await page.waitForSelector('.coach-box h4'); await sleep(300); await shot('18b-bilan-coup');
+  });
   await check('packs + moteur chargés', async () => { const l = [...loaded]; const pk = l.filter((u) => u.includes('packs/')), sf = l.filter((u) => u.includes('stockfish')); if (!pk.length || !sf.length) throw new Error('packs ' + pk.length + ' moteur ' + sf.length); console.log('    packs :', pk.length, '· moteur :', sf.map((u) => u.split('/').pop()).join(', ')); });
   await check('service worker', async () => { const ok = await page.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration())); if (!ok) throw new Error('pas de SW'); });
   await browser.close(); return true;
@@ -83,7 +91,8 @@ const iphone = devices['iPhone 14 Pro'] || devices['iPhone 13'];
 const wk = await run('iphone', webkit, { ...iphone });
 if (!wk) await run('iphone-chromium', chromium, { ...iphone, defaultBrowserType: undefined });
 srv.kill();
-const real = errors.filter((e) => !/favicon|Failed to load resource.*(404)/.test(e));
+// WebKit + COOP/COEP locaux : le worker multi-thread est refusé puis le moteur repart en mono-thread (repli voulu, absent en production sans COEP).
+const real = errors.filter((e) => !/favicon|Failed to load resource.*(404)/.test(e) && !/^\[iphone\].*(Cross-Origin-Embedder-Policy|stockfish-18-lite\.js.*access control checks)/.test(e));
 console.log(`\nErreurs console : ${real.length}`); real.slice(0, 40).forEach((e) => console.log(' - ' + e));
 console.log(`Échecs de vérification : ${failures}`);
 process.exit(real.length || failures ? 1 : 0);

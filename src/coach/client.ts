@@ -4,9 +4,15 @@ import { engine, type PvLine } from '../lib/engine';
 import type { CoachReview, GameInput } from './pipeline';
 import type { Line, Explanation } from './explain';
 import { explainMove } from './explain';
+import { sanOf } from './lang';
+import { MOTIF_LABEL, type MotifKey } from './motifs';
 import { classifyMove } from './classify';
 import { expectedStm } from './winprob';
 import { hintsFor, nullMoveFen, type Hint } from './hints';
+import { getState } from '../lib/store';
+import { globalRating } from './model';
+/** Note utilisée pour calibrer le coach (modèle du joueur, sinon classement puzzles). */
+export const currentElo = () => { const s = getState(); return s.coach ? globalRating(s.coach) : s.puzzle.rating || 800; };
 
 const toLine = (l: PvLine): Line => ({ move: l.move, pv: l.pv, cp: l.cp, mate: l.mate });
 let worker: Worker | null = null; let seq = 0; const pending = new Map<number, (m: any) => void>();
@@ -20,7 +26,7 @@ async function runReview(input: Omit<GameInput, 'book'>): Promise<CoachReview> {
   if (!w) { const [{ buildReview }, { isBookFen }] = await Promise.all([import('./pipeline'), import('../data/openings')]); return buildReview({ ...input, book: isBookFen }); }
   return new Promise((res, rej) => { const id = ++seq; pending.set(id, (m) => (m.ok ? res(m.r) : rej(new Error(m.error)))); w.postMessage({ id, type: 'review', input }); });
 }
-export interface ReviewOpts { depth?: number; elo: number; user: 'w' | 'b'; oppElo: number; gameId?: string; onProgress?: (p: number) => void; signal?: { cancelled: boolean } }
+export interface ReviewOpts { result?: '1-0' | '0-1' | '1/2-1/2' | '*'; depth?: number; elo: number; user: 'w' | 'b'; oppElo: number; gameId?: string; onProgress?: (p: number) => void; signal?: { cancelled: boolean } }
 /** Analyse complète d'une partie (SAN) : Stockfish multi-PV 3 sur chaque position, puis pipeline du coach. */
 export async function coachReview(startFen: string, sans: string[], o: ReviewOpts): Promise<CoachReview> {
   const ch = new Chess(startFen); const fens = [ch.fen()]; const ucis: string[] = [];
@@ -33,7 +39,7 @@ export async function coachReview(startFen: string, sans: string[], o: ReviewOpt
     const r = await engine.analyse(fens[i], { depth: o.depth ?? 12, multipv: 3 });
     lines.push(r.lines.map(toLine)); o.onProgress?.((i + 1) / fens.length * 0.95);
   }
-  const r = await runReview({ startFen, moves: ucis, lines, elo: o.elo, user: o.user, oppElo: o.oppElo, gameId: o.gameId });
+  const r = await runReview({ startFen, moves: ucis, lines, elo: o.elo, user: o.user, oppElo: o.oppElo, gameId: o.gameId, result: o.result });
   o.onProgress?.(1); return r;
 }
 /** Évaluation immédiate d'un coup joué (mode coach en partie). */
@@ -56,7 +62,7 @@ export async function explainPuzzleMiss(fen: string, wrong: string, solution: st
   const lines = rb.lines.map(toLine);
   if (!lines.length || lines[0].move !== solution[0]) lines.unshift({ move: solution[0], pv: solution, cp: lines[0]?.cp ?? 300, mate: lines[0]?.mate ?? null });
   const r = assessLive(fen, wrong, lines.map((l, i) => ({ ...l, depth: 12, multipv: i + 1 })), ra.lines, elo, 30, []);
-  return r.ex;
+  return noSpoil(r.ex, sanOf(fen, solution[0]));
 }
 /** Indices gradués pour la position courante. */
 export async function coachHints(fen: string, depth = 11): Promise<Hint[]> {
@@ -64,4 +70,13 @@ export async function coachHints(fen: string, depth = 11): Promise<Hint[]> {
   const nf = nullMoveFen(fen); let t: Line | null = null;
   if (nf) { try { const x = await engine.analyse(nf, { depth: Math.max(8, depth - 3), multipv: 1 }); t = x.lines[0] ? toLine(x.lines[0]) : null; } catch { t = null; } }
   return hintsFor(fen, r.lines.map(toLine), t);
+}
+
+/** Puzzle : on explique pourquoi le coup joué échoue, sans dévoiler la solution (gardée dans `plan`). */
+export function noSpoil(ex: Explanation, solSan: string): Explanation {
+  const t = ex.tags[0] || ''; const hide = (x: string) => x.split(solSan).join('le bon coup');
+  if (t.startsWith('missedMate')) return { ...ex, headline: 'Il y a un mat dans cette position', why: 'Cherche les échecs : le roi adverse n’a presque plus de cases.' };
+  if (t.startsWith('missed:')) { const k = t.split(':')[1] as MotifKey; const lab = MOTIF_LABEL[k]; return { ...ex, headline: lab ? `Une tactique t’échappe : ${lab.toLowerCase()}` : 'Il y a mieux à trouver', why: 'Ton coup laisse passer l’occasion. Repère les pièces adverses mal protégées et les coups forçants.' }; }
+  if (!t.startsWith('allowed') && !t.startsWith('ignored')) return { ...ex, headline: 'Ce n’est pas le coup du puzzle', why: 'Ton coup n’est pas une faute grave, mais il y a beaucoup plus fort : cherche un coup forçant (échec, prise ou menace).' };
+  return { ...ex, headline: hide(ex.headline), why: hide(ex.why) };
 }

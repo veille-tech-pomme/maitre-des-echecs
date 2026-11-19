@@ -14,6 +14,8 @@ export interface TrainerProps {
   orientation?: 'white' | 'black';
   onSolved?: (clean: boolean) => void;
   onMistake?: (idx: number) => void;
+  /** coup refusé : indice, coup UCI joué et position avant le coup (explication du coach) */
+  onWrong?: (idx: number, uci: string, fenBefore: string) => void;
   onProgress?: (idx: number) => void;
   /** comportement après erreur : 'retry' (on rejoue) */
   hintLevel?: number;
@@ -54,7 +56,7 @@ export function MoveTrainer(p: TrainerProps) {
     const expected = p.line[idx];
     const ok = moveToUci(m) === expected || (expected && moveToUci(m) === expected.slice(0, 4) && !expected[4]) || (p.accept?.(idx, m, n) ?? false) || (n.isCheckmate() && isMateLine(p.line, idx));
     if (!ok) {
-      play('error'); setMistakes((x) => x + 1); p.onMistake?.(idx);
+      play('error'); setMistakes((x) => x + 1); p.onMistake?.(idx); p.onWrong?.(idx, moveToUci(m), ch.fen());
       setFlash({ sq: to, cls: 'wrong' }); setStatus('wrong');
       setCh(new Chess(ch.fen()));
       later(() => setFlash(null), 600);

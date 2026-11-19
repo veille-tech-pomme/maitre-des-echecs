@@ -34,6 +34,10 @@ export interface State {
   plan: { date: string; done: string[] };
   settings: Settings;
   onboarded: boolean;
+  /** premier mat de l'accueil (réussi du premier coup ?) : premier indice du diagnostic */
+  obMate?: { ok: boolean; ms: number };
+  /** diagnostic unique : les premières cartes du fil (voir coach/diagnostic) */
+  placement?: import('../coach/diagnostic').DiagState;
   trial?: { startedAt: number; endsAt: number; reminded?: boolean };
   /** Modes d'entraînement : duel, parcours de puzzles, coordonnées, mémoire, devine le coup, mats… */
   training: Record<string, any>;

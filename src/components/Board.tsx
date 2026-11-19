@@ -78,7 +78,14 @@ export function Board(p: BoardProps) {
     ro.observe(el.current);
     const unlock = () => unlockAudio();
     el.current.addEventListener('pointerdown', unlock, { once: true });
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); cg.current?.destroy(); cg.current = null; };
+    // chessground garde en cache la position de l'échiquier : si elle a été mesurée pendant une animation d'entrée
+    // (translate/scale d'une carte), les touchers tombaient sur la mauvaise case. On remesure avant chaque toucher
+    // (phase de capture, avant chessground) et à la fin de toute animation d'un ancêtre.
+    const fresh = () => cg.current?.state.dom.bounds.clear();
+    el.current.addEventListener('mousedown', fresh, { capture: true }); el.current.addEventListener('touchstart', fresh, { capture: true, passive: true });
+    const onAnim = (e: Event) => { const t = e.target; if (el.current && t instanceof Element && t !== el.current && t.contains(el.current)) { fresh(); cg.current?.state.dom.redraw(); } };
+    document.addEventListener('animationend', onAnim); document.addEventListener('transitionend', onAnim);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('animationend', onAnim); document.removeEventListener('transitionend', onAnim); cg.current?.destroy(); cg.current = null; };
   }, []);
   useEffect(() => { cg.current?.set(config()); cg.current?.setAutoShapes(validShapes(p.shapes)); });
 

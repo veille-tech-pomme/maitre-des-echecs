@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { defaultState, pushCoach, type State } from '../src/lib/store';
 import { ensureModel } from '../src/coach/curriculum';
 import { newItem } from '../src/lib/srs';
-import { nextFeedCards, recordFeed, feedCandidates, kindFactor, feedToday, tomorrowTeaser, DAILY_CARDS, lessonCardSteps, type FeedCard } from '../src/coach/feed';
+import { nextFeedCards, recordFeed, recordDiag, diagPending, feedCandidates, kindFactor, feedToday, tomorrowTeaser, DAILY_CARDS, lessonCardSteps, type FeedCard } from '../src/coach/feed';
 import { rawToEvents, evidenceFor, sync } from '../src/coach/model';
 import { LESSONS } from '../src/data/lessons';
 import masters from '../src/data/feed-master.json';
@@ -11,7 +11,9 @@ import threats from '../src/data/feed-threats.json';
 import { Chess } from 'chess.js';
 
 const NOW = new Date('2026-11-19T18:00:00').getTime();
-function fresh(): State { const s = defaultState(); s.onboarded = true; ensureModel(s); return s; }
+/** joueur dont le diagnostic est fait (les tests du fil classique) ; newcomer() : tout nouveau, diagnostic à faire */
+function fresh(): State { const s = defaultState(); s.onboarded = true; ensureModel(s).diag = { at: 0, r: 800 }; return s; }
+function newcomer(ob?: { ok: boolean; ms: number }): State { const s = defaultState(); s.onboarded = true; s.obMate = ob; ensureModel(s); return s; }
 const play = (s: State, c: FeedCard, out: 'ok' | 'fail' | 'skip' | 'abandon' = 'ok', ms = 20000) => recordFeed(s, c, out, ms, false, NOW);
 
 describe('nextFeedCards', () => {
@@ -101,5 +103,36 @@ describe('contenu des cartes', () => {
       const legal = new Set(nul.moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion || '')));
       expect(legal.has(x.t)).toBe(true); for (const d of x.d) { expect(legal.has(d)).toBe(true); expect(d).not.toBe(x.t); }
     }
+  });
+});
+
+describe('diagnostic unique dans le fil (R2)', () => {
+  const answer = (s: State, ok: boolean) => { const [c] = nextFeedCards(s, s.coach!, 1, NOW); expect(c.kind).toBe('diag'); const r = recordDiag(s, { id: 'x' + c.id, r: c.d, th: [c.theme!], ok, ms: 15000, plies: 1 }, NOW); recordFeed(s, c, ok ? 'ok' : 'fail', 15000, true, NOW); return { c, r }; };
+  it('les 4 premières cartes sont le test, adaptatif, puis le fil classique', () => {
+    const s = newcomer({ ok: true, ms: 4000 });
+    const a = answer(s, true); expect(a.r).toBeNull();
+    expect(nextFeedCards(s, s.coach!, 1, NOW, [a.c])).toEqual([]); // pas de préchargement d'une carte adaptative
+    const b = answer(s, true); expect(b.c.d).toBeGreaterThan(a.c.d); // réussite → plus difficile
+    const c = answer(s, false); expect(c.c.d).toBeGreaterThan(a.c.d);
+    const d = answer(s, false); expect(d.r).not.toBeNull();
+    expect(s.coach!.diag!.r).toBe(d.r!.rating); expect(s.puzzle.rating).toBe(d.r!.rating);
+    expect(s.placement!.items.length).toBe(5); expect(s.placement!.items[0].id).toBe('ob:berger'); // le premier mat de l'accueil compte
+    expect(diagPending(s, s.coach!)).toBe(false); expect(nextFeedCards(s, s.coach!, 1, NOW)[0].kind).not.toBe('diag');
+    expect(s.coach!.ev.filter((e) => e.src === 'diag').length).toBeGreaterThan(0); // nourrit Glicko par compétence
+  });
+  it('un échec complet donne un départ bas, une réussite complète ouvre le parcours avancé', () => {
+    const lo = newcomer({ ok: false, ms: 30000 }); for (let i = 0; i < 4; i++) answer(lo, false);
+    const hi = newcomer({ ok: true, ms: 3000 }); for (let i = 0; i < 4; i++) answer(hi, true);
+    expect(lo.coach!.diag!.r).toBeLessThan(800); expect(hi.coach!.diag!.r).toBeGreaterThan(1300);
+    expect(lo.lessons['unlock-intermediaire']).toBeUndefined(); expect(hi.lessons['unlock-intermediaire']).toBeTruthy();
+  });
+  it('pas de diagnostic pour un joueur déjà classé', () => {
+    const s = newcomer(); s.puzzle.games = 30; s.puzzle.rating = 1400;
+    expect(nextFeedCards(s, s.coach!, 1, NOW)[0].kind).not.toBe('diag');
+  });
+  it('les cartes du test comptent dans le programme du jour mais pas deux fois dans le modèle', () => {
+    const s = newcomer(); answer(s, true);
+    const ev = rawToEvents({ k: 'feed', t: NOW, id: 'dg:0', card: 'diag', sk: null, d: 900, out: 'fail', ms: 9000, counted: true } as any);
+    expect(ev).toEqual([]); expect(feedToday(s, NOW).served.length).toBe(1);
   });
 });

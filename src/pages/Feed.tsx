@@ -18,12 +18,13 @@ import { StepBoard } from './Lesson';
 import { SKILL } from '../coach/skills';
 import { useCoachSync } from '../coach/ui/common';
 import { ensureModel } from '../coach/curriculum';
-import { nextFeedCards, recordFeed, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, type FeedCard, type FeedOutcome } from '../coach/feed';
+import { nextFeedCards, recordFeed, recordDiag, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, type FeedCard, type FeedOutcome } from '../coach/feed';
+import { FEED_DIAG } from '../coach/diagnostic';
 
 interface MasterX { f: string; m: string; r: number; hero: string; vs: string; y: string; ev: string; n: string; san: string; why: { k: 'mate' | 'win' | 'theme' | 'only'; n?: number; th?: string; line: string[] } }
 interface ThreatX { id: string; f: string; last: string; ls: string; t: string; d: string[]; r: number; w: { k: 'mate' | 'cap' | 'mat' | 'strong'; n?: number; p?: string }; line: string[]; th?: string }
 type Content =
-  | { t: 'puzzle'; p: BankPuzzle; review: boolean }
+  | { t: 'puzzle'; p: BankPuzzle; review: boolean; diag?: boolean }
   | { t: 'mistake'; fen: string; sol: string[]; prompt: string }
   | { t: 'threat'; x: ThreatX }
   | { t: 'master'; x: MasterX }
@@ -50,6 +51,11 @@ async function resolve(c: FeedCard): Promise<Content | null> {
   if (c.kind === 'puzzle' || c.kind === 'mate1') {
     const p = await pickPuzzle({ rating: c.d, theme: c.theme, seen: s.puzzle.seen, maxMoves: c.skill === 'calculation' || c.skill === 'mateN' ? 6 : 4 }).catch(() => null);
     return p ? { t: 'puzzle', p, review: false } : null;
+  }
+  if (c.kind === 'diag') {
+    let p = await pickPuzzle({ rating: c.d, theme: c.theme, seen: s.puzzle.seen, maxMoves: 4 }).catch(() => null);
+    if (!p) p = await pickPuzzle({ rating: c.d, seen: s.puzzle.seen, maxMoves: 4 }).catch(() => null);
+    return p ? { t: 'puzzle', p, review: false, diag: true } : null;
   }
   if (c.kind === 'mistake' && c.ref) {
     if (c.ref.startsWith('p:')) { const p = await findPuzzle(c.ref.slice(2)); return p ? { t: 'puzzle', p, review: true } : null; }
@@ -92,7 +98,7 @@ export function Feed() {
   useEffect(() => {
     if (!go || cur !== undefined) return;
     let live = true;
-    (async () => { const first = await prepare([]); if (!live) return; setCur(first); if (first) nextRef.current = prepare([first.card]); })();
+    (async () => { const first = await prepare([]); if (!live) return; setCur(first); if (first) nextRef.current = preload(first); })();
     return () => { live = false; };
   }, [go]);
   async function advance() {
@@ -101,8 +107,10 @@ export function Feed() {
     const left = DAILY_CARDS - feedProgress(getState()).done;
     const slot = left > 0 ? nx : null;
     setCur(slot); setK((x) => x + 1);
-    nextRef.current = slot ? prepare([slot.card]) : null;
+    nextRef.current = slot ? preload(slot) : null;
   }
+  // le diagnostic s'adapte à chaque réponse : sa carte suivante ne peut pas être préparée d'avance
+  const preload = (sl: Slot) => (sl.card.kind === 'diag' ? null : prepare([sl.card]));
   if (!go || cur === undefined) return <div class="page feed"><FeedHead /><div class="feed-card skeleton" role="status" aria-busy="true" aria-label="Préparation de ton fil"><div class="fc-board" /></div></div>;
   if (cur === null) return <div class="page feed"><FeedHead /><FeedEnd /></div>;
   return (
@@ -134,7 +142,7 @@ function FeedHead() {
 }
 const KIND_ICON: Record<FeedCard['kind'], { icon: IconName; color: string }> = {
   puzzle: { icon: 'puzzle', color: '#0A84FF' }, mate1: { icon: 'king', color: '#FF453A' }, threat: { icon: 'crosshair', color: '#FF9F0A' },
-  master: { icon: 'crown', color: '#F2B544' }, mistake: { icon: 'repeat', color: '#5E5CE6' }, lesson: { icon: 'book', color: '#30D158' },
+  master: { icon: 'crown', color: '#F2B544' }, mistake: { icon: 'repeat', color: '#5E5CE6' }, lesson: { icon: 'book', color: '#30D158' }, diag: { icon: 'gauge', color: '#FF9F0A' },
 };
 
 function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
@@ -149,6 +157,25 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
     return () => { document.removeEventListener('visibilitychange', vis); if (!outcome.current && elapsed() > 10000) setState((d) => recordFeed(d, card, 'abandon', elapsed())); };
   }, []);
   const counted = c.t === 'puzzle';
+  const isDiag = c.t === 'puzzle' && !!c.diag;
+  const [dres, setDres] = useState<{ rating: number; rd: number } | null>(null);
+  /** carte du diagnostic : une seule tentative, la réponse nourrit le test adaptatif (et non le classement puzzle) */
+  const answerDiag = (ok: boolean, quick = false) => {
+    if (outcome.current || c.t !== 'puzzle') return; outcome.current = ok ? 'ok' : 'fail';
+    const p = c.p; const ms = elapsed(); let res: { rating: number; rd: number } | null = null;
+    setState((d) => {
+      res = recordDiag(d, { id: p.i, r: p.r, th: p.t, ok, ms, plies: p.m.split(' ').length - 1 });
+      recordFeed(d, card, ok ? 'ok' : 'fail', ms, true);
+      if (!d.puzzle.seen.includes(p.i)) d.puzzle.seen.push(p.i);
+      ensureModel(d);
+    });
+    setDres(res);
+    if (ok) { addXp(8, KIND_LABEL.diag); setXp(8); }
+    if (ok && !res) { setSt('ok'); go(450); return; }
+    if (quick && !res) { setLeaving(true); setTimeout(onDone, 200); return; }
+    if (!ok) setSol((x) => x + 1);
+    setSt('reveal');
+  };
   /** fin de carte : enregistre le signal une seule fois */
   const finish = (out: FeedOutcome) => {
     if (outcome.current) return; outcome.current = out;
@@ -160,7 +187,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
     if (c.t === 'threat') markSeen('t' + c.x.id); if (c.t === 'master') markSeen('m' + c.x.f);
   };
   // révélation réussie (coup du maître, menace) : on lit la phrase puis on enchaîne seul, sauf si « pourquoi ? » est ouvert
-  useEffect(() => { if (state !== 'reveal' || failed.current || why) return; const t = setTimeout(() => go(0), 3800); return () => clearTimeout(t); }, [state, why]);
+  useEffect(() => { if (state !== 'reveal' || (failed.current && !isDiag) || why) return; const t = setTimeout(() => go(0), isDiag ? (dres ? 4500 : 2200) : 3800); return () => clearTimeout(t); }, [state, why]);
   const go = (delay: number) => { setTimeout(() => { setLeaving(true); setTimeout(onDone, 220); }, delay); };
   const success = (gain: number, auto = true) => {
     if (outcome.current) return;
@@ -173,14 +200,14 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
     if (auto) go(450);
   };
   const miss = () => { if (!failed.current) { failed.current = true; if (c.t === 'puzzle') { /* l'échec est enregistré à la fin (une seule fois) */ } } };
-  const skip = () => { if (outcome.current) { onDone(); return; } finish('skip'); setLeaving(true); setTimeout(onDone, 200); };
+  const skip = () => { if (outcome.current) { onDone(); return; } if (isDiag) { answerDiag(false, true); return; } finish('skip'); setLeaving(true); setTimeout(onDone, 200); };
   // balayage vers le haut hors de l'échiquier = passer (ou suivante si la carte est finie)
   const touch = useRef<{ y: number; x: number } | null>(null);
   const onTouchStart = (e: TouchEvent) => { const el = e.target as HTMLElement; if (el.closest('.board-wrap, button, a, .quiz')) { touch.current = null; return; } touch.current = { y: e.touches[0].clientY, x: e.touches[0].clientX }; };
   const onTouchEnd = (e: TouchEvent) => { const st = touch.current; touch.current = null; if (!st) return; const t = e.changedTouches[0]; const dy = t.clientY - st.y, dx = Math.abs(t.clientX - st.x); if (dy < -70 && dx < 60) { state === 'play' ? skip() : onDone(); } };
 
   const vis = KIND_ICON[card.kind];
-  const sub = card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : null;
+  const sub = card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : isDiag ? `Position ${+card.id.slice(3) + 1} sur ${FEED_DIAG}` : null;
   const finished = state !== 'play';
   return (
     <article class={'feed-card' + (leaving ? ' leaving' : '') + (state === 'ok' ? ' won' : '') + (state === 'reveal' ? ' revealed' : '')} style={{ '--c': vis.color } as any} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} aria-label={KIND_LABEL[card.kind]}
@@ -190,7 +217,10 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
         {sub && <span class="fc-sub">{sub}</span>}
       </div>
       <div class="fc-body">
-        {c.t === 'puzzle' && <MoveTrainer fen={c.p.f} line={c.p.m.split(' ')} setup showSolutionSignal={sol} onMistake={miss} onSolved={() => success(8)} />}
+        {c.t === 'puzzle' && <MoveTrainer fen={c.p.f} line={c.p.m.split(' ')} setup showSolutionSignal={sol} onMistake={isDiag ? () => answerDiag(false) : miss} onSolved={isDiag ? () => answerDiag(true) : () => success(8)} />}
+        {isDiag && state === 'reveal' && <div class={'fc-reveal ' + (dres ? 'good' : 'bad')} aria-live="polite">{dres
+          ? <><h4>Je te connais mieux : niveau de départ {dres.rating}</h4><p class="muted small">Marge ± {dres.rd}, elle se resserre à chaque carte. À partir de maintenant, ton fil s’adapte à toi.</p></>
+          : <><h4>Pas grave, voici le coup.</h4><p class="muted small">La position suivante sera plus abordable : le test s’adapte à tes réponses.</p></>}</div>}
         {c.t === 'mistake' && <MoveTrainer fen={c.fen} line={c.sol} showSolutionSignal={sol} onMistake={miss} onSolved={() => success(10)} />}
         {c.t === 'master' && <MasterCard x={c.x} sol={sol} done={finished} onMistake={miss} onSolved={() => success(12, false)} />}
         {c.t === 'threat' && <ThreatCard x={c.x} onAnswer={(ok) => { if (!ok) failed.current = true; success(10, false); }} />}
@@ -207,8 +237,8 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
         <button class={'btn plain small fc-whybtn' + (why ? ' on' : '')} onClick={() => setWhy(!why)} aria-expanded={why}>Pourquoi ?</button>
         {!finished && failed.current && (c.t === 'puzzle' || c.t === 'mistake' || c.t === 'master') && <button class="btn plain small" onClick={() => { setSol((x) => x + 1); if (!outcome.current) { if (c.t === 'puzzle') recordPuzzle(c.p, false, c.review ? 'review' : 'theme'); finish('fail'); } setSt('reveal'); }}><Icon name="eye" size={16} />Solution</button>}
         <span class="grow" />
-        {finished && state === 'reveal' ? <button class={'btn primary fc-next' + (!failed.current && !why ? ' auto' : '')} onClick={() => onDone()}>Suivant<Icon name="down" size={16} stroke={2.6} /></button>
-          : <button class="btn secondary small fc-skip" onClick={skip} disabled={state === 'ok'}>Passer<Icon name="down" size={15} stroke={2.6} /></button>}
+        {finished && state === 'reveal' ? <button class={'btn primary fc-next' + ((isDiag || !failed.current) && !why ? ' auto' : '')} style={isDiag ? { '--auto-ms': dres ? '4.5s' : '2.2s' } as any : undefined} onClick={() => onDone()}>Suivant<Icon name="down" size={16} stroke={2.6} /></button>
+          : <button class="btn secondary small fc-skip" onClick={skip} disabled={state === 'ok'}>{isDiag ? 'Je ne sais pas' : 'Passer'}<Icon name="down" size={15} stroke={2.6} /></button>}
       </div>
     </article>
   );

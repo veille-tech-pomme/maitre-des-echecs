@@ -25,7 +25,7 @@ export function simulate(seed: number, nPuzzles = 160) {
   return { m, truth, weak, strong, base };
 }
 export function runRecoBench(n = 60, np = 160) {
-  let diagErrNew = 0, diagErrDecl = 0, diagItems = 0, diagItemsNo = 0, sePost = 0;
+  let diagErrFeed = 0, diagErrNew = 0, diagErrDecl = 0, diagItems = 0, diagItemsNo = 0, sePost = 0;
   let se = 0, cnt = 0, det = 0, top1 = 0, top3 = 0, strongFlagged = 0, planHasWeak = 0, inZone = 0, pz = 0, diagErr = 0;
   for (let i = 0; i < n; i++) {
     const { m, truth, weak, strong } = simulate(1000 + i, np);
@@ -44,8 +44,12 @@ export function runRecoBench(n = 60, np = 160) {
       while (fixed6 ? k < 6 : !diagDone(d)) { const tg = diagTarget(d); const ok = R() < pSuccess(trueR, tg.rating); d = diagAnswer(d, { id: 'x' + d.i, r: tg.rating, th: [tg.theme], ok, ms: 20000, plies: 3 }); k++; }
       return { err: Math.abs(diagResult(d).rating - trueR), k }; };
     const a = run(1000, 450, true), b = run(1000, 450, false), c = run(declared, 300, false);
+    // R2 : diagnostic unique du fil = premier mat de l'accueil (600) + 4 cartes adaptatives, départ 900
+    { const R = rng(99 + i); let d = diagStart(900, 450); d = diagAnswer(d, { id: 'ob', r: 600, th: ['mateIn1'], ok: R() < pSuccess(trueR, 600), ms: 8000, plies: 1 });
+      for (let k = 0; k < 4; k++) { const tg = diagTarget(d); d = diagAnswer(d, { id: 'x' + d.i, r: tg.rating, th: [tg.theme], ok: R() < pSuccess(trueR, tg.rating), ms: 20000, plies: 3 }); }
+      diagErrFeed += Math.abs(diagResult(d).rating - trueR); }
     diagErr += a.err; diagErrNew += b.err; diagErrDecl += c.err; diagItems += c.k; diagItemsNo += b.k;
     void SKILL; void skillOf; void globalRating;
   }
-  return { players: n, puzzlesPerPlayer: np, skillRMSE: Math.round(Math.sqrt(se / cnt)), weakDetected: +(det / n).toFixed(3), weakTop1: +(top1 / n).toFixed(3), weakTop3: +(top3 / n).toFixed(3), strongMisflagged: +(strongFlagged / n).toFixed(3), planTargetsWeakness: +(planHasWeak / n).toFixed(3), puzzlesInZone60to90: +(inZone / pz).toFixed(3), diagnosticMAE6items: Math.round(diagErr / n), diagnosticMAEadaptive: Math.round(diagErrNew / n), diagnosticItemsAdaptive: +(diagItemsNo / n).toFixed(1), diagnosticMAEwithDeclaredLevel: Math.round(diagErrDecl / n), diagnosticItemsWithDeclared: +(diagItems / n).toFixed(1), skillRMSEposterior: Math.round(Math.sqrt(sePost / cnt)) };
+  return { players: n, puzzlesPerPlayer: np, skillRMSE: Math.round(Math.sqrt(se / cnt)), weakDetected: +(det / n).toFixed(3), weakTop1: +(top1 / n).toFixed(3), weakTop3: +(top3 / n).toFixed(3), strongMisflagged: +(strongFlagged / n).toFixed(3), planTargetsWeakness: +(planHasWeak / n).toFixed(3), puzzlesInZone60to90: +(inZone / pz).toFixed(3), diagnosticMAE6items: Math.round(diagErr / n), diagnosticMAEfeed4: Math.round(diagErrFeed / n), diagnosticMAEadaptive: Math.round(diagErrNew / n), diagnosticItemsAdaptive: +(diagItemsNo / n).toFixed(1), diagnosticMAEwithDeclaredLevel: Math.round(diagErrDecl / n), diagnosticItemsWithDeclared: +(diagItems / n).toFixed(1), skillRMSEposterior: Math.round(Math.sqrt(sePost / cnt)) };
 }

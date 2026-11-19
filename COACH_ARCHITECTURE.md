@@ -221,3 +221,10 @@ Le fil n'est pas un second moteur de recommandation : `src/coach/feed.ts` relit 
 - `nextFeedCards(s, m, n, now, pending)` : choix glouton par score = gain × nouveauté × diversité × `kindFactor` (passes/abandons/temps appris par type). Quota quotidien `DAILY_CARDS`.
 - `recordFeed(draft, card, out, ms, counted)` : statistiques du jour + évènement brut `feed` dans `coachQ`, consommé par `sync` (`rawToEvents`). Les puzzles du fil passent par `recordPuzzle` (classement, SRS, évènement `puzzle`) ; le signal `feed` n'ajoute alors que passes/abandons.
 - Données hors ligne : `src/data/feed-master.json`, `src/data/feed-threats.json` (générées par `tools/build-feed-cards.mts`).
+
+## Diagnostic unique (R2)
+Plus de niveau déclaré ni de test séparé. Le premier mat de l'accueil (item de difficulté 600, réussi ou non du premier coup) puis les
+`FEED_DIAG = 4` premières cartes du fil (type `diag`) alimentent le même a posteriori bayésien qu'avant (`diagAnswer`, départ 900 ± 450,
+items posés à la moyenne a posteriori sur des thèmes variés). La carte suivante dépend de la réponse : elle n'est jamais préchargée.
+À la 4e réponse, `recordDiag` écrit `m.diag`, `m.base`, les observations par compétence (src `diag`, poids 0,7), le classement puzzle (si moins
+de 10 puzzles joués) et ouvre le parcours au niveau mesuré. Les événements `feed` des cartes `diag` n'ajoutent rien au modèle (pas de double compte).

@@ -1,82 +1,72 @@
-import { useState } from 'preact/hooks';
-import { useStore, setState } from '../lib/store';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { useStore, setState, addXp } from '../lib/store';
 import { unlockAudio } from '../lib/sound';
-import { Board } from '../components/Board';
-import { Icon, type IconName } from '../components/Icon';
+import { MoveTrainer } from '../components/MoveTrainer';
+import { toastPrefs } from '../components/ui';
+import { Icon } from '../components/Icon';
 
-const LEVELS: { id: string; icon: IconName; color: string; title: string; sub: string }[] = [
-  { id: 'debutant', icon: 'sprout', color: '#30A46C', title: 'Je débute', sub: 'Je découvre les règles, ou presque.' },
-  { id: 'intermediaire', icon: 'swords', color: '#0A84FF', title: 'Je connais les règles', sub: 'Je joue de temps en temps.' },
-  { id: 'avance', icon: 'castle', color: '#BF5AF2', title: 'Je joue en club', sub: 'Plus de 1400 Elo environ.' },
-];
-const FEATS: { icon: IconName; t: string; s: string }[] = [
-  { icon: 'learn', t: 'Des leçons qui expliquent', s: 'Chaque coup a son « pourquoi ».' },
-  { icon: 'puzzle', t: 'Puzzles à ta mesure', s: 'Ton classement s’ajuste à chaque essai.' },
-  { icon: 'brainCircuit', t: 'Un coach personnel', s: 'Il repère tes faiblesses, explique tes erreurs et t’entraîne dessus.' },
-];
-const ART_FEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';
+// Accueil en moins de 15 secondes : un prénom (facultatif), puis un premier mat gagnant tout de suite.
+// Pas de niveau à déclarer : le diagnostic se fait dans les premières cartes du fil « Pour toi ».
+const MATE_FEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';
+const MATE = 'h5f7';
+const AUTO_MS = 4200;
 
-/** Accueil en 3 écrans plein écran : bienvenue → prénom → niveau. */
 export function Onboarding() {
   const done = useStore((s) => s.onboarded);
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
-  const [lvl, setLvl] = useState('debutant');
+  const [won, setWon] = useState(false);
+  const [miss, setMiss] = useState(0);
+  const t0 = useRef(0);
+  useEffect(() => { if (step === 1) { t0.current = Date.now(); toastPrefs.quietXp = true; return () => { toastPrefs.quietXp = false; }; } }, [step]);
+  useEffect(() => { if (!won) return; const t = setTimeout(finish, AUTO_MS); return () => clearTimeout(t); }, [won]);
   if (done) return null;
-  const finish = (l: string | null, test = false) => {
-    setState((s) => {
-      s.onboarded = true; s.settings.name = name.trim();
-      const order = ['debutant', 'intermediaire', 'avance'];
-      if (l) { for (const k of order.slice(1, order.indexOf(l) + 1)) s.lessons['unlock-' + k] = { done: false, stars: 0, step: 0 }; s.puzzle.rating = l === 'intermediaire' ? 1100 : l === 'avance' ? 1500 : 800; s.puzzle.declared = s.puzzle.rating; }
-    });
-    unlockAudio();
-    location.hash = test ? '#/coach/test' : l && l !== 'debutant' ? '#/learn' : '#/lesson/d-echiquier';
+  const nm = name.trim();
+  const start = () => { unlockAudio(); setStep(1); };
+  const solved = () => {
+    if (won) return; setWon(true);
+    addXp(10, 'Premier mat');
+    setState((s) => { s.settings.name = nm; s.obMate = { ok: miss === 0, ms: Date.now() - t0.current }; });
   };
-  const next = () => { unlockAudio(); setStep(step + 1); };
+  function finish() {
+    setState((s) => { s.onboarded = true; s.settings.name = nm; s.obMate ||= { ok: false, ms: 0 }; });
+    location.hash = '#/';
+  }
   return (
     <div class="ob" role="dialog" aria-modal="true" aria-label="Bienvenue">
       <div class="ob-inner">
         <div class="ob-top">
-          {step > 0 ? <button class="nb-btn" onClick={() => setStep(step - 1)} aria-label="Retour"><Icon name="left" size={26} stroke={2.4} /></button> : <span style="width:44px" />}
-          <div class="ob-dots" role="img" aria-label={`Étape ${step + 1} sur 3`}>{[0, 1, 2].map((i) => <span class={i === step ? 'on' : ''} />)}</div>
-          <button class="btn plain small" onClick={() => finish(null)}>Passer</button>
+          {step > 0 && !won ? <button class="nb-btn" onClick={() => setStep(0)} aria-label="Retour"><Icon name="left" size={26} stroke={2.4} /></button> : <span style="width:44px" />}
+          <div class="ob-dots" role="img" aria-label={`Étape ${step + 1} sur 2`}>{[0, 1].map((i) => <span class={i === step ? 'on' : ''} />)}</div>
+          <span style="width:44px" />
         </div>
         {step === 0 && (
           <div class="ob-body" key="0">
-            <div class="ob-art"><Board fen={ART_FEN} viewOnly coordinates={false} /></div>
+            <div class="ob-mark"><Icon name="crown" size={38} /></div>
             <h1>Deviens le maître de ton jeu.</h1>
-            <p class="lead">De ta toute première règle au niveau expert, à ton rythme, quelques minutes par jour.</p>
+            <p class="lead">Ton coach s’adapte à toi, quelques minutes par jour. Tout reste sur ton appareil.</p>
+            <input class="name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === 'Enter') start(); }} placeholder="Ton prénom (facultatif)" aria-label="Ton prénom (facultatif)" maxLength={24} autoComplete="given-name" enterKeyHint="go" />
           </div>
         )}
         {step === 1 && (
-          <div class="ob-body" key="1">
-            <div class="ob-mark"><Icon name="play" size={38} /></div>
-            <h1>Comment t’appelles-tu ?</h1>
-            <p class="lead">Ton coach s’adressera à toi par ton prénom. Tout reste sur ton appareil.</p>
-            <input class="name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === 'Enter') next(); }} placeholder="Ton prénom" aria-label="Ton prénom" maxLength={24} autoComplete="given-name" />
-            <div class="ob-feats">
-              {FEATS.map((f) => <div class="feat"><span><Icon name={f.icon} size={20} /></span><div><b>{f.t}</b><small>{f.s}</small></div></div>)}
+          <div class={'ob-body ob-mate' + (won ? ' won' : '')} key="1">
+            <h1>{won ? 'Échec et mat !' : <>Ton premier coup<span class="muted"> : fais mat.</span></>}</h1>
+            <p class="lead">{won ? '' : miss ? miss > 1 ? 'La flèche montre le coup : joue-le.' : 'Indice : la case f7 n’est défendue que par le roi noir.' : 'Les Blancs jouent. Un seul coup gagne la partie.'}</p>
+            <div class="ob-board">
+              <MoveTrainer fen={MATE_FEN} line={[MATE]} hintLevel={Math.min(2, miss)} feedback={false} onMistake={() => setMiss((x) => x + 1)} onSolved={solved} />
+              {won && <div class="fc-xp" aria-live="polite"><Icon name="sparkles" size={16} />+10 XP</div>}
             </div>
-          </div>
-        )}
-        {step === 2 && (
-          <div class="ob-body" key="2">
-            <h1>{name.trim() ? `${name.trim()}, où` : 'Où'} en es-tu ?</h1>
-            <p class="lead" style="margin-bottom:22px">On adapte ton parcours. Tu pourras changer à tout moment.</p>
-            <div role="radiogroup" aria-label="Ton niveau">
-              {LEVELS.map((l) => (
-                <button class={'level-opt ' + (lvl === l.id ? 'on' : '')} role="radio" aria-checked={lvl === l.id} onClick={() => setLvl(l.id)}>
-                  <span class="lo-icon" style={{ '--c': l.color } as any}><Icon name={l.icon} size={22} /></span>
-                  <span><b>{l.title}</b><small>{l.sub}</small></span>
-                  <span class="radio">{lvl === l.id && <Icon name="check" size={15} stroke={3} />}</span>
-                </button>
-              ))}
-            </div>
+            {won && (
+              <div class="ob-coach" role="status">
+                <span class="oc-ico"><Icon name="brainCircuit" size={20} /></span>
+                <p>{nm ? `Bravo ${nm} : ` : 'Bravo : '}ta dame, soutenue par le fou, prend f7 et le roi n’a plus aucune case. Maintenant, je découvre ton niveau en 4 positions.</p>
+              </div>
+            )}
           </div>
         )}
         <div class="ob-actions">
-          {step < 2 ? <button class="btn primary lg" onClick={next}>{step === 0 ? 'Commencer' : 'Continuer'}</button>
-            : <>{lvl !== 'debutant' && <button class="btn secondary lg" onClick={() => finish(lvl, true)}><Icon name="gauge" size={18} />Test de niveau (3 min)</button>}<button class="btn primary lg" onClick={() => finish(lvl)}>C’est parti</button></>}
+          {step === 0 && <button class="btn primary lg" onClick={start}>Jouer mon premier coup<Icon name="right" size={18} stroke={2.5} /></button>}
+          {won && <button class="btn primary lg fc-next auto" style={{ '--auto-ms': AUTO_MS / 1000 + 's' } as any} onClick={finish}>Continuer</button>}
         </div>
       </div>
     </div>

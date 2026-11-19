@@ -58,7 +58,7 @@ export function activities(s: State, m: CoachModel, now = Date.now()): Activity[
   const b = recommendedBot(s);
   out.push({ id: 'play', kind: 'play', skill: null, title: 'Joue une partie', why: recent ? 'Mets en pratique ce que tu viens de travailler.' : 'Le coach a besoin de te voir jouer pour mieux t’aider.', route: `#/play/${b}`, minutes: 10, gain: (recent ? 0.35 : 0.75) * novelty('play') });
   // 5. test de placement s'il n'a jamais été fait et que le modèle est vide
-  if (!m.diag && m.ev.length < 15) out.push({ id: 'diag', kind: 'diag', skill: null, title: 'Test de niveau (3 min)', why: '6 à 8 positions qui s’adaptent à tes réponses, pour que le coach cerne ton niveau.', route: '#/coach/test', minutes: 2, gain: 1.2 });
+  if (!m.diag && m.ev.length < 15) out.push({ id: 'diag', kind: 'diag', skill: null, title: 'Découvrir mon niveau (1 min)', why: 'Les 4 premières cartes de ton fil « Pour toi » s’adaptent à tes réponses, pour que le coach cerne ton niveau.', route: '#/', minutes: 1, gain: 1.2 });
   return out.sort((a, b2) => b2.gain - a.gain);
 }
 /** Plan du jour du coach : 3 à 4 activités variées (pas deux fois la même compétence ni le même type). */
@@ -125,7 +125,7 @@ export function ingestReview(s: State, r: CoachReview, gameId: string) {
 /** Phrase d'accroche de la carte « Ton coach ». */
 export function coachHeadline(s: State, m: CoachModel): { title: string; text: string } {
   const w = weaknesses(m, 1)[0]; const nGames = m.games;
-  if (!m.ev.length) return { title: 'Faisons connaissance', text: 'Fais le test de niveau ou joue une partie : je repérerai tes forces et tes faiblesses.' };
+  if (!m.ev.length) return { title: 'Faisons connaissance', text: 'Joue les 4 premières cartes de ton fil ou une partie : je repérerai tes forces et tes faiblesses.' };
   if (w) return { title: `Priorité : ${w.label.toLowerCase()}`, text: w.evidence[0] || 'C’est là que tu peux gagner le plus de points.' };
   const known = Object.values(m.skills).filter((x) => x && confidence(x.rd) > 0.4).length;
   return { title: 'Rien d’alarmant', text: nGames ? `Pas de faiblesse nette sur ${known} compétences suivies. On consolide et on élargit.` : 'Analyse une partie pour que je voie ton jeu en situation réelle.' };

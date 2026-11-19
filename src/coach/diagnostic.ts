@@ -33,3 +33,17 @@ export function diagResult(s: DiagState): { rating: number; rd: number; events: 
   for (const it of s.items) for (const k of skillsForPuzzle(it.th, it.plies)) events.push({ skill: k, s: it.ok ? 1 : 0, d: it.r, w: 0.7, src: 'diag', ref: 'p:' + it.id });
   return { rating: Math.round(s.r), rd: Math.round(s.rd), events };
 }
+
+// Diagnostic unique (R2) : plus de niveau déclaré ni de test séparé. Le premier mat de l'accueil (très facile) est un
+// premier indice faible, puis les FEED_DIAG premières cartes du fil « Pour toi » sont les positions du test.
+export const FEED_DIAG = 4;
+export const OB_ITEM: Omit<DiagItem, 'ok' | 'ms'> = { id: 'ob:berger', r: 600, th: ['mateIn1', 'opening'], plies: 1 };
+export const DIAG_START = 900;
+/** Nombre de positions du test faites dans le fil (sans le mat de l'accueil). */
+export const feedDiagCount = (d?: DiagState) => (d ? d.items.filter((x) => !x.id.startsWith('ob:')).length : 0);
+/** État du test : celui enregistré, sinon un départ (avec le mat de l'accueil s'il a été joué). */
+export function placementOf(placement: DiagState | undefined, ob?: { ok: boolean; ms: number }, rating?: number): DiagState {
+  if (placement) return placement;
+  const d = diagStart(rating ?? DIAG_START, rating ? 250 : 450);
+  return ob ? diagAnswer(d, { ...OB_ITEM, ok: ob.ok, ms: ob.ms }) : d;
+}

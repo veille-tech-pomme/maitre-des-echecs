@@ -9,9 +9,11 @@ import { nextLesson } from '../lib/plan';
 import type { Lesson, Step } from '../data/lessons';
 import { SKILL, MOTIF_SKILL, type SkillId } from './skills';
 import { activities, zpdDifficulty } from './curriculum';
-import { skillOf, globalRating, levelIdx, weaknesses, type CoachModel } from './model';
+import { skillOf, globalRating, levelIdx, weaknesses, observe, type CoachModel } from './model';
+import { ensureModel } from './curriculum';
+import { diagTarget, diagAnswer, diagResult, placementOf, feedDiagCount, FEED_DIAG, type DiagItem } from './diagnostic';
 
-export type CardKind = 'puzzle' | 'mate1' | 'threat' | 'master' | 'mistake' | 'lesson';
+export type CardKind = 'puzzle' | 'mate1' | 'threat' | 'master' | 'mistake' | 'lesson' | 'diag';
 export interface FeedCard {
   /** identifiant de la source (une même source peut revenir plusieurs fois par jour, avec un contenu différent) */
   id: string; kind: CardKind; skill: SkillId | null; gain: number;
@@ -23,7 +25,7 @@ export interface FeedCard {
   ref?: string;
 }
 export const DAILY_CARDS = 12;
-export const KIND_LABEL: Record<CardKind, string> = { puzzle: 'Puzzle', mate1: 'Mat en 1', threat: 'Quelle est la menace ?', master: 'Le coup du maître', mistake: 'Rejoue ta gaffe', lesson: 'Mini-leçon' };
+export const KIND_LABEL: Record<CardKind, string> = { puzzle: 'Puzzle', mate1: 'Mat en 1', threat: 'Quelle est la menace ?', master: 'Le coup du maître', mistake: 'Rejoue ta gaffe', lesson: 'Mini-leçon', diag: 'Découverte' };
 
 export function feedToday(s: State, now = Date.now()): FeedState {
   const d = today(new Date(now)); const f = s.feed;
@@ -94,6 +96,13 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
   // pending : cartes déjà préparées mais pas encore jouées (préchargement de la carte N+1)
   const f = feedToday(s, now); const left = DAILY_CARDS - f.served.length - pending.length;
   if (left <= 0) return [];
+  // diagnostic : les premières cartes du fil, adaptatives (la suivante dépend de la réponse : pas de préchargement)
+  if (diagPending(s, m)) {
+    if (pending.some((c) => c.kind === 'diag')) return [];
+    const st = placementOf(s.placement, s.obMate); const tg = diagTarget(st); const i = feedDiagCount(st);
+    return [{ id: 'dg:' + i, kind: 'diag', skill: null, d: tg.rating, theme: tg.theme, gain: 9,
+      why: `Je découvre ton niveau : ${FEED_DIAG} positions qui s’adaptent à tes réponses. Pas de niveau à déclarer, tu joues et je mesure. Une seule tentative ; « Je ne sais pas » est une vraie réponse.` }];
+  }
   const cands = feedCandidates(s, m, now, pending); const hist = [...f.served, ...pending].map((x) => ({ id: x.id, kind: x.kind as CardKind, skill: x.skill as SkillId | null }));
   const out: FeedCard[] = [];
   for (let k = 0; k < Math.min(n, left); k++) {
@@ -112,6 +121,19 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
     out.push(best); hist.push({ id: best.id, kind: best.kind, skill: best.skill });
   }
   return out;
+}
+/** Le diagnostic est-il encore à faire ? (pas si le coach a déjà un diagnostic ou une note puzzle établie) */
+export function diagPending(s: State, m: CoachModel) { return !m.diag && s.puzzle.games < 10 && feedDiagCount(s.placement) < FEED_DIAG; }
+/** Réponse à une carte du diagnostic (brouillon setState). Renvoie le résultat quand le test est terminé. */
+export function recordDiag(s: State, it: DiagItem, now = Date.now()): { rating: number; rd: number } | null {
+  const st = (s.placement = diagAnswer(placementOf(s.placement, s.obMate), it));
+  if (feedDiagCount(st) < FEED_DIAG) return null;
+  const r = diagResult(st); const m = ensureModel(s);
+  m.diag = { at: now, r: r.rating }; m.base = r.rating; for (const e of r.events) observe(m, e);
+  if (s.puzzle.games < 10) s.puzzle.rating = r.rating;
+  // le parcours s'ouvre au niveau mesuré (remplace l'ancien niveau déclaré)
+  for (const [k, min] of [['intermediaire', 1150], ['avance', 1550]] as const) if (r.rating >= min) s.lessons['unlock-' + k] ||= { done: false, stars: 0, step: 0 };
+  return { rating: r.rating, rd: r.rd };
 }
 export type FeedOutcome = 'ok' | 'fail' | 'skip' | 'abandon';
 /** Enregistre un signal du fil (dans un brouillon setState). `counted` : la réussite/l'échec est déjà passé par recordPuzzle. */

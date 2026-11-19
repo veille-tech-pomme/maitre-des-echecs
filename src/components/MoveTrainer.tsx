@@ -32,13 +32,13 @@ export function MoveTrainer(p: TrainerProps) {
   const [mistakes, setMistakes] = useState(0);
   const mistakesRef = useRef(0); mistakesRef.current = mistakes;
   const [flash, setFlash] = useState<{ sq: string; cls: string } | null>(null);
-  const timers = useRef<any[]>([]);
+  const timers = useRef<any[]>([]); const shown = useRef(false);
   const userColor = useMemo(() => { const c = new Chess(p.fen); return p.setup ? (c.turn() === 'w' ? 'black' : 'white') : turnColor(c); }, [p.fen, p.setup]);
   const later = (fn: () => void, ms: number) => timers.current.push(setTimeout(fn, ms));
 
   function reset() {
     timers.current.forEach(clearTimeout); timers.current = [];
-    const c = new Chess(p.fen); setCh(c); setIdx(0); setLast(null); setMistakes(0); setFlash(null);
+    shown.current = false; const c = new Chess(p.fen); setCh(c); setIdx(0); setLast(null); setMistakes(0); setFlash(null);
     if (p.setup) { setStatus('wait'); later(() => autoMove(c, 0), 600); } else setStatus('play');
   }
   useEffect(() => { reset(); return () => timers.current.forEach(clearTimeout); }, [p.fen, p.line.join(' '), p.resetSignal]);
@@ -72,7 +72,7 @@ export function MoveTrainer(p: TrainerProps) {
   // Solution animée
   useEffect(() => {
     if (!p.showSolutionSignal) return;
-    timers.current.forEach(clearTimeout); timers.current = [];
+    timers.current.forEach(clearTimeout); timers.current = []; shown.current = true;
     let c = new Chess(ch.fen()); let i = idx; setStatus('wait');
     const step = () => {
       if (i >= p.line.length) { setStatus('solved'); return; }
@@ -101,7 +101,7 @@ export function MoveTrainer(p: TrainerProps) {
           {status === 'play' && <span><span class={'turn-dot ' + (userColor === 'white' ? 'w' : 'b')} />{userColor === 'white' ? 'Les Blancs jouent. À toi.' : 'Les Noirs jouent. À toi.'}</span>}
           {status === 'wrong' && <span><Icon name="xCircle" size={20} />Pas tout à fait. Réessaie.</span>}
           {status === 'good' && <span><Icon name="checkCircle" size={20} />Bien vu. Continue.</span>}
-          {status === 'solved' && <span><Icon name="sparkles" size={20} />Bravo, c’est résolu.</span>}
+          {status === 'solved' && (shown.current ? <span><Icon name="eye" size={20} />Voici la solution.</span> : <span><Icon name="sparkles" size={20} />Bravo, c’est résolu.</span>)}
         </div>
       )}
     </div>

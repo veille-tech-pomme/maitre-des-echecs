@@ -62,7 +62,7 @@ describe('joueurs simulés (bench)', () => {
     expect(r.weakDetected).toBeGreaterThanOrEqual(0.85); expect(r.weakTop3).toBeGreaterThanOrEqual(0.78);
     expect(r.strongMisflagged).toBeLessThanOrEqual(0.02); expect(r.planTargetsWeakness).toBeGreaterThanOrEqual(0.7);
     expect(r.puzzlesInZone60to90).toBeGreaterThanOrEqual(0.6); expect(r.skillRMSE).toBeLessThan(140);
-    expect(r.diagnosticMAE6items).toBeLessThan(170); expect(r.diagnosticMAEwithDeclaredLevel).toBeLessThan(115); expect(r.weakTop1).toBeGreaterThanOrEqual(0.6);
+    expect(r.diagnosticMAE6items).toBeLessThan(170); expect(r.diagnosticMAEfeed4).toBeLessThan(190); expect(r.diagnosticMAEwithDeclaredLevel).toBeLessThan(115); expect(r.weakTop1).toBeGreaterThanOrEqual(0.6);
   });
 });
 

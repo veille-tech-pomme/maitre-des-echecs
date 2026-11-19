@@ -50,7 +50,7 @@
 .fc-whybtn { color: var(--text-2); } .fc-whybtn.on { color: var(--tint); }
 .fc-skip { color: var(--text-2); }
 .fc-next { position: relative; overflow: hidden; }
-.fc-next.auto::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: color-mix(in srgb, var(--on-gold) 35%, transparent); transform-origin: left; animation: autofill 3.8s linear forwards; }
+.fc-next.auto::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: color-mix(in srgb, var(--on-gold) 35%, transparent); transform-origin: left; animation: autofill var(--auto-ms, 3.8s) linear forwards; }
 @keyframes autofill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .feed-end { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 40px 20px; border-radius: var(--r-lg); background: var(--surface); animation: card-in .4s var(--ease); }

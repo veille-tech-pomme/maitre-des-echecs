@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { Chess } from 'chess.js';
+import { puzzleById } from './puzzle-lookup.mjs';
 const THREATS = JSON.parse(fs.readFileSync('src/data/feed-threats.json', 'utf8'));
 // Test E2E headless : bureau (Chromium) + iPhone (WebKit, repli Chromium mobile). Capture erreurs console + captures d'écran.
 import { chromium, webkit, devices } from 'playwright';
@@ -12,7 +13,7 @@ if (!process.env.E2E_URL) await new Promise((r) => { srv.stdout.on('data', (d) =
 const errors = []; let failures = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function clickSq(page, sq, orient = 'white') {
-  const b = await page.locator('cg-board').first().boundingBox(); const s = b.width / 8;
+  const loc = page.locator('cg-board').first(); let b = null; for (let i = 0; i < 40 && !b; i++) { b = await loc.boundingBox(); if (!b) await sleep(100); } const s = b.width / 8;
   let f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; if (orient === 'black') { f = 7 - f; r = 7 - r; }
   await page.mouse.click(b.x + s * (f + 0.5), b.y + s * (7 - r + 0.5)); await sleep(150);
 }
@@ -26,15 +27,44 @@ async function run(name, browserType, ctxOpts) {
   const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
-  await page.goto(URL0); await page.waitForSelector('.ob', { timeout: 15000 });
-  await check('onboarding', async () => { await shot('00-onboarding'); await page.click('.ob-actions .btn'); await page.fill('.ob input', 'Camille'); await page.click('.ob-actions .btn'); await page.click('.level-opt >> text=Je débute'); await page.click('.ob-actions .btn'); await page.waitForSelector('.lesson-grid', { timeout: 10000 }); });
-  await check('leçon (1ère)', async () => { await sleep(600); await shot('02-lecon'); });
+  const tLoad = Date.now(); await page.goto(URL0); await page.waitForSelector('.ob', { timeout: 15000 });
+  // R2 : prénom facultatif puis un premier mat gagnant ; temps jusqu'au premier succès, chargement compris (sans pause de capture)
+  await check('accueil : premier succès < 15 s', async () => {
+    await page.fill('.ob input', 'Camille'); await page.click('.ob-actions .btn');
+    await page.waitForSelector('.ob-board cg-board'); await sleep(400); /* fin de l'animation d'entrée */ await clickSq(page, 'h5'); await clickSq(page, 'f7');
+    await page.waitForSelector('.ob .fc-xp', { timeout: 5000 }); const ms = Date.now() - tLoad;
+    console.log(`    premier succès en ${(ms / 1000).toFixed(1)} s, chargement compris`); if (ms > 15000) throw new Error(`premier succès en ${ms} ms`);
+    await shot('00-premier-mat-reussi');
+  });
+  await check('accueil : pas de niveau déclaré, pas de détour par la 1re leçon', async () => {
+    await page.click('.ob-actions .btn'); await page.waitForFunction(() => !document.querySelector('.ob'));
+    const h = await page.evaluate(() => location.hash); if (h !== '#/' && h !== '') throw new Error('redirigé vers ' + h);
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1'))); if (st.puzzle.declared) throw new Error('niveau déclaré présent');
+    if (!st.obMate?.ok || st.settings.name !== 'Camille') throw new Error('premier mat ou prénom non enregistré');
+  });
   await check('leçon exercice (pion)', async () => {
     await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.lesson-grid'); await sleep(500);
     for (let i = 0; i < 6 && !(await page.locator('cg-board').count()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(300); }
     await shot('03-lecon-exercice');
   });
   await check('pour toi : 1re carte', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.feed-card:not(.skeleton)', { timeout: 20000 }); await sleep(600); await shot('01-pour-toi'); });
+  await check('diagnostic : les 4 premières cartes', async () => {
+    for (let k = 0; k < 4; k++) {
+      await page.waitForSelector('.feed-card:not(.skeleton):not(.leaving)'); await sleep(900);
+      const kind = await page.locator('.feed-card').getAttribute('data-kind'); const ref = await page.locator('.feed-card').getAttribute('data-ref');
+      if (kind !== 'diag') throw new Error(`carte ${k + 1} : ${kind} au lieu du diagnostic`);
+      const z = puzzleById(ref);
+      if (k === 0 && z) { // la première : on la résout (réponse juste → carte suivante seule)
+        const orient = z.f.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = z.m.split(' ');
+        for (let i = 1; i < mv.length; i += 2) { await clickSq(page, mv[i].slice(0, 2), orient); await clickSq(page, mv[i].slice(2, 4), orient); await sleep(900); }
+      } else await page.click('.fc-skip'); // « Je ne sais pas »
+      if (k === 3) { await page.waitForSelector('.fc-reveal.good', { timeout: 8000 }); await shot('01a-diagnostic-resultat'); }
+      await page.waitForFunction((r) => document.querySelector('.feed-card:not(.leaving)')?.getAttribute('data-ref') !== r, ref, { timeout: 12000 });
+    }
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')));
+    if (!st.coach?.diag || st.placement?.items.length !== 5) throw new Error('diagnostic non enregistré');
+    console.log(`    niveau de départ ${st.coach.diag.r} (classement puzzle ${st.puzzle.rating})`);
+  });
   await check('pour toi : pourquoi ? + passer', async () => {
     await page.click('.fc-whybtn'); await page.waitForSelector('.fc-why'); await shot('01b-pour-toi-pourquoi'); await page.click('.fc-whybtn');
     const ref = await page.locator('.feed-card').getAttribute('data-ref'); const done0 = await page.locator('.fh-dots span.on').count();
@@ -66,9 +96,8 @@ async function run(name, browserType, ctxOpts) {
   await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });
   await check('onglets : Pour toi / Apprendre / Jouer / Moi', async () => { const t = (await page.locator(name === 'desktop' ? '.sidebar .nav-item' : '.tabbar a small').allInnerTexts()).map((x) => x.trim()); for (const w of ['Pour toi', 'Apprendre', 'Jouer', 'Moi']) if (!t.includes(w)) throw new Error('onglet manquant : ' + w + ' (' + t.join(', ') + ')'); if (t.includes('Puzzles') || t.includes('Accueil')) throw new Error('ancien onglet encore présent'); });
   await check('coach : mes progrès', async () => { await page.goto(URL0 + '#/coach'); await page.waitForSelector('.radar'); await sleep(300); await shot('40-coach-progres'); });
-  await check('coach : test de niveau', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(900); await shot('41-test-niveau');
-    for (let i = 0; i < 10 && !(await page.locator('.diag-result').count()); i++) { await page.waitForSelector('text=Je ne sais pas', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 20000 }); await page.click('text=Je ne sais pas'); await sleep(1500); }
-    await page.waitForSelector('.diag-result', { timeout: 20000 }); await shot('42-test-resultat'); });
+  await check('coach : bilan du diagnostic', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('.diag-result .big'); await shot('41-diagnostic-bilan');
+    if ((await page.locator('.nb-left a').first().getAttribute('href')) !== '#/coach') throw new Error('retour du bilan ≠ Mes progrès'); });
   await check('coach : erreurs à rejouer (vide)', async () => { await page.goto(URL0 + '#/review/mistakes'); await page.waitForSelector('.empty'); });
   await check('parcours', async () => { await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await shot('04-parcours'); });
   await check('puzzle classé', async () => {

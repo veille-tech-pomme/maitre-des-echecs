@@ -1,4 +1,4 @@
-// « Mes progrès » (#/coach) et test de niveau adaptatif (#/coach/test).
+// « Mes progrès » (#/coach) et résultat du diagnostic (#/coach/test : le test lui-même se fait dans le fil « Pour toi »).
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore, setState, getState } from '../lib/store';
 import { LargeTitle, NavBar, Progress } from '../components/ui';
@@ -9,7 +9,7 @@ import { radar, skillViews, weaknesses, strengths, globalRating, observe, confid
 import { coachPlan, weekProgress, ensureModel } from '../coach/curriculum';
 import { FAMILY_LABEL, FAMILIES, SKILL, MOTIF_SKILL, type Family } from '../coach/skills';
 import { review as srsReview } from '../lib/srs';
-import { diagStart, diagTarget, diagAnswer, diagDone, diagResult, diagPlanned, DIAG_THEMES, DIAG_MIN, DIAG_MAX, type DiagState } from '../coach/diagnostic';
+import { diagResult, DIAG_THEMES, FEED_DIAG, feedDiagCount } from '../coach/diagnostic';
 import { ACT_ICON, useCoachSync } from '../coach/ui/common';
 import { themeName } from '../data/themes';
 import { go } from '../lib/router';
@@ -42,8 +42,8 @@ export function CoachPage() {
     <div class="page coach-page">
       <NavBar back="#/profile" backLabel="Moi" />
       <LargeTitle title="Mes progrès" sub={m.ev.length ? `Niveau estimé ${g} · ${m.games} partie${m.games > 1 ? 's' : ''} analysée${m.games > 1 ? 's' : ''} · ${m.ev.length} observations` : 'Le coach apprend à te connaître à chaque puzzle, leçon et partie analysée.'} />
-      {!m.diag && m.ev.length < 15 && (
-        <a class="cc-main" href="#/coach/test"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Faire le test de niveau</b><small>{DIAG_MIN} à {DIAG_MAX} positions, environ 3 minutes</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
+      {!m.diag && s.puzzle.games < 10 && (
+        <a class="cc-main" href="#/"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Découvrir mon niveau</b><small>{feedDiagCount(s.placement)}/{FEED_DIAG} positions faites dans Pour toi, environ 1 minute</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
       )}
       <div class="cp-grid">
         <div>
@@ -95,64 +95,36 @@ export function CoachPage() {
   );
 }
 
+/** Résultat du diagnostic unique (les premières cartes du fil). Plus de test séparé : s'il reste à faire, on renvoie au fil. */
 export function DiagnosticPage() {
-  const s0 = useMemo(() => getState(), []);
-  // a priori : note puzzle établie (σ 200), sinon niveau déclaré à l'accueil (σ 300), sinon rien (σ 450)
-  const est = s0.puzzle.games >= 10; const start = est ? s0.puzzle.rating : s0.puzzle.declared ?? (s0.puzzle.rating || 900);
-  const [st, setSt] = useState<DiagState>(() => diagStart(start, est ? 200 : s0.puzzle.declared ? 300 : 450));
-  const [p, setP] = useState<BankPuzzle | null | undefined>(undefined);
-  const [res, setRes] = useState<boolean | null>(null);
-  const t0 = useRef(Date.now()); const seen = useRef<string[]>([...s0.puzzle.seen]);
-  const load = async (d: DiagState) => {
-    setP(undefined); setRes(null);
-    const tg = diagTarget(d);
-    let q = await pickPuzzle({ rating: tg.rating, theme: tg.theme, seen: seen.current }).catch(() => null);
-    if (!q) q = await pickPuzzle({ rating: tg.rating, seen: seen.current }).catch(() => null);
-    if (q) seen.current.push(q.i); setP(q); t0.current = Date.now();
-  };
-  useEffect(() => { load(st); }, []);
-  const answer = (ok: boolean) => {
-    if (res !== null || !p) return; setRes(ok);
-    const n = diagAnswer(st, { id: p.i, r: p.r, th: p.t, ok, ms: Date.now() - t0.current, plies: p.m.split(' ').length - 1 });
-    setTimeout(() => { setSt(n); if (diagDone(n)) finish(n); else load(n); }, ok ? 700 : 1300);
-  };
-  const finish = (n: DiagState) => {
-    const r = diagResult(n);
-    setState((s) => { const m = ensureModel(s); m.diag = { at: Date.now(), r: r.rating }; m.base = r.rating; for (const e of r.events) observe(m, e); if (s.puzzle.games < 10) s.puzzle.rating = r.rating; });
-  };
-  const done = diagDone(st);
-  if (done) {
-    const r = diagResult(st); const ok = st.items.filter((x) => x.ok);
+  const s = useStore((x) => x); const st = s.placement; const diag = s.coach?.diag;
+  if (!diag || !st) {
+    const n = feedDiagCount(st); const est = s.puzzle.games >= 10;
     return (
       <div class="page">
-        <NavBar back="#/" backLabel="Accueil" />
+        <NavBar back="#/coach" backLabel="Mes progrès" />
         <div class="diag-result">
-          <p class="muted">Ton niveau estimé</p>
-          <div class="big">{r.rating}</div>
-          <p class="muted small">Marge d’incertitude ± {r.rd}. Elle se resserre à chaque puzzle et partie.</p>
-          <p>{ok.length} position{ok.length > 1 ? 's' : ''} réussie{ok.length > 1 ? 's' : ''} sur {st.items.length}.</p>
-          <div class="list" style="text-align:left">
-            {st.items.map((x, i) => <div class="item"><span class="it-icon" style={{ '--c': x.ok ? 'var(--green)' : 'var(--red)' } as any}><Icon name={x.ok ? 'check' : 'close'} size={16} stroke={3} /></span><span class="it-main"><span class="it-title">{themeName(DIAG_THEMES[i])}</span><span class="it-sub">Difficulté {x.r}</span></span></div>)}
-          </div>
-          <button class="btn primary lg" onClick={() => go('/')}>Voir le plan du coach</button>
+          <span class="fe-icon"><Icon name="gauge" size={36} /></span>
+          <h2>{est ? 'Ton niveau est déjà mesuré' : 'Ton niveau se découvre en jouant'}</h2>
+          <p class="muted">{est ? `Ton classement puzzle (${s.puzzle.rating}) sert de point de départ au coach, et chaque puzzle l’affine.` : `Les ${FEED_DIAG} premières cartes de ton fil « Pour toi » forment le test : elles s’adaptent à tes réponses. ${n}/${FEED_DIAG} faite${n > 1 ? 's' : ''}.`}</p>
+          <a class="btn primary lg" href="#/">{est ? 'Aller à Pour toi' : n ? 'Continuer dans Pour toi' : 'Commencer dans Pour toi'}</a>
         </div>
       </div>
     );
   }
+  const r = diagResult(st); const ok = st.items.filter((x) => x.ok);
   return (
-    <div class="page puzzle-session">
-      <div class="game-top"><a class="nb-btn round" href="#/" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a>
-        <div class="gt-title diag-top"><span>Test de niveau</span><span class="diag-dots" aria-label={`Position ${st.i + 1} sur ${diagPlanned(st)}`}>{Array.from({ length: diagPlanned(st) }, (_, i) => <i class={i < st.items.length ? (st.items[i].ok ? 'ok' : 'ko') : i === st.i ? 'cur' : ''} />)}</span></div><span class="pill tnum">{st.i + 1}/{diagPlanned(st)}</span></div>
-      <div class="play-grid">
-        {p === undefined ? <div class="loading" aria-label="Chargement" /> : p ? (
-          <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup onMistake={() => answer(false)} onSolved={() => answer(true)} />
-        ) : <div class="empty"><h3>Puzzles indisponibles</h3><p>Hors ligne, le test a besoin des packs de puzzles déjà téléchargés.</p></div>}
-        <aside class="side">
-          <p class="muted">Trouve le meilleur coup. Une seule tentative par position : le test s’adapte à tes réponses.</p>
-          {res === true && <p class="success-box"><Icon name="checkCircle" size={20} />Bien joué.</p>}
-          {res === false && <p class="muted">Pas grave : la position suivante sera plus abordable.</p>}
-          <div class="actionbar"><button class="tool" onClick={() => answer(false)} disabled={res !== null || !p}><Icon name="right" size={22} />Je ne sais pas</button></div>
-        </aside>
+    <div class="page">
+      <NavBar back="#/coach" backLabel="Mes progrès" />
+      <div class="diag-result">
+        <p class="muted">Ton niveau de départ</p>
+        <div class="big">{diag.r}</div>
+        <p class="muted small">Marge d’incertitude ± {r.rd}. Elle se resserre à chaque puzzle et partie.</p>
+        <p>{ok.length} position{ok.length > 1 ? 's' : ''} réussie{ok.length > 1 ? 's' : ''} sur {st.items.length}.</p>
+        <div class="list" style="text-align:left">
+          {st.items.map((x, i) => <div class="item"><span class="it-icon" style={{ '--c': x.ok ? 'var(--green)' : 'var(--red)' } as any}><Icon name={x.ok ? 'check' : 'close'} size={16} stroke={3} /></span><span class="it-main"><span class="it-title">{x.id.startsWith('ob:') ? 'Ton premier mat' : themeName(DIAG_THEMES[i % DIAG_THEMES.length])}</span><span class="it-sub">Difficulté {x.r}</span></span></div>)}
+        </div>
+        <a class="btn primary lg" href="#/coach">Voir le plan du coach</a>
       </div>
     </div>
   );

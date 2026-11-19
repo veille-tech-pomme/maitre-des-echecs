@@ -53,13 +53,15 @@ interface ToastMsg { id: number; text: string; icon: string }
 let tid = 0;
 const toastSubs = new Set<(t: ToastMsg) => void>();
 export function toast(text: string, icon = 'sparkles') { const t = { id: ++tid, text, icon }; toastSubs.forEach((f) => f(t)); }
+/** Le fil « Pour toi » affiche ses propres gains d'XP : on y coupe les toasts XP. */
+export const toastPrefs = { quietXp: false };
 export function Toasts() {
   const [list, setList] = useState<ToastMsg[]>([]);
   useEffect(() => {
     const add = (t: ToastMsg) => { setList((l) => [...l.slice(-2), t]); setTimeout(() => setList((l) => l.filter((x) => x.id !== t.id)), 2600); };
     toastSubs.add(add);
     const off = onEvent((e) => {
-      if (e.type === 'xp') add({ id: ++tid, text: `+${e.amount} XP · ${e.reason}`, icon: 'star' });
+      if (e.type === 'xp' && !toastPrefs.quietXp) add({ id: ++tid, text: `+${e.amount} XP · ${e.reason}`, icon: 'star' });
       if (e.type === 'level') { play('win'); add({ id: ++tid, text: `Niveau ${e.level} atteint !`, icon: 'trophy' }); }
       if (e.type === 'badge') { play('notify'); add({ id: ++tid, text: `Nouveau badge : ${e.id}`, icon: 'award' }); }
     });

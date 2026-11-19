@@ -107,7 +107,7 @@ export function LessonPage({ id }: { id: string }) {
   );
 }
 
-function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMistake }: { step: Step; lessonId: string; hints: number; sol: number; reset: number; onSolved: () => void; onMistake: () => void }) {
+export function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMistake }: { step: Step; lessonId: string; hints: number; sol: number; reset: number; onSolved: () => void; onMistake: () => void }) {
   if (step.type === 'text') return <Board fen={fenOf(step)} viewOnly orientation={step.orientation} shapes={toShapes(step.shapes)} />;
   if (step.type === 'demo') return <Demo step={step} />;
   if (step.type === 'puzzles') return <LessonPuzzles step={step} lessonId={lessonId} onSolved={onSolved} onMistake={onMistake} />;

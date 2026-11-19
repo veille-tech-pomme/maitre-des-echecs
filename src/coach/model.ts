@@ -12,7 +12,9 @@ export interface WeekGoals { start: string; focus: SkillId | null; goals: { id: 
 export type RawEvent =
   | { k: 'puzzle'; t: number; id: string; r: number; th: string[]; ok: boolean; plies: number }
   | { k: 'lesson'; t: number; id: string; level: string; stars: number }
-  | { k: 'endgame'; t: number; id: string; ok: boolean };
+  | { k: 'endgame'; t: number; id: string; ok: boolean }
+  /** signal du fil « Pour toi » : réussite/échec des cartes non-puzzle, passe (= négatif faible), abandon, temps passé */
+  | { k: 'feed'; t: number; id: string; card: string; sk: SkillId | null; d: number; out: 'ok' | 'fail' | 'skip' | 'abandon'; ms: number; counted?: boolean };
 
 const Q = 173.7178, TAU = 0.5, EPS = 1e-6, DAY = 86400000;
 const RD_ITEM: Record<SkillEvent['src'], number> = { puzzle: 60, game: 150, lesson: 200, diag: 80 };
@@ -61,6 +63,18 @@ export function rawToEvents(e: RawEvent): SkillEvent[] {
   if (e.k === 'puzzle') {
     const ks = skillsForPuzzle(e.th, e.plies); const w = ks.length ? Math.max(0.35, 1 / Math.sqrt(ks.length)) : 1;
     return (ks.length ? ks : ['vigilance' as SkillId]).map((k) => ({ skill: k, s: e.ok ? 1 : 0, d: e.r, w, src: 'puzzle', ref: 'p:' + e.id, t: e.t }));
+  }
+  if (e.k === 'feed') {
+    if (!e.sk) return [];
+    // les puzzles du fil passent déjà par recordPuzzle (counted) : seules les passes et abandons s'ajoutent
+    if (e.out === 'ok' || e.out === 'fail') {
+      if (e.counted) return [];
+      const slow = e.out === 'ok' && e.ms > 45000; // réussite lente : score partiel
+      return [{ skill: e.sk, s: e.out === 'ok' ? (slow ? 0.8 : 1) : 0, d: e.d, w: 0.6, src: 'puzzle', ref: 'f:' + e.id, t: e.t }];
+    }
+    // passer = signal négatif faible (trop dur ou pas d'envie), abandon un peu plus fort ; jamais si la carte a duré < 2 s (geste réflexe)
+    if (e.ms < 2000) return [];
+    return [{ skill: e.sk, s: 0, d: e.d, w: e.out === 'skip' ? 0.2 : 0.3, src: 'puzzle', ref: 'fs:' + e.id, t: e.t }];
   }
   if (e.k === 'lesson') { const d = LESSON_D[e.level] ?? 1000; return skillsForLesson(e.id).map((k) => ({ skill: k, s: e.stars >= 3 ? 1 : e.stars === 2 ? 0.8 : 0.6, d, w: 0.5, src: 'lesson', ref: 'l:' + e.id, t: e.t })); }
   return [{ skill: e.id.includes('tour') || e.id.includes('rook') ? 'rookEnd' : 'pawnEnd', s: e.ok ? 1 : 0, d: 1200, w: 0.6, src: 'lesson', ref: 'e:' + e.id, t: e.t }];
@@ -132,7 +146,7 @@ export function evidenceFor(m: CoachModel, k: SkillId): { lines: string[]; refs:
       refs.push(...es.map((e) => e.ref!).slice(-3));
     }
   }
-  const pz = ev.filter((e) => e.src === 'puzzle').slice(-30);
+  const pz = ev.filter((e) => e.src === 'puzzle' && !e.ref?.startsWith('fs:')).slice(-30); // passes du fil exclues des preuves
   if (pz.length >= 3) { const ok = pz.filter((e) => e.s >= 0.5).length; lines.push(`${ok} réussite${ok > 1 ? 's' : ''} sur tes ${pz.length} derniers puzzles de ce thème.`); }
   const found = ev.filter((e) => e.src === 'game' && e.s >= 0.99 && e.m).length;
   if (found) lines.push(`${found} fois trouvé${found > 1 ? 'es' : 'e'} en partie : c’est en progrès.`);

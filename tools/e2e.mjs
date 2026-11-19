@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import { Chess } from 'chess.js';
+const THREATS = JSON.parse(fs.readFileSync('src/data/feed-threats.json', 'utf8'));
 // Test E2E headless : bureau (Chromium) + iPhone (WebKit, repli Chromium mobile). Capture erreurs console + captures d'écran.
 import { chromium, webkit, devices } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -31,7 +34,37 @@ async function run(name, browserType, ctxOpts) {
     for (let i = 0; i < 6 && !(await page.locator('cg-board').count()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(300); }
     await shot('03-lecon-exercice');
   });
-  await check('accueil', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(400); await shot('01-accueil'); });
+  await check('pour toi : 1re carte', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.feed-card:not(.skeleton)', { timeout: 20000 }); await sleep(600); await shot('01-pour-toi'); });
+  await check('pour toi : pourquoi ? + passer', async () => {
+    await page.click('.fc-whybtn'); await page.waitForSelector('.fc-why'); await shot('01b-pour-toi-pourquoi'); await page.click('.fc-whybtn');
+    const ref = await page.locator('.feed-card').getAttribute('data-ref'); const done0 = await page.locator('.fh-dots span.on').count();
+    await page.click('.fc-skip');
+    await page.waitForFunction((r) => document.querySelector('.feed-end') || (document.querySelector('.feed-card:not(.skeleton):not(.leaving)') && document.querySelector('.feed-card').getAttribute('data-ref') !== r), ref, { timeout: 15000 });
+    if ((await page.locator('.fh-dots span.on').count()) !== done0 + 1) throw new Error('progression du jour non avancée');
+    const sk = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).feed?.kinds); if (!sk || !Object.values(sk).some((k) => k.skip >= 1)) throw new Error('passe non enregistrée');
+  });
+  await check('pour toi : réussite → carte suivante seule', async () => {
+    // on passe jusqu'à une carte « quelle est la menace ? », puis on répond juste : la carte suivante arrive seule
+    for (let i = 0; i < 11; i++) {
+      if (await page.locator('.feed-end').count()) throw new Error('fin du jour avant une carte testable');
+      await page.waitForSelector('.feed-card:not(.skeleton):not(.leaving)'); await sleep(700);
+      const kind = await page.locator('.feed-card').getAttribute('data-kind'); const ref = await page.locator('.feed-card').getAttribute('data-ref');
+      if (kind === 'threat') {
+        const t = THREATS.find((x) => x.id === ref);
+        const fenNul = t.f.split(' '); fenNul[1] = fenNul[1] === 'w' ? 'b' : 'w'; fenNul[3] = '-';
+        const san = new Chess(fenNul.join(' ')).move({ from: t.t.slice(0, 2), to: t.t.slice(2, 4), promotion: t.t[4] }).san.replace(/[+#]/g, '');
+        const fr = san.replace(/[KQRBN]/g, (c) => ({ K: 'R', Q: 'D', R: 'T', B: 'F', N: 'C' })[c]);
+        await page.locator('.fc-choice', { hasText: new RegExp('^' + fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }).click(); await page.waitForSelector('.fc-reveal.good'); await shot('01c-pour-toi-menace');
+        const t0 = Date.now(); await page.waitForFunction((r) => document.querySelector('.feed-end') || document.querySelector('.feed-card:not(.leaving)')?.getAttribute('data-ref') !== r, ref, { timeout: 8000 });
+        console.log(`    menace juste → carte suivante en ${Date.now() - t0} ms`); return;
+      }
+      await page.click('.fc-skip'); await sleep(300);
+    }
+    throw new Error('aucune carte menace rencontrée');
+  });
+  await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });
+  await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });
+  await check('onglets : Pour toi / Apprendre / Jouer / Moi', async () => { const t = (await page.locator(name === 'desktop' ? '.sidebar .nav-item' : '.tabbar a small').allInnerTexts()).map((x) => x.trim()); for (const w of ['Pour toi', 'Apprendre', 'Jouer', 'Moi']) if (!t.includes(w)) throw new Error('onglet manquant : ' + w + ' (' + t.join(', ') + ')'); if (t.includes('Puzzles') || t.includes('Accueil')) throw new Error('ancien onglet encore présent'); });
   await check('coach : mes progrès', async () => { await page.goto(URL0 + '#/coach'); await page.waitForSelector('.radar'); await sleep(300); await shot('40-coach-progres'); });
   await check('coach : test de niveau', async () => { await page.goto(URL0 + '#/coach/test'); await page.waitForSelector('cg-board', { timeout: 20000 }); await sleep(900); await shot('41-test-niveau');
     for (let i = 0; i < 10 && !(await page.locator('.diag-result').count()); i++) { await page.waitForSelector('text=Je ne sais pas', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('.actionbar .tool')?.hasAttribute('disabled'), null, { timeout: 20000 }); await page.click('text=Je ne sais pas'); await sleep(1500); }
@@ -76,7 +109,7 @@ async function run(name, browserType, ctxOpts) {
     const n = await page.$$eval('.ms-row', (r) => r.length); if (n < 3) throw new Error('trop peu de coups : ' + n);
     await page.click('.ms-game >> nth=0'); await page.waitForSelector('.game-head', { timeout: 20000 }); await sleep(600); await shot('35-partie-de-maitre'); });
   await check('finales (90)', async () => { await page.goto(URL0 + '#/endgames/kbn-k'); await page.waitForSelector('cg-board'); await shot('33-finale-fou-cavalier'); });
-  await check('thème clair', async () => { await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); s.settings.theme = 'light'; localStorage.setItem(k, JSON.stringify(s)); }); await page.goto(URL0 + '#/'); await page.reload(); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await shot('17-accueil-clair'); });
+  await check('thème clair', async () => { await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); s.settings.theme = 'light'; localStorage.setItem(k, JSON.stringify(s)); }); await page.goto(URL0 + '#/'); await page.reload(); await page.waitForSelector('.feed-card:not(.skeleton), .feed-end'); await sleep(600); await shot('17-pour-toi-clair'); });
   await check('bilan de partie', async () => {
     const id = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); const g = s.games?.[0]; return g?.id; }); if (!id) throw new Error('aucune partie enregistrée');
     await page.goto(URL0 + '#/game/' + id); await page.click('text=Lancer le bilan'); await page.waitForSelector('.coach-summary', { timeout: 90000 }); await sleep(800); await shot('18-bilan');

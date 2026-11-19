@@ -11,6 +11,8 @@ import { botById } from '../data/bots';
 import { LESSONS, LEVELS } from '../data/lessons';
 import { usePremium } from '../lib/entitlements';
 import { CLASS_INFO, CLASS_ORDER } from '../lib/review';
+import { lazy } from '../lib/lazy';
+const CoachCard = lazy(() => import('../coach/ui/CoachCard'), 'CoachCard', () => <section class="coach-card skeleton" aria-busy="true" />);
 
 export function Profile() {
   const s = useStore((x) => x); const ent = usePremium();
@@ -35,10 +37,16 @@ export function Profile() {
         <div class="grow"><h1>{name}</h1><p>Niveau {lvl.level} · {s.xp} XP{ent.premium ? ' · Premium' : ''}</p><Progress value={lvl.into / lvl.need} /></div>
         <a class="nb-btn round" href="#/settings" aria-label="Réglages"><Icon name="settings" size={20} /></a>
       </header>
-      <div class="stat-strip">
+      <div class="stat-strip four">
         <div class="stat-tile" style="--c:#FF9F0A"><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{s.streak.count}</b><small>record {s.streak.best}</small></div>
+        <div class="stat-tile" style="--c:#F2B544"><span class="st-top"><Icon name="star" size={13} />Niveau</span><b>{lvl.level}</b><small>{lvl.into}/{lvl.need} XP</small></div>
         <div class="stat-tile" style="--c:#0A84FF"><span class="st-top"><Icon name="puzzle" size={13} />Puzzles</span><b>{s.puzzle.rating}</b><small>{s.puzzle.solved} réussis</small></div>
         <div class="stat-tile" style="--c:#30A46C"><span class="st-top"><Icon name="play" size={13} />Parties</span><b>{s.games.length}</b><small>{rev.length} analysées</small></div>
+      </div>
+      <div class="section-title"><h2>Mes progrès</h2><a href="#/coach">Tout voir</a></div>
+      <CoachCard />
+      <div class="list">
+        <Item href="#/coach" icon="gauge" color="#FF9F0A" title="Mes progrès" sub="Radar des compétences, forces, faiblesses et objectifs de la semaine" />
       </div>
       {!ent.premium && <a class="card promo" href="#/premium"><span class="lock-icon"><Icon name="crown" size={22} /></span><div class="grow"><b>Essayer Premium</b><p class="muted">7 jours gratuits, puis 29,99 €/an.</p></div><Icon name="right" size={18} class="chev" stroke={2.4} /></a>}
       <div class="list">

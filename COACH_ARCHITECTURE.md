@@ -214,3 +214,10 @@ service payant n’est requis aujourd’hui ; rien n’est envoyé hors de l’a
 * Hors ligne, pas de base de finales parfaite : Stockfish seul au-delà des schémas reconnus.
 * GitHub Pages ne permet pas les en-têtes COOP/COEP : Stockfish tourne en mono-thread en ligne. Mesuré sur ordinateur : ≈ 0,25 s par demi-coup (25 demi-coups en 6,4 s) ; sur un téléphone d’entrée de gamme, compter 2 à 4 fois plus.
 * Les explications « positionnelles » de second ordre (ex. pourquoi d3 vaut mieux que Tf1 quand les deux perdent du matériel) restent formulées à partir de la menace la plus proche, pas d’un plan à long terme.
+
+## Fil « Pour toi » (R0–R1)
+Le fil n'est pas un second moteur de recommandation : `src/coach/feed.ts` relit le curriculum (`activities`) et le modèle (`skillOf`, `weaknesses`).
+- `feedCandidates(s, m, now, pending)` : erreurs dues (SRS), puzzles ciblés (gain du curriculum, difficulté `zpdDifficulty`), menace (vigilance), coup du maître (calcul), mini-étape de leçon.
+- `nextFeedCards(s, m, n, now, pending)` : choix glouton par score = gain × nouveauté × diversité × `kindFactor` (passes/abandons/temps appris par type). Quota quotidien `DAILY_CARDS`.
+- `recordFeed(draft, card, out, ms, counted)` : statistiques du jour + évènement brut `feed` dans `coachQ`, consommé par `sync` (`rawToEvents`). Les puzzles du fil passent par `recordPuzzle` (classement, SRS, évènement `puzzle`) ; le signal `feed` n'ajoute alors que passes/abandons.
+- Données hors ligne : `src/data/feed-master.json`, `src/data/feed-threats.json` (générées par `tools/build-feed-cards.mts`).

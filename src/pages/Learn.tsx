@@ -6,6 +6,8 @@ import { usePremium } from '../lib/entitlements';
 import { Progress, toast, LargeTitle, NavBar, Item, Stars } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
 import { LEVEL_VIS, levelColor } from '../lib/visual';
+import { isDue } from '../lib/srs';
+import { today } from '../lib/store';
 type Courses = Awaited<ReturnType<typeof loadCourses>>['COURSES'];
 function useCourses() { const [c, setC] = useState<Courses | null>(null); useEffect(() => { loadCourses().then((m) => setC(m.COURSES)); }, []); return c; }
 const COURSE_VIS: Record<string, { icon: IconName; color: string }> = {
@@ -23,7 +25,9 @@ export function Learn() {
   return (
     <div class="page learn">
       <LargeTitle title="Apprendre" sub={`${done} sur ${LESSONS.length} leçons du parcours`} />
-      <div class="section-title first"><h2>Le parcours</h2></div>
+      <ContinueLesson />
+      <PuzzleEntry />
+      <div class="section-title"><h2>Le parcours</h2></div>
       {LEVELS.map((lv) => {
         const ls = LESSONS.filter((l) => l.level === lv.id);
         const d = ls.filter((l) => s.lessons[l.id]?.done).length;
@@ -79,6 +83,48 @@ export function Learn() {
   );
 }
 
+/** Leçon en cours (anciennement sur l'accueil). Parcours terminé : une prochaine action, jamais une impasse. */
+function ContinueLesson() {
+  const s = useStore((x) => x); const nl = nextLesson(s);
+  const doneCount = LESSONS.filter((l) => s.lessons[l.id]?.done).length;
+  if (!nl) return (
+    <a class="hero-card" href="#/play">
+      <span class="hc-eyebrow">Parcours terminé</span><h2>Bravo, tu as tout appris.</h2><p>Mets ton savoir à l’épreuve face à un bot, ou approfondis avec les cours.</p>
+      <span class="btn primary"><Icon name="play" size={18} />Jouer</span>
+    </a>
+  );
+  const lv = LEVELS.find((l) => l.id === nl.level)!; const ls = LESSONS.filter((l) => l.level === nl.level); const d = ls.filter((l) => s.lessons[l.id]?.done).length;
+  return (
+    <a class="hero-card" href={`#/lesson/${nl.id}`}>
+      <span class="hc-art" aria-hidden="true"><Icon name={LEVEL_VIS[nl.level]?.icon || 'king'} size={128} stroke={1.2} /></span>
+      <span class="hc-eyebrow">{doneCount ? 'Continuer' : 'Ta première leçon'} · {lv.name}</span>
+      <h2>{nl.title}</h2>
+      <p>{nl.summary}</p>
+      <span class="btn primary"><Icon name="playIcon" size={18} />{doneCount ? 'Continuer' : 'Commencer'}</span>
+      <span class="hc-meta"><Icon name="clock" size={15} />{nl.minutes} min<span aria-hidden="true">·</span><span class="grow"><Progress value={d / Math.max(1, ls.length)} /></span>{d}/{ls.length}</span>
+    </a>
+  );
+}
+/** Les puzzles vivent dans le fil « Pour toi » ; ici, l'entrée claire vers les modes complets. */
+function PuzzleEntry() {
+  const s = useStore((x) => x); const due = Object.values(s.srs).filter((x) => isDue(x)).length;
+  return (
+    <section class="pz-entry">
+      <a class="card pz-hub" href="#/puzzles">
+        <span class="it-icon" style="--c:#0A84FF"><Icon name="puzzle" size={22} /></span>
+        <span class="grow"><b>Puzzles</b><small>Classés, par thème, parcours, duel, sur mesure</small></span>
+        <span class="pz-rating"><b class="tnum">{s.puzzle.rating}</b><small>classement</small></span>
+        <Icon name="right" size={18} class="chev" stroke={2.4} />
+      </a>
+      <div class="tiles">
+        <a class="tile" href="#/puzzles/daily"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{s.daily[today()] && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Puzzle du jour</b><small>Un défi par jour</small></a>
+        <a class="tile" href="#/puzzles/rush"><span class="tl-icon" style="--c:#FF9F0A"><Icon name="timer" size={20} /></span><b>Contre la montre</b><small>3 minutes, 3 vies</small></a>
+        <a class="tile" href="#/review"><span class="tl-icon" style="--c:#5E5CE6"><Icon name="repeat" size={20} /></span>{due > 0 && <span class="tl-badge badge-n">{due}</span>}<b>Révisions</b><small>{due ? `${due} à revoir` : 'Tout est à jour'}</small></a>
+        <a class="tile" href="#/analysis"><span class="tl-icon" style="--c:#64D2FF"><Icon name="microscope" size={20} /></span><b>Analyse</b><small>Stockfish 18</small></a>
+      </div>
+    </section>
+  );
+}
 function CourseGrid() {
   const cs = useCourses(); const s = useStore((x) => x); const ent = usePremium();
   if (!cs) return <div class="course-scroll" aria-busy="true">{[0, 1, 2].map(() => <div class="course-card skeleton" />)}</div>;

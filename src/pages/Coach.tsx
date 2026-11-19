@@ -40,7 +40,7 @@ export function CoachPage() {
   const unknown = skillViews(m).filter((v) => v.n === 0).length;
   return (
     <div class="page coach-page">
-      <NavBar back="#/" backLabel="Accueil" />
+      <NavBar back="#/profile" backLabel="Moi" />
       <LargeTitle title="Mes progrès" sub={m.ev.length ? `Niveau estimé ${g} · ${m.games} partie${m.games > 1 ? 's' : ''} analysée${m.games > 1 ? 's' : ''} · ${m.ev.length} observations` : 'Le coach apprend à te connaître à chaque puzzle, leçon et partie analysée.'} />
       {!m.diag && m.ev.length < 15 && (
         <a class="cc-main" href="#/coach/test"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Faire le test de niveau</b><small>{DIAG_MIN} à {DIAG_MAX} positions, environ 3 minutes</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>

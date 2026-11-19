@@ -11,7 +11,7 @@ import { engine } from './lib/engine';
 import { Toasts } from './components/ui';
 import { Icon, type IconName } from './components/Icon';
 import { Onboarding } from './pages/Onboarding';
-import { Home } from './pages/Home';
+const Feed = lazy(() => import('./pages/Feed'), 'Feed', () => <div class="page feed"><div class="feed-card skeleton" aria-busy="true"><div class="fc-board" /></div></div>);
 import { Learn, CoursePage } from './pages/Learn';
 const trainM = () => import('./pages/Training');
 const TrainingHub = lazy(trainM, 'TrainingHub'), Coordinates = lazy(trainM, 'Coordinates'), NameSquare = lazy(trainM, 'NameSquare'), KnightVision = lazy(trainM, 'KnightVision'), MemoryTrainer = lazy(trainM, 'MemoryTrainer'), MateDrills = lazy(trainM, 'MateDrills'), GuessMove = lazy(trainM, 'GuessMove');
@@ -37,11 +37,10 @@ import { isNative } from './lib/platform';
 import { lazy } from './lib/lazy';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
-  { href: '#/', icon: 'today', label: 'Accueil', match: (p) => p.length === 0 || p[0] === 'coach' },
-  { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire'].includes(p[0]) },
-  { href: '#/puzzles', icon: 'puzzle', label: 'Puzzles', match: (p) => ['puzzles', 'review'].includes(p[0]) },
+  { href: '#/', icon: 'sparkles', label: 'Pour toi', match: (p) => p.length === 0 },
+  { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire', 'puzzles', 'review'].includes(p[0]) },
   { href: '#/play', icon: 'play', label: 'Jouer', match: (p) => ['play', 'game', 'analysis'].includes(p[0]) },
-  { href: '#/profile', icon: 'me', label: 'Moi', match: (p) => ['profile', 'settings', 'premium', 'privacy', 'more'].includes(p[0]) },
+  { href: '#/profile', icon: 'me', label: 'Moi', match: (p) => ['profile', 'settings', 'premium', 'privacy', 'more', 'coach'].includes(p[0]) },
 ];
 function App() {
   const { parts, query } = useRoute();
@@ -50,7 +49,7 @@ function App() {
   const [a, b, c] = parts;
   let page;
   switch (a) {
-    case undefined: page = <Home />; break;
+    case undefined: page = <Feed />; break;
     case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
     case 'lesson': page = <LessonPage key={b} id={b} />; break;
     case 'puzzles': page = b === 'rated' ? <PuzzleSession mode="rated" /> : b === 'daily' ? <PuzzleSession mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
@@ -68,7 +67,7 @@ function App() {
     case 'premium': page = <Premium />; break;
     case 'privacy': page = <Privacy />; break;
     case 'more': page = <Profile />; break;
-    default: page = <Home />;
+    default: page = <Feed />;
   }
   const focus = a === 'lesson' || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
     || (a === 'openings' && c != null) || a === 'repertoire' || (a === 'train' && !!b) || (a === 'endgames' && !!b) || a === 'premium' || (a === 'coach' && b === 'test') || (a === 'review' && b === 'mistakes');

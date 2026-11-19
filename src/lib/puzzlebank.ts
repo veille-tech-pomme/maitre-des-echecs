@@ -89,7 +89,7 @@ export async function totalCount() {
 }
 
 // ---------- Sélection ----------
-export interface PickOpts { rating: number; theme?: string; opening?: string; min?: number; max?: number; seen?: string[] }
+export interface PickOpts { rating: number; theme?: string; opening?: string; min?: number; max?: number; seen?: string[]; /** nombre maximal de demi-coups (coup adverse inclus) */ maxMoves?: number }
 const bandOf = (r: number) => Math.max(4, Math.min(29, Math.floor(r / 100)));
 export async function pickPuzzle(o: PickOpts): Promise<BankPuzzle | null> {
   const idx = await loadIndex();
@@ -105,7 +105,7 @@ export async function pickPuzzle(o: PickOpts): Promise<BankPuzzle | null> {
   const seen = new Set((o.seen || []).slice(-1500));
   const pool: BankPuzzle[] = [];
   for (const b of bands) for (const t of tiers) if (has(t, b)) {
-    try { for (const p of await loadBand(t, b)) if (p.r >= lo - 300 && p.r <= hi + 300 && (ti < 0 || p.t.includes(o.theme!)) && (!oi || p.o === o.opening) && !seen.has(p.i)) pool.push(p); } catch { /* hors-ligne : on se contente de ce qui est en cache */ }
+    try { for (const p of await loadBand(t, b)) if (p.r >= lo - 300 && p.r <= hi + 300 && (ti < 0 || p.t.includes(o.theme!)) && (!oi || p.o === o.opening) && !seen.has(p.i) && (!o.maxMoves || p.m.split(' ').length <= o.maxMoves)) pool.push(p); } catch { /* hors-ligne : on se contente de ce qui est en cache */ }
   }
   if (!pool.length) { const base = (await loadPuzzles()) as BankPuzzle[]; const c = base.filter((p) => (!o.theme || p.t.includes(o.theme)) && !seen.has(p.i)); if (!c.length) return null; pool.push(...c); }
   const inRange = pool.filter((p) => p.r >= lo && p.r <= hi); const arr = inRange.length ? inRange : pool.sort((a, b) => Math.abs(a.r - o.rating) - Math.abs(b.r - o.rating)).slice(0, 50);

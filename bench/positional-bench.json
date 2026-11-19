@@ -1,0 +1,261 @@
+{
+ "dev": {
+  "cases": 16,
+  "excludedTactical": [
+   "k-nd7",
+   "d-qh4",
+   "k-nh2"
+  ],
+  "depth": 16,
+  "categoryAccuracy": 0.813,
+  "genericFallback": 0.125,
+  "rows": [
+   {
+    "id": "k-g4",
+    "lossCp": 56,
+    "cls": "excellent",
+    "dE": 0.027,
+    "expect": "kingSafety",
+    "got": "kingSafety",
+    "tag": "good:king:pawnPush",
+    "headline": "Excellent",
+    "why": "Bon choix, mais Cg5 était plus précis : ce coup de pion (g4) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f3 et h3) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
+   },
+   {
+    "id": "k-nh5",
+    "lossCp": 81,
+    "cls": "inaccuracy",
+    "dE": 0.058,
+    "expect": "activity",
+    "got": "activity",
+    "tag": "opening:rim",
+    "headline": "Principe d’ouverture",
+    "why": "« Cavalier au bord, cavalier mort » : au centre il contrôle 8 cases, au bord seulement 4.",
+    "plan": "Mieux : b6 (6… b6 7. Fd2 Ca5 8. cxd5)."
+   },
+   {
+    "id": "k-g5",
+    "lossCp": 45,
+    "cls": "excellent",
+    "dE": 0.029,
+    "expect": "kingSafety",
+    "got": "kingSafety",
+    "tag": "good:king:pawnPush",
+    "headline": "Excellent",
+    "why": "Bon choix, mais Db6 était plus précis : ce coup de pion (g5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f6 et h6) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
+   },
+   {
+    "id": "d-qf6",
+    "lossCp": 107,
+    "cls": "inaccuracy",
+    "dE": 0.075,
+    "expect": "development",
+    "got": "development",
+    "tag": "opening:queen",
+    "headline": "Principe d’ouverture",
+    "why": "Sortir la dame si tôt l’expose : elle va perdre du temps à fuir les pièces adverses. Développe d’abord cavaliers et fous.",
+    "plan": "Mieux : Cc6. Tu développes une pièce mineure : principe n°1 de l’ouverture."
+   },
+   {
+    "id": "d-h6",
+    "lossCp": 44,
+    "cls": "good",
+    "dE": 0.031,
+    "expect": "development",
+    "got": "development",
+    "tag": "good:opening:development",
+    "headline": "Bon coup",
+    "why": "Solide, mais Cf6 était plus précis : ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
+   },
+   {
+    "id": "d-a6",
+    "lossCp": 61,
+    "cls": "good",
+    "dE": 0.043,
+    "expect": "development/space",
+    "got": "development",
+    "tag": "good:opening:development",
+    "headline": "Bon coup",
+    "why": "Solide, mais Cf6 était plus précis : ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
+   },
+   {
+    "id": "d-ng5",
+    "lossCp": 61,
+    "cls": "good",
+    "dE": 0.043,
+    "expect": "development",
+    "got": "generic",
+    "headline": "Bon coup",
+    "why": "Solide. Le moteur préférait légèrement d3."
+   },
+   {
+    "id": "p-dxc5",
+    "lossCp": 71,
+    "cls": "inaccuracy",
+    "dE": 0.051,
+    "expect": "pawnStructure/space",
+    "got": "pawnStructure",
+    "tag": "pawns:doubled",
+    "headline": "Il y avait mieux : Cbd2",
+    "why": "Ton coup double tes pions : ils se gênent et protègent moins bien les cases.",
+    "plan": "Mieux : Cbd2. Tu développes une pièce mineure : principe n°1 de l’ouverture."
+   },
+   {
+    "id": "a-na4",
+    "lossCp": 65,
+    "cls": "good",
+    "dE": 0.045,
+    "expect": "activity",
+    "got": "activity",
+    "tag": "good:pieces:rim",
+    "headline": "Bon coup",
+    "why": "Solide, mais a3 était plus précis : ton cavalier part au bord en a4 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
+   },
+   {
+    "id": "a-e5",
+    "lossCp": 95,
+    "cls": "inaccuracy",
+    "dE": 0.067,
+    "expect": "pawnStructure/activity",
+    "got": "pawnStructure",
+    "tag": "pawns:backward",
+    "headline": "Le moteur préfère Cg4",
+    "why": "Ton coup laisse un pion arriéré, fixé sur une colonne semi-ouverte.",
+    "plan": "Mieux : Cg4 (9… Cg4 10. Fxg4 Fxd4 11. Fxd4)."
+   },
+   {
+    "id": "a-ne1",
+    "lossCp": 136,
+    "cls": "inaccuracy",
+    "dE": 0.096,
+    "expect": "activity/space",
+    "got": "generic",
+    "tag": "positional",
+    "headline": "Le meilleur coup était c5",
+    "why": "Ton coup ne perd pas de matériel tout de suite, mais tes chances passent de 58 % à 48 %.",
+    "plan": "Mieux : c5 (8. c5 Fe7 9. Te1 c6)."
+   },
+   {
+    "id": "p-gxf3",
+    "lossCp": 91,
+    "cls": "inaccuracy",
+    "dE": 0.062,
+    "expect": "pawnStructure/kingSafety",
+    "got": "pawnStructure",
+    "tag": "pawns:isolated",
+    "headline": "Il y avait mieux : Dxf3",
+    "why": "Ton pion h3 se retrouve isolé : aucun pion voisin ne pourra jamais le protéger ; tu te retrouves avec des pions doublés en colonne f. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie.",
+    "plan": "Mieux : Dxf3. Le fou adverse en f3 n’était pas protégé : il suffisait de le prendre."
+   },
+   {
+    "id": "a-f5",
+    "lossCp": 72,
+    "cls": "inaccuracy",
+    "dE": 0.051,
+    "expect": "pawnStructure/activity",
+    "got": "kingSafety",
+    "tag": "opening:fpawn",
+    "headline": "Principe d’ouverture",
+    "why": "Avancer le pion f ouvre la diagonale de ton roi : attention aux échecs sur h5 / h4. Ce coup de pion (f5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (e6 et g6) s’affaiblissent.",
+    "plan": "Mieux : Db6 (5… Db6 6. a3 c4 7. Cbd2)."
+   },
+   {
+    "id": "k-h5",
+    "lossCp": 92,
+    "cls": "inaccuracy",
+    "dE": 0.065,
+    "expect": "kingSafety",
+    "got": "kingSafety",
+    "tag": "king:pawnPush",
+    "headline": "Le moteur préfère a6",
+    "why": "Ce coup de pion (h5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (g6) s’affaiblissent.",
+    "plan": "Mieux : a6 (8… a6 9. Fa4 c5 10. h3)."
+   },
+   {
+    "id": "k-g4kid",
+    "lossCp": 44,
+    "cls": "good",
+    "dE": 0.031,
+    "expect": "kingSafety",
+    "got": "kingSafety",
+    "tag": "good:king:holes",
+    "headline": "Bon coup",
+    "why": "Solide, mais a4 était plus précis : ce coup de pion affaiblit l’abri de ton roi : g3 devient un trou qu’aucun pion ne pourra plus couvrir, et les pièces adverses peuvent s’y installer."
+   },
+   {
+    "id": "p-a3",
+    "lossCp": 56,
+    "cls": "excellent",
+    "dE": 0.028,
+    "expect": "pawnStructure",
+    "got": "pawnStructure",
+    "tag": "good:pawns:isolated",
+    "headline": "Excellent",
+    "why": "Bon choix, mais Cxe6 était plus précis : ton pion c2 se retrouve isolé : aucun pion voisin ne pourra jamais le protéger ; tu te retrouves avec des pions doublés en colonne c. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie."
+   }
+  ]
+ },
+ "heldOut": {
+  "cases": 4,
+  "excludedTactical": [
+   "h-g4",
+   "h-nh4",
+   "h-h3",
+   "h-g5ruy",
+   "h-nh4it"
+  ],
+  "depth": 16,
+  "categoryAccuracy": 1,
+  "genericFallback": 0,
+  "rows": [
+   {
+    "id": "h-ke2",
+    "lossCp": 159,
+    "cls": "mistake",
+    "dE": 0.112,
+    "expect": "kingSafety/development",
+    "got": "development",
+    "tag": "opening:development",
+    "headline": "Il y avait mieux : Cf3",
+    "why": "Ton coup ne développe aucune pièce, alors que Cf3 en sortait une : en ouverture chaque tempo compte, et il te reste 4 pièces mineures à sortir.",
+    "plan": "Mieux : Cf3. Tu développes une pièce mineure : principe n°1 de l’ouverture."
+   },
+   {
+    "id": "h-dxc5",
+    "lossCp": 98,
+    "cls": "inaccuracy",
+    "dE": 0.07,
+    "expect": "space/pawnStructure",
+    "got": "space",
+    "tag": "space:pawn",
+    "headline": "Il y avait mieux : a3",
+    "why": "Ton coup abandonne le pion avancé en d4, qui te donnait de l’espace et gênait les pièces adverses ; a3 le maintenait.",
+    "plan": "Mieux : a3 (6. a3 Fd7 7. b4 cxd4)."
+   },
+   {
+    "id": "h-qe2",
+    "lossCp": 80,
+    "cls": "inaccuracy",
+    "dE": 0.057,
+    "expect": "development",
+    "got": "development",
+    "tag": "opening:queen",
+    "headline": "Principe d’ouverture",
+    "why": "Sortir la dame si tôt l’expose : elle va perdre du temps à fuir les pièces adverses. Développe d’abord cavaliers et fous.",
+    "plan": "Mieux : Fb5. Tu développes une pièce mineure : principe n°1 de l’ouverture."
+   },
+   {
+    "id": "h-h5it",
+    "lossCp": 127,
+    "cls": "inaccuracy",
+    "dE": 0.089,
+    "expect": "kingSafety",
+    "got": "kingSafety",
+    "tag": "king:pawnPush",
+    "headline": "Il y avait mieux : h6",
+    "why": "Ce coup de pion (h5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (g6) s’affaiblissent. h6 empêchait justement Fg5.",
+    "plan": "Mieux : h6 (9… h6 10. Cbd2 Fe6 11. Cf1)."
+   }
+  ]
+ }
+}

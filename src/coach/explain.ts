@@ -7,6 +7,7 @@ import { my, his, the, a, cap, pick, lineFr, sanOf, materialWords, NAME, agree, 
 import type { MoveClass } from './classify';
 import { pct } from './winprob';
 import { lineThemes, type Theme, type ThemeKey } from './themes';
+import { strategicReason, type StratReason } from './strategy';
 
 export type Level = 'beginner' | 'intermediate' | 'advanced';
 export const levelOf = (elo: number): Level => (elo < 1000 ? 'beginner' : elo < 1800 ? 'intermediate' : 'advanced');
@@ -28,8 +29,10 @@ const mvOf = (u: string) => ({ from: sqIdx(u.slice(0, 2)), to: sqIdx(u.slice(2, 
 export function trace(fen: string, ucis: string[], me: Color, horizon = 8) {
   let f = fen; const lost: Role[] = [], won: Role[] = []; let mate: Color | null = null; let n = 0; let promoMe = 0, promoThem = 0;
   const firstLoss: { ply: number; sq: number; t: Role } [] = [];
-  for (const u of ucis.slice(0, horizon)) {
-    const p = parseFen(f); const to = sqIdx(u.slice(2, 4)); const from = sqIdx(u.slice(0, 2));
+  for (let k = 0; k < ucis.length; k++) {
+    const u = ucis[k]; const p = parseFen(f);
+    // horizon « calme » : on ne s'arrête jamais au milieu d'un échange (prise suivie d'une reprise possible)
+    if (k >= horizon && (k >= horizon + 4 || !(p.b[sqIdx(u.slice(2, 4))] || (p.b[sqIdx(u.slice(0, 2))]?.t === 'p' && u[0] !== u[2])))) break; const to = sqIdx(u.slice(2, 4)); const from = sqIdx(u.slice(0, 2));
     const mover = p.b[from]; if (!mover) break;
     let victim = p.b[to]; if (!victim && mover.t === 'p' && to === p.ep) victim = { c: opp(mover.c), t: 'p' };
     if (victim) { if (victim.c === me) { lost.push(victim.t); firstLoss.push({ ply: n, sq: to, t: victim.t }); } else won.push(victim.t); }
@@ -237,6 +240,7 @@ function positional(before: Pos, afterPlayed: Pos, afterBest: Pos | null, me: Co
   else if (ply < 16 && F1.undeveloped < F0.undeveloped) res.good = 'Tu développes une pièce mineure : principe n°1 de l’ouverture.';
   return res;
 }
+const OF_CAT: Record<string, string> = { 'opening:queen': 'development', 'opening:rim': 'activity', 'opening:king': 'kingSafety', 'opening:fpawn': 'kingSafety', 'opening:tempo': 'development' };
 /** Principes d'ouverture enfreints par le coup (ply < 20). */
 function openingFault(before: Pos, u: string, ply: number, history: string[]): { txt: string; tag: string } | null {
   if (ply >= 20) return null;
@@ -247,7 +251,7 @@ function openingFault(before: Pos, u: string, ply: number, history: string[]): {
   if (p.t === 'k' && !(Math.abs(to - from) === 2) && ply < 24) return { txt: 'Bouger le roi sans roquer t’enlève le roque, le meilleur moyen de le mettre à l’abri.', tag: 'opening:king' };
   if (p.t === 'p' && u[0] === 'f' && ply < 14 && features(before, me).king.canCastle) return { txt: 'Avancer le pion f ouvre la diagonale de ton roi : attention aux échecs sur h5 / h4.', tag: 'opening:fpawn' };
   const mine = history.filter((_, i) => (i % 2 === 0) === (me === 'w'));
-  if ((p.t === 'n' || p.t === 'b') && und >= 2 && mine.length >= 2 && ply < 16 && !before.b[to] && mine.some((s) => s.replace(/[+#x]/g, '').endsWith(u.slice(0, 2)))) return { txt: 'Tu joues deux fois la même pièce alors que d’autres dorment encore : chaque coup d’ouverture doit développer.', tag: 'opening:tempo' };
+  if ((p.t === 'n' || p.t === 'b') && (und >= 2 || (und >= 1 && !features(before, me).king.castled)) && mine.length >= 2 && ply < 16 && !before.b[to] && mine.some((s) => s.replace(/[+#x]/g, '').endsWith(u.slice(0, 2)))) return { txt: 'Tu joues deux fois la même pièce alors que d’autres dorment encore : chaque coup d’ouverture doit développer.', tag: 'opening:tempo' };
   return null;
 }
 const kingMoved = (a: Pos, b: Pos, c: Color) => a.b.findIndex((p) => p?.t === 'k' && p.c === c) !== b.b.findIndex((p) => p?.t === 'k' && p.c === c);
@@ -413,8 +417,15 @@ export function explainMove(c: MoveCtx): Explanation {
     const drop = `tes chances passent de ${pct(c.eBest)} % à ${pct(c.ePlayed)} %`;
     const replyFen = replyPv[0] ? applyU(fenAfter, replyPv[0]) : null;
     const hangA = new Set(hanging(after.b, me).map((h) => h.sq));
-    const newThreats = replyFen ? hanging(parseFen(replyFen).b, me).filter((h) => !hangA.has(h.sq) && MAT[h.t] >= 3) : [];
+    const recapt = !!(replyPv[0] && replyPv[1] && after.b[sqIdx(replyPv[0].slice(2, 4))] && replyPv[1].slice(2, 4) === replyPv[0].slice(2, 4));
+    const newThreats = replyFen && !recapt ? hanging(parseFen(replyFen).b, me).filter((h) => !hangA.has(h.sq) && MAT[h.t] >= 3) : [];
+    const st = eg ? null : strategicReason({ fenBefore: c.fenBefore, uci: c.uci, best, reply: c.reply, ply: c.ply }, { threats: c.dE >= 0.05 });
+    const useSt = (r: StratReason) => {
+      out.headline = r.headline || pick(['Le moteur préfère ' + bestSan, 'Il y avait mieux : ' + bestSan], seed); out.why = r.why; out.tags.push(r.tag);
+      out.marks.push(...r.marks); out.arrows.push(...r.arrows); if (r.tip) out.tip = r.tip; out.facts.push({ kind: 'strategy', cat: r.cat, tag: r.tag });
+    };
     if (eg) { out.headline = 'Technique de finale'; out.why = eg.txt; out.tags.push(eg.tag); }
+    else if (st && (st.cat === 'threat' || st.tag === 'king:checks') && !newThreats.length) useSt(st);
     else if (newThreats.length && c.dE >= 0.08 && !of) {
       const rs = sanOf(fenAfter, replyPv[0]);
       out.headline = pick([`Ce coup permet ${rs}`, `Attention à la réponse ${rs}`], seed);
@@ -423,10 +434,12 @@ export function explainMove(c: MoveCtx): Explanation {
       out.arrows.push({ orig: replyPv[0].slice(0, 2), dest: replyPv[0].slice(2, 4), brush: 'red' });
       out.tags.push('allowed:threat:' + newThreats[0].t); out.tip = tipFor('hanging', level, seed);
     }
-    else if (of) { out.headline = 'Principe d’ouverture'; out.why = of.txt; out.tags.push(of.tag); out.tip = tipFor('opening', level, seed); }
+    else if (of && st && st.cat !== OF_CAT[of.tag]) { useSt(st); out.tags.push(of.tag); }
+    else if (of) { out.headline = 'Principe d’ouverture'; out.why = of.txt; out.tags.push(of.tag); out.tip = tipFor('opening', level, seed); if (st && st.cat !== 'development' && !of.tag.includes(st.cat === 'activity' ? 'rim' : '§')) out.why += ' ' + st.why; }
+    else if (st) useSt(st);
     else if (po.bad) { out.headline = pick(['Le moteur préfère ' + bestSan, 'Il y avait mieux : ' + bestSan], seed); out.why = po.bad; out.tags.push(po.tag!); }
     else { out.headline = `Le meilleur coup était ${bestSan}`; out.why = level === 'beginner' ? `Ton coup n’est pas une faute grave, mais ${bestSan} était plus fort.` : `Ton coup ne perd pas de matériel tout de suite, mais ${drop}.`; out.tags.push('positional'); }
-    out.plan = planOf(c, before, afterBest, bestU, bestSan, level, seed);
+    const tipSt = out.tip; out.plan = planOf(c, before, afterBest, bestU, bestSan, level, seed); if (tipSt) out.tip = tipSt;
     out.facts.push({ kind: 'positional', tag: out.tags[0], eBest: c.eBest, ePlayed: c.ePlayed });
     return out;
   }
@@ -461,7 +474,9 @@ export function explainMove(c: MoveCtx): Explanation {
   else if (po.good) { out.headline = c.cls === 'best' ? 'Meilleur coup' : 'Bon coup'; out.why = po.good; out.tags.push('positional+'); }
   else {
     out.headline = c.cls === 'best' ? 'Meilleur coup' : c.cls === 'excellent' ? 'Excellent' : 'Bon coup';
-    out.why = c.cls === 'good' ? `Solide. Le moteur préférait légèrement ${bestSan}.` : pick(['C’est le coup que le moteur recommande.', 'Exactement ce qu’il fallait.', 'Précis : rien à redire.'], seed);
+    const st = !isBest && (c.cls === 'good' || c.cls === 'excellent') && c.dE >= 0.015 ? strategicReason({ fenBefore: c.fenBefore, uci: c.uci, best, reply: c.reply, ply: c.ply }, { threats: false }) : null;
+    if (st) { out.why = `${c.cls === 'good' ? 'Solide' : 'Bon choix'}, mais ${bestSan} était plus précis. ${st.why}`; out.tags.push('good:' + st.tag); if (st.tip) out.tip = st.tip; addBest(); }
+    else out.why = c.cls === 'good' ? `Solide. Le moteur préférait légèrement ${bestSan}.` : pick(['C’est le coup que le moteur recommande.', 'Exactement ce qu’il fallait.', 'Précis : rien à redire.'], seed);
   }
   if (c.cls === 'good') addBest();
   out.facts.push({ kind: 'good', cls: c.cls, tags: out.tags });

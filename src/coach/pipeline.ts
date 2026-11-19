@@ -91,7 +91,7 @@ export function buildReview(g: GameInput): CoachReview {
       if (eg) events.push({ skill: eg.includes('lucena') || eg.includes('philidor') ? 'rookEnd' : 'pawnEnd', s: eg.endsWith('+') ? 1 : 0, d: g.elo, src: 'game', ref: `${g.gameId || ''}#${i}`, motif: eg });
       if (tags.some((t) => t.startsWith('pawns:'))) events.push({ skill: 'structure', s: 0, d: g.elo - 100, w: 0.5, src: 'game', ref: `${g.gameId || ''}#${i}` });
       if (tags.some((t) => t.startsWith('king:'))) events.push({ skill: 'kingSafety', s: 0, d: g.elo - 100, w: 0.5, src: 'game', ref: `${g.gameId || ''}#${i}` });
-      if (tags.includes('pieces:activity') || tags.includes('pieces:outpost')) events.push({ skill: 'activity', s: 0, d: g.elo - 100, w: 0.5, src: 'game', ref: `${g.gameId || ''}#${i}` });
+      if (tags.some((t) => t.startsWith('pieces:'))) events.push({ skill: 'activity', s: 0, d: g.elo - 100, w: 0.5, src: 'game', ref: `${g.gameId || ''}#${i}` });
     }
   }
   // observations agrégées par partie (score fractionnaire)

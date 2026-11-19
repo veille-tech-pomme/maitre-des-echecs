@@ -19,7 +19,7 @@
     "got": "kingSafety",
     "tag": "good:king:pawnPush",
     "headline": "Excellent",
-    "why": "Bon choix, mais Cg5 était plus précis : ce coup de pion (g4) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f3 et h3) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
+    "why": "Bon choix, mais Cg5 était plus précis. Ce coup de pion (g4) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f3 et h3) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
    },
    {
     "id": "k-nh5",
@@ -42,7 +42,7 @@
     "got": "kingSafety",
     "tag": "good:king:pawnPush",
     "headline": "Excellent",
-    "why": "Bon choix, mais Db6 était plus précis : ce coup de pion (g5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f6 et h6) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
+    "why": "Bon choix, mais Db6 était plus précis. Ce coup de pion (g5) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (f6 et h6) s’affaiblissent, alors que le fou adverse vise déjà ton roi."
    },
    {
     "id": "d-qf6",
@@ -65,7 +65,7 @@
     "got": "development",
     "tag": "good:opening:development",
     "headline": "Bon coup",
-    "why": "Solide, mais Cf6 était plus précis : ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
+    "why": "Solide, mais Cf6 était plus précis. Ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
    },
    {
     "id": "d-a6",
@@ -76,7 +76,7 @@
     "got": "development",
     "tag": "good:opening:development",
     "headline": "Bon coup",
-    "why": "Solide, mais Cf6 était plus précis : ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
+    "why": "Solide, mais Cf6 était plus précis. Ton coup ne développe aucune pièce, alors que Cf6 en sortait une : en ouverture chaque tempo compte, et il te reste 3 pièces mineures à sortir."
    },
    {
     "id": "d-ng5",
@@ -109,7 +109,7 @@
     "got": "activity",
     "tag": "good:pieces:rim",
     "headline": "Bon coup",
-    "why": "Solide, mais a3 était plus précis : ton cavalier part au bord en a4 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
+    "why": "Solide, mais a3 était plus précis. Ton cavalier part au bord en a4 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
    },
    {
     "id": "a-e5",
@@ -180,7 +180,7 @@
     "got": "kingSafety",
     "tag": "good:king:holes",
     "headline": "Bon coup",
-    "why": "Solide, mais a4 était plus précis : ce coup de pion affaiblit l’abri de ton roi : g3 devient un trou qu’aucun pion ne pourra plus couvrir, et les pièces adverses peuvent s’y installer."
+    "why": "Solide, mais a4 était plus précis. Ce coup de pion affaiblit l’abri de ton roi : g3 devient un trou qu’aucun pion ne pourra plus couvrir, et les pièces adverses peuvent s’y installer."
    },
    {
     "id": "p-a3",
@@ -191,7 +191,7 @@
     "got": "pawnStructure",
     "tag": "good:pawns:isolated",
     "headline": "Excellent",
-    "why": "Bon choix, mais Cxe6 était plus précis : ton pion c2 se retrouve isolé : aucun pion voisin ne pourra jamais le protéger ; tu te retrouves avec des pions doublés en colonne c. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie."
+    "why": "Bon choix, mais Cxe6 était plus précis. Ton pion c2 se retrouve isolé : aucun pion voisin ne pourra jamais le protéger ; tu te retrouves avec des pions doublés en colonne c. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie."
    }
   ]
  },

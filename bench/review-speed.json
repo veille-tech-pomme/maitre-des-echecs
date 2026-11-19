@@ -1,0 +1,81 @@
+{
+ "method": "Chromium mobile 390×844, moteur mono-thread (crossOriginIsolated forcé à false), tout le navigateur ralenti 4× par SIGSTOP/SIGCONT (fil principal ET workers Stockfish ; le ralentissement CDP ne touche pas les workers), profondeur 14, parties de démonstration g1–g3 + partie de 80 demi-coups g9",
+ "before": {
+  "rate": 4,
+  "single": true,
+  "threads": false,
+  "reviews": {
+   "g1": {
+    "plies": 25,
+    "firstMovesMs": 26538,
+    "totalMs": 26760,
+    "moves": 25,
+    "fps": 59,
+    "long": 1
+   },
+   "g2": {
+    "plies": 14,
+    "firstMovesMs": 7420,
+    "totalMs": 7640,
+    "moves": 14,
+    "fps": 59,
+    "long": 0
+   },
+   "g3": {
+    "plies": 18,
+    "firstMovesMs": 7382,
+    "totalMs": 7601,
+    "moves": 18,
+    "fps": 59,
+    "long": 0
+   },
+   "g9": {
+    "plies": 80,
+    "firstMovesMs": 32583,
+    "totalMs": 32848,
+    "moves": 80,
+    "fps": 60,
+    "long": 0
+   }
+  }
+ },
+ "after": {
+  "rate": 4,
+  "single": true,
+  "threads": false,
+  "reviews": {
+   "g1": {
+    "plies": 25,
+    "firstMovesMs": 2551,
+    "totalMs": 12575,
+    "moves": 25,
+    "fps": 57,
+    "long": 3
+   },
+   "g2": {
+    "plies": 14,
+    "firstMovesMs": 2648,
+    "totalMs": 5412,
+    "moves": 14,
+    "fps": 57,
+    "long": 1
+   },
+   "g3": {
+    "plies": 18,
+    "firstMovesMs": 2500,
+    "totalMs": 3238,
+    "moves": 18,
+    "fps": 56,
+    "long": 1
+   },
+   "g9": {
+    "plies": 80,
+    "firstMovesMs": 3073,
+    "totalMs": 23809,
+    "moves": 80,
+    "fps": 59,
+    "long": 1
+   }
+  }
+ }
+}

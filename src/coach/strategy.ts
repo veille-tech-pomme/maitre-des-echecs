@@ -160,7 +160,7 @@ function threatFirst(fenBefore: string, uci: string, best: StratLine, reply: Str
 // ———————————— 2. attribution par termes d'évaluation ————————————
 function diffSquares(a: number[], b: number[]) { return a.filter((s) => !b.includes(s)); }
 const sqs = (xs: number[]) => list(xs.slice(0, 3).map(sqName));
-function describe(cat: keyof Terms, fp: string, fbE: string, f1: string, fb1: string, before: string, me: Color, uci: string, bestSan: string): { why: string; tag: string; marks: StratReason['marks'] } | null {
+function describe(cat: keyof Terms, fp: string, fbE: string, f1: string, fb1: string, before: string, me: Color, uci: string, bestSan: string, ln = ''): { why: string; tag: string; marks: StratReason['marks'] } | null {
   const P = parseFen(fp).b, Q = parseFen(fbE).b, P1 = parseFen(f1).b, Q1 = parseFen(fb1).b, B0 = parseFen(before).b; const e = opp(me);
   const mover = B0[sqIdx(uci.slice(0, 2))]; const to = sqIdx(uci.slice(2, 4));
   switch (cat) {
@@ -171,9 +171,9 @@ function describe(cat: keyof Terms, fp: string, fbE: string, f1: string, fb1: st
       if (mover?.t === 'p' && hs.length) return { why: `Ce coup de pion affaiblit l’abri de ton roi : ${sqs(hs)} ${hs.length > 1 ? 'deviennent des trous' : 'devient un trou'} qu’aucun pion ne pourra plus couvrir, et les pièces adverses peuvent s’y installer.`, tag: 'king:holes', marks: hs.map((s) => ({ sq: sqName(s), kind: 'danger' as const })) };
       if (mover?.t === 'p' && Math.abs(fileOf(sqIdx(uci.slice(0, 2))) - fileOf(kingSq(B0, me))) <= 1) { const at = new Set<number>(); const k = kingSq(P, me); for (const [df, dr] of KING) if (onBoard(fileOf(k) + df, rankOf(k) + dr)) for (const a of attackers(P, k + dr * 8 + df, e)) if (P[a]!.t !== 'p' && P[a]!.t !== 'k') at.add(a);
         return { why: `Ce coup de pion (${sanOf(before, uci)}) avance un pion de l’abri de ton roi : il ne reviendra jamais en arrière, et les cases qu’il protégeait (${sqs(diffSquares([sqIdx(uci.slice(0, 2)) + (me === 'w' ? 7 : -9), sqIdx(uci.slice(0, 2)) + (me === 'w' ? 9 : -7)].filter((x) => x >= 0 && x < 64 && Math.abs(fileOf(x) - fileOf(sqIdx(uci.slice(0, 2)))) <= 1 && x !== to), []))}) s’affaiblissent${at.size ? `, alors que ${list([...at].slice(0, 2).map((a) => his(P[a]!.t)))} ${at.size > 1 ? 'visent' : 'vise'} déjà ton roi` : ''}.`, tag: 'king:pawnPush', marks: [{ sq: sqName(to), kind: 'danger' }] }; }
-      if (ki.openFiles > kb.openFiles) { const k = kingSq(P, me); const fs = [fileOf(k) - 1, fileOf(k), fileOf(k) + 1].filter((x) => x >= 0 && x < 8 && fileKind(P, x, me) && !fileKind(Q, x, me)); return { why: `La colonne ${fs.map((x) => FILES[x]).join('/') || FILES[fileOf(k)]} s’ouvre devant ton roi : les tours et la dame adverses vont s’en servir.`, tag: 'king:openFile', marks: [] }; }
+      if (ki.openFiles > kb.openFiles) { const k = kingSq(P, me); const fs = [fileOf(k) - 1, fileOf(k), fileOf(k) + 1].filter((x) => x >= 0 && x < 8 && fileKind(P, x, me) && !fileKind(Q, x, me)); return { why: `${ln ? `Après ${ln}, la` : 'La'} colonne ${fs.map((x) => FILES[x]).join('/') || FILES[fileOf(k)]} s’ouvre devant ton roi : les tours et la dame adverses vont s’en servir.`, tag: 'king:openFile', marks: [] }; }
       if (ki.zoneAttackers > kb.zoneAttackers) { const k = kingSq(P, me); const zone = new Set<number>([k]); for (const [df, dr] of KING) if (onBoard(fileOf(k) + df, rankOf(k) + dr)) zone.add(k + dr * 8 + df); const at = new Set<number>(); for (const z of zone) for (const a of attackers(P, z, e)) if (P[a]!.t !== 'p' && P[a]!.t !== 'k') at.add(a);
-        return { why: `Après ce coup, ${list([...at].slice(0, 3).map((a) => `${his(P[a]!.t)} (${sqName(a)})`))} ${at.size > 1 ? 'se tournent' : 'se tourne'} vers ton roi, alors que ton abri ne bouge pas : l’attaque arrive plus vite que ta défense.`, tag: 'king:attackers', marks: [...at].map((a) => ({ sq: sqName(a), kind: 'danger' as const })) }; }
+        return { why: `Après ${ln || 'ce coup'}, ${list([...at].slice(0, 3).map((a) => `${his(P[a]!.t)} (${sqName(a)})`))} ${at.size > 1 ? 'se tournent' : 'se tourne'} vers ton roi, alors que ton abri ne bouge pas : l’attaque arrive plus vite que ta défense.`, tag: 'king:attackers', marks: [...at].map((a) => ({ sq: sqName(a), kind: 'danger' as const })) }; }
       if (!ki.castled && !ki.canCastle) return { why: 'Ton roi reste coincé au centre, sans roque possible : il sera la cible quand les colonnes s’ouvriront.', tag: 'king:center', marks: [] };
       if (ki.shield < kb.shield) return { why: 'Ton roi perd des pions protecteurs : son abri devient fragile.', tag: 'king:shield', marks: [] };
       return null;
@@ -194,12 +194,12 @@ function describe(cat: keyof Terms, fp: string, fbE: string, f1: string, fb1: st
     }
     case 'activity': {
       const eo = diffSquares(outposts(P, e), outposts(Q, e)); const mo = diffSquares(outposts(Q, me), outposts(P, me));
-      if (eo.length) return { why: `${cap(his(P[eo[0]]!.t))} s’installe en ${sqName(eo[0])}, un avant-poste : aucun de tes pions ne pourra jamais l’en chasser.`, tag: 'pieces:outpost', marks: [{ sq: sqName(eo[0]), kind: 'danger' }] };
+      if (eo.length) return { why: `${ln ? `Après ${ln}, ` : ''}${ln ? his(P[eo[0]]!.t) : cap(his(P[eo[0]]!.t))} s’installe en ${sqName(eo[0])}, un avant-poste : aucun de tes pions ne pourra jamais l’en chasser.`, tag: 'pieces:outpost', marks: [{ sq: sqName(eo[0]), kind: 'danger' }] };
       if (mover?.t === 'n' && (fileOf(to) === 0 || fileOf(to) === 7)) return { why: `Ton cavalier part au bord en ${sqName(to)} : il n’y contrôle que ${attacksFrom(P1, to).length} cases et ne participe plus à la bataille du centre.`, tag: 'pieces:rim', marks: [{ sq: sqName(to), kind: 'danger' }] };
       if (mo.length) return { why: `${bestSan} installait ${my(Q[mo[0]]!.t)} sur l’avant-poste ${sqName(mo[0])}, une case d’où aucun pion adverse ne peut le chasser.`, tag: 'pieces:outpost', marks: [{ sq: sqName(mo[0]), kind: 'good' }] };
       const bbP = badBishop(P, me), bbQ = badBishop(Q, me);
       if (bbP.length && (!bbQ.length || bbP[0].n > bbQ[0].n)) return { why: `Ton fou ${sqName(bbP[0].sq)} devient un « mauvais fou » : ${bbP[0].n} de tes pions bloqués sont sur des cases de sa couleur et l’enferment.`, tag: 'pieces:badBishop', marks: [{ sq: sqName(bbP[0].sq), kind: 'danger' }] };
-      for (let f = 0; f < 8; f++) { const k = fileKind(P, f, e); if (k === 'open' && fileKind(Q, f, e) !== 'open') { const r = [...Array(8).keys()].map((y) => y * 8 + f).find((s) => P[s]?.t === 'r' && P[s]!.c === e); if (r != null) return { why: `La colonne ${FILES[f]} s’ouvre et c’est la tour adverse qui la prend : elle va pénétrer dans ton camp.`, tag: 'pieces:openFile', marks: [{ sq: sqName(r), kind: 'danger' }] }; } }
+      for (let f = 0; f < 8; f++) { const k = fileKind(P, f, e); if (k === 'open' && fileKind(Q, f, e) !== 'open') { const r = [...Array(8).keys()].map((y) => y * 8 + f).find((s) => P[s]?.t === 'r' && P[s]!.c === e); if (r != null) return { why: `${ln ? `Après ${ln}, la` : 'La'} colonne ${FILES[f]} s’ouvre et c’est la tour adverse qui la prend : elle va pénétrer dans ton camp.`, tag: 'pieces:openFile', marks: [{ sq: sqName(r), kind: 'danger' }] }; } }
       const mP = safeMob(P, me), mQ = safeMob(Q, me);
       if (mQ - mP >= 4) {
         return { why: `Tes pièces manquent d’air après ce coup : ${bestSan} leur donnait nettement plus de cases sûres.`, tag: 'pieces:activity', marks: [] };
@@ -300,7 +300,7 @@ export function strategicReason(c: StratCtx, opts: { threats?: boolean } = {}): 
   let res: StratReason | null = null;
   for (const k of order) {
     if (score[k] > -1) break;
-    const d = k === 'pawnStructure' ? describePawns(fp[n], fb[n], deepP, deepB, fenBefore, me, uci, bestSan) : describe(k, fp[n], fb[n], fp[1], fb[1], fenBefore, me, uci, bestSan);
+    const d = k === 'pawnStructure' ? describePawns(fp[n], fb[n], deepP, deepB, fenBefore, me, uci, bestSan) : describe(k, fp[n], fb[n], fp[1], fb[1], fenBefore, me, uci, bestSan, n > 1 ? lineFr(fenBefore, played, n) : '');
     if (d) { res = { cat: k, tag: d.tag, why: d.why, marks: d.marks, arrows: [], terms: score }; break; }
   }
   const pv = reply ? prevented(fenBefore, best, reply, uci) : null;

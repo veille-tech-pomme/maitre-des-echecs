@@ -26,20 +26,64 @@ async function runReview(input: Omit<GameInput, 'book'>): Promise<CoachReview> {
   if (!w) { const [{ buildReview }, { isBookFen }] = await Promise.all([import('./pipeline'), import('../data/openings')]); return buildReview({ ...input, book: isBookFen }); }
   return new Promise((res, rej) => { const id = ++seq; pending.set(id, (m) => (m.ok ? res(m.r) : rej(new Error(m.error)))); w.postMessage({ id, type: 'review', input }); });
 }
-export interface ReviewOpts { result?: '1-0' | '0-1' | '1/2-1/2' | '*'; depth?: number; elo: number; user: 'w' | 'b'; oppElo: number; gameId?: string; onProgress?: (p: number) => void; signal?: { cancelled: boolean } }
-/** Analyse complète d'une partie (SAN) : Stockfish multi-PV 3 sur chaque position, puis pipeline du coach. */
+export interface ReviewOpts { result?: '1-0' | '0-1' | '1/2-1/2' | '*'; depth?: number; elo: number; user: 'w' | 'b'; oppElo: number; gameId?: string; onProgress?: (p: number) => void; onPartial?: (r: CoachReview) => void; signal?: { cancelled: boolean } }
+
+// ——— cache des analyses par position (mémoire, LRU) : une position déjà vue à profondeur ≥ d n'est pas recalculée ———
+const CACHE = new Map<string, { depth: number; mpv: number; lines: Line[] }>(); const CACHE_MAX = 600;
+const ckey = (fen: string) => fen.split(' ').slice(0, 4).join(' ');
+export async function analyseCached(fen: string, depth: number, multipv: number): Promise<Line[]> {
+  const k = ckey(fen); const c = CACHE.get(k);
+  if (c && c.depth >= depth && c.mpv >= multipv) { CACHE.delete(k); CACHE.set(k, c); return c.lines.slice(0, Math.max(multipv, 1)); }
+  const r = await engine.analyse(fen, { depth, multipv }); const lines = r.lines.map(toLine);
+  CACHE.set(k, { depth, mpv: multipv, lines }); if (CACHE.size > CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);
+  return lines;
+}
+/** Chances (0–1) du camp au trait, échelle Lichess, pour le tri des coups à approfondir. */
+const winStm = (l: Line | undefined) => { if (!l) return 0.5; if (l.mate != null) return l.mate > 0 ? 1 : 0; return 1 / (1 + Math.exp(-0.00368208 * (l.cp ?? 0))); };
+/**
+ * Analyse complète d'une partie (SAN), pensée pour un téléphone :
+ * 1) coups de théorie (base d'ouvertures) : recherche minimale, seulement pour la courbe ;
+ * 2) premier passage rapide (profondeur −3, multi-PV 3) avec résultats progressifs (`onPartial`) dès les premiers coups ;
+ * 3) second passage à pleine profondeur uniquement sur les positions critiques (perte de chances ≥ 3 %, bascule de
+ *    l'évaluation, coups où le joueur s'écarte du meilleur coup) ; 4) cache par position.
+ */
 export async function coachReview(startFen: string, sans: string[], o: ReviewOpts): Promise<CoachReview> {
   const ch = new Chess(startFen); const fens = [ch.fen()]; const ucis: string[] = [];
   for (const s of sans) { const m = ch.move(s); ucis.push(m.from + m.to + (m.promotion || '')); fens.push(ch.fen()); }
-  const lines: Line[][] = [];
-  for (let i = 0; i < fens.length; i++) {
+  const { isBookFen } = await import('../data/openings');
+  const D = o.depth ?? 12; const D0 = Math.max(8, D - 3); const N = fens.length;
+  const book = ucis.map((_, i) => i < 20 && isBookFen(fens[i + 1]));
+  const over = fens.map((f) => new Chess(f).isGameOver());
+  const lines: Line[][] = new Array(N).fill(null).map(() => []); const depthOf = new Array(N).fill(0);
+  const input = (k: number) => ({ startFen, moves: ucis.slice(0, k), lines: lines.slice(0, k + 1), elo: o.elo, user: o.user, oppElo: o.oppElo, gameId: o.gameId, result: k >= ucis.length ? o.result : '*' as const });
+  const total = N * 1 + 0.6 * N; let done = 0; const prog = () => o.onProgress?.(Math.min(0.95, done / total));
+  let lastPartial = 0, lastT = Date.now();
+  // passage 1
+  for (let i = 0; i < N; i++) {
     if (o.signal?.cancelled) throw new Error('cancelled');
-    const c = new Chess(fens[i]);
-    if (c.isGameOver()) { lines.push([]); continue; }
-    const r = await engine.analyse(fens[i], { depth: o.depth ?? 12, multipv: 3 });
-    lines.push(r.lines.map(toLine)); o.onProgress?.((i + 1) / fens.length * 0.95);
+    if (!over[i]) {
+      const bookOnly = book[i] && (i === 0 || book[i - 1]);
+      const d = bookOnly ? 6 : D0; lines[i] = await analyseCached(fens[i], d, bookOnly ? 1 : 3); depthOf[i] = d;
+    }
+    done++; prog();
+    // résultat progressif : toutes les ~6 demi-coups ou 1,5 s, sur le préfixe déjà analysé
+    if (o.onPartial && i >= 2 && (i - lastPartial >= 6 || Date.now() - lastT > 1500) && i < N - 1) {
+      lastPartial = i; lastT = Date.now(); runReview(input(i)).then((r) => { if (!o.signal?.cancelled) o.onPartial!(r); }).catch(() => {});
+    }
   }
-  const r = await runReview({ startFen, moves: ucis, lines, elo: o.elo, user: o.user, oppElo: o.oppElo, gameId: o.gameId, result: o.result });
+  // passage 2 : positions critiques à pleine profondeur
+  if (D > D0) {
+    const need = new Set<number>();
+    for (let i = 0; i < ucis.length; i++) {
+      if (book[i] || over[i]) continue;
+      const wb = winStm(lines[i][0]); const wa = 1 - winStm(lines[i + 1]?.[0]); const loss = wb - wa;
+      const flip = (wb - 0.5) * (wa - 0.5) < 0; const notBest = lines[i][0]?.move !== ucis[i];
+      if (loss >= 0.03 || flip || (notBest && loss >= 0.015) || lines[i][0]?.mate != null || lines[i + 1]?.[0]?.mate != null) { need.add(i); if (i + 1 < N && !over[i + 1]) need.add(i + 1); }
+    }
+    const idx = [...need].sort((a, b) => a - b); const step = (0.6 * N) / Math.max(1, idx.length);
+    for (const i of idx) { if (o.signal?.cancelled) throw new Error('cancelled'); lines[i] = await analyseCached(fens[i], D, 3); depthOf[i] = D; done += step; prog(); }
+  }
+  const r = await runReview(input(ucis.length));
   o.onProgress?.(1); return r;
 }
 /** Évaluation immédiate d'un coup joué (mode coach en partie). */

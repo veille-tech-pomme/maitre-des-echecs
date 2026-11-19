@@ -1,0 +1,9 @@
+{
+ "games": 4,
+ "moves": 137,
+ "depthFull": 14,
+ "depthFirstPass": 11,
+ "classAgreement": 0.993,
+ "explanationTagAgreement": 1,
+ "nodesRatio": null
+}

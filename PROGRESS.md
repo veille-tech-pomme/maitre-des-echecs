@@ -77,3 +77,11 @@ Ordre de travail (cocher au fur et à mesure) :
 - [x] Redéployé (gh-pages, commit 409b864) : https://veille-tech-pomme.github.io/maitre-des-echecs/ — e2e en ligne 2 × 29 vérifications OK, 0 erreur console (HTTPS direct Chromium bureau + WebKit iPhone 14 Pro, et via tools/live-proxy.mjs)
 - [x] Mesures en ligne : premier chargement 157 Kio (sans SW) ; Lighthouse mobile perf 98–99, accessibilité 100, bonnes pratiques 100, SEO 100 (FCP 1,7 s, LCP 1,9 s, TBT 0–10 ms, CLS 0) ; bureau 100/100/100/100
 **Phase 4 terminée.**
+
+# PHASE 5 (19/11) — coach expert (cœur de l’app) — voir COACH_ARCHITECTURE.md
+- [x] M0 : COACH_ARCHITECTURE.md (pipeline, explications ancrées moteur, Glicko-2 × 26 compétences, curriculum ZPD, UX, LLM futur, évaluation)
+- [ ] M1 : géométrie + SEE + détecteurs de motifs (src/coach/geometry.ts, motifs.ts) + corpus étiqueté
+- [ ] M2 : score attendu, classification calibrée, moments critiques, moteur d’explication FR + pipeline (Worker)
+- [ ] M3 : modèle du joueur (Glicko-2), preuves, curriculum, puzzles personnels, diagnostic
+- [ ] M4 : UX (carte coach accueil, bilan mené par le coach, aides en partie, feedback puzzle, écran Mes progrès, test de placement)
+- [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne

@@ -98,3 +98,7 @@ Ordre de travail (cocher au fur et à mesure) :
   - Play et Puzzles chargés à la demande : 1er chargement 155 Kio (174 avant).
   - e2e local : 2 × 32 vérifications, 0 erreur console.
 - [ ] M5 : benchmark coach, tests, e2e, Lighthouse, captures + critique, déploiement et vérification en ligne
+  - [x] bench/coach-bench.json (motifs, explications, recommandations, temps de bilan navigateur + i/s)
+  - [x] vitest 1256/1256 ; e2e local 2 × 32, 0 erreur console ; 1er chargement 155 Kio
+  - [x] captures screenshots/coach/ (profil de démo : tools/coach-seed.mts + tools/coach-shots.mjs)
+  - [ ] déploiement GitHub Pages, e2e et Lighthouse en ligne

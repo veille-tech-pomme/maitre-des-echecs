@@ -1,0 +1,149 @@
+{
+ "generated": "2026-11-19",
+ "motifDetectors": {
+  "corpus": "14 434 puzzles Lichess (CC0)",
+  "byMotif": {
+   "fork": {
+    "labelled": 1148,
+    "recall": 0.651,
+    "precisionLowerBound": 0.737
+   },
+   "pin": {
+    "labelled": 828,
+    "recall": 0.308,
+    "precisionLowerBound": 0.471
+   },
+   "skewer": {
+    "labelled": 298,
+    "recall": 0.916,
+    "precisionLowerBound": 0.548
+   },
+   "discoveredAttack": {
+    "labelled": 926,
+    "recall": 0.836,
+    "precisionLowerBound": 0.594
+   },
+   "discoveredCheck": {
+    "labelled": 836,
+    "recall": 1.0,
+    "precisionLowerBound": 0.916
+   },
+   "doubleCheck": {
+    "labelled": 418,
+    "recall": 1.0,
+    "precisionLowerBound": 1.0
+   },
+   "backRankMate": {
+    "labelled": 503,
+    "recall": 1.0,
+    "precisionLowerBound": 0.481
+   },
+   "smotheredMate": {
+    "labelled": 189,
+    "recall": 1.0,
+    "precisionLowerBound": 1.0
+   },
+   "hangingPiece": {
+    "labelled": 427,
+    "recall": 0.674,
+    "precisionLowerBound": 0.233
+   },
+   "trappedPiece": {
+    "labelled": 225,
+    "recall": 0.858,
+    "precisionLowerBound": 0.955
+   },
+   "capturingDefender": {
+    "labelled": 275,
+    "recall": 0.68,
+    "precisionLowerBound": 0.209
+   },
+   "promotion": {
+    "labelled": 568,
+    "recall": 1.0,
+    "precisionLowerBound": 1.0
+   },
+   "mate": {
+    "labelled": 6998,
+    "recall": 1.0,
+    "precisionLowerBound": 1.0
+   }
+  },
+  "note": "précision = borne basse : Lichess n’étiquette que le thème principal, un motif vrai mais non étiqueté compte comme faux positif"
+ },
+ "explanations": {
+  "positions": 400,
+  "depth": 12,
+  "flaggedAsError": 0.902,
+  "specificReason": 0.9,
+  "tacticMotifAgreement": 0.659,
+  "tacticClaims": 41,
+  "mateClaimsCorrect": 1,
+  "mateClaims": 139,
+  "materialClaimsSupported": 1,
+  "materialClaims": 132,
+  "unsupportedClaims": 0,
+  "engineAgreesWithLichessRefutation": 0.978
+ },
+ "recommendation": [
+  {
+   "players": 200,
+   "puzzlesPerPlayer": 80,
+   "skillRMSE": 131,
+   "weakDetected": 0.715,
+   "weakTop1": 0.46,
+   "weakTop3": 0.68,
+   "strongMisflagged": 0,
+   "planTargetsWeakness": 0.61,
+   "puzzlesInZone60to90": 0.522,
+   "diagnosticMAE6items": 132
+  },
+  {
+   "players": 200,
+   "puzzlesPerPlayer": 160,
+   "skillRMSE": 115,
+   "weakDetected": 0.93,
+   "weakTop1": 0.59,
+   "weakTop3": 0.865,
+   "strongMisflagged": 0.005,
+   "planTargetsWeakness": 0.785,
+   "puzzlesInZone60to90": 0.672,
+   "diagnosticMAE6items": 132
+  },
+  {
+   "players": 200,
+   "puzzlesPerPlayer": 320,
+   "skillRMSE": 89,
+   "weakDetected": 0.98,
+   "weakTop1": 0.8,
+   "weakTop3": 0.96,
+   "strongMisflagged": 0,
+   "planTargetsWeakness": 0.875,
+   "puzzlesInZone60to90": 0.757,
+   "diagnosticMAE6items": 132
+  }
+ ],
+ "browserReview": {
+  "machine": "box, Chromium headless, Stockfish 18 lite WASM multi-thread (local COOP/COEP)",
+  "depth": 12,
+  "games": {
+   "25 demi-coups": {
+    "ms": 6257,
+    "fps": 59
+   },
+   "14 demi-coups": {
+    "ms": 3728,
+    "fps": 60
+   },
+   "18 demi-coups": {
+    "ms": 2745,
+    "fps": 60
+   }
+  },
+  "note": "pipeline coach dans un Worker : le fil principal reste à ~60 i/s pendant l’analyse"
+ },
+ "firstLoadKiB": 155,
+ "tests": {
+  "vitest": "1256 tests"
+ }
+}

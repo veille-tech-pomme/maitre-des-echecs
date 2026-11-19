@@ -145,6 +145,12 @@ compétence-focus). Le plan du jour (`plan.ts`) est désormais alimenté par le 
   jugement de chaque coup.
 * **Puzzles** : quand tu te trompes, le coach explique pourquoi ton coup ne marche pas et quelle idée il fallait voir.
 * **Leçons** : à la fin, effet sur les compétences.
+* **Bilan conscient du résultat** : abandon, nulle, mat subi ou donné changent le titre et le message (ex. abandon
+  dans une position encore jouable → « ne lâche rien »).
+* **Erreurs personnelles** (`#/review/mistakes`) : chaque moment clé devient une carte de répétition espacée
+  (1re révision 10 min plus tard) ; l’écran indique combien sont programmées et quand revient la prochaine.
+* **Puzzles par thème** : la difficulté est choisie par le coach (`themeTarget`, p ≈ 0,75 sur la compétence),
+  sinon le classement puzzle.
 * **« Mes progrès »** (`#/coach`) : radar des 6 familles, compétences avec confiance, preuves, objectifs de la semaine.
 * **Onboarding** : test de placement adaptatif (6 positions, ~2 min, facultatif) ; estimation bayésienne sur grille
   (a priori N(départ, 450²), vraisemblance Elo), chaque item posé à la moyenne a posteriori.
@@ -172,6 +178,7 @@ service payant n’est requis aujourd’hui ; rien n’est envoyé hors de l’a
 * **Recommandations** : joueurs simulés (compétences latentes connues, réussite = logistique(latent − d)) ;
   on mesure l’erreur d’estimation (RMSE), la détection de la faiblesse principale (top-1 / top-3) et la part de
   puzzles proposés dans la zone 60–90 % de réussite.
+* **Navigateur** (`tools/tmp/review-time.mjs`) : durée du bilan et images/s du fil principal pendant l’analyse.
 * Résultats : `bench/coach-bench.json` et section PROGRESS.md.
 
 ## 9. Limites assumées

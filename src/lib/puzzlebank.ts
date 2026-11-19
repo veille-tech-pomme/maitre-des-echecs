@@ -40,7 +40,7 @@ async function gunzip(buf: ArrayBuffer): Promise<string> {
 
 const mem = new Map<string, BankPuzzle[]>();
 const pending = new Map<string, Promise<BankPuzzle[]>>();
-function parse(txt: string, idx: PackIndex): BankPuzzle[] {
+export function parsePack(txt: string, idx: PackIndex): BankPuzzle[] {
   const out: BankPuzzle[] = [];
   for (const line of txt.split('\n')) {
     if (!line) continue;
@@ -63,7 +63,7 @@ export async function loadBand(tier: Tier, band: number): Promise<BankPuzzle[]> 
       txt = await gunzip(await res.arrayBuffer());
       idbSet(key, txt);
     }
-    const list = parse(txt, idx); mem.set(key, list); return list;
+    const list = parsePack(txt, idx); mem.set(key, list); return list;
   })();
   pending.set(key, p);
   try { return await p; } finally { pending.delete(key); }

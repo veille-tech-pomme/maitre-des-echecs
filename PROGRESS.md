@@ -102,3 +102,11 @@ Ordre de travail (cocher au fur et à mesure) :
   - [x] vitest 1256/1256 ; e2e local 2 × 32, 0 erreur console ; 1er chargement 155 Kio
   - [x] captures screenshots/coach/ (profil de démo : tools/coach-seed.mts + tools/coach-shots.mjs)
   - [x] déployé (87fc46e) ; e2e en ligne 2 × 32, 0 erreur ; Lighthouse en ligne mobile 99/100/100/100, bureau 100 × 4 ; 1er chargement en ligne 145 Kio ; bilan 25 demi-coups 6,4 s à 59 i/s (mono-thread)
+
+# PHASE 6 (19/11) — coach : limites levées (sur l’appareil, sans LLM)
+- [x] M6 : thèmes lus sur la ligne entière (src/coach/themes.ts) : clouage, enfilade, rayons X, déviation, attraction, surcharge, élimination du défenseur, pièce piégée, pièce en prise (défense en rayons X), mat du couloir, découvertes
+  - Bench 14 434 puzzles (bench/theme-bench.json, `npx -y tsx tools/bench/theme-bench.mts 400`), accord avec l’étiquetage Lichess — avant (détecteur coup par coup) → après :
+    clouage rappel 0,31→1,00 / précision 0,47→0,99 ; enfilade 0,92/0,55→1,00/1,00 ; pièce en prise 0,67/0,23→0,90/1,00 ; fourchette 0,65/0,74→1,00/0,98 ;
+    découverte 0,84/0,59→0,99/0,98 ; pièce piégée 0,86/0,96→0,99/1,00 ; mat du couloir 1,00/0,48→1,00/1,00 ; déviation —→1,00/0,91 ; attraction —→1,00/1,00 ; rayons X —→1,00/1,00 ; élimination du défenseur 0,68/0,21→0,71/0,63
+  - Explications (400 gaffes Lichess, SF d12) : tactique nommée quand le puzzle en contient une 28 %→59 % ; accord du motif annoncé 66 % (41)→70 % (81) ; toujours 0 affirmation non soutenue ; chaque thème doit expliquer la pièce réellement perdue
+  - tests/coach-themes.test.ts (surcharge ±, clouage ±, enfilade ±, rayons X défensifs, pièce piégée)

@@ -1,5 +1,6 @@
 // Exactitude des explications : dans chaque puzzle Lichess, le coup de l'adversaire est une gaffe connue.
 // On l'explique avec Stockfish (natif) et on vérifie que chaque affirmation est soutenue par le moteur.
+import fs from 'node:fs';
 import { Chess } from 'chess.js';
 // @ts-ignore
 import { Uci } from '../uci.mjs';
@@ -10,13 +11,14 @@ import { loadCorpus } from './corpus.mts';
 
 const THEMES_OF: Record<string, string[]> = {
   fork: ['fork'], pin: ['pin'], skewer: ['skewer', 'xRayAttack'], discoveredAttack: ['discoveredAttack'], discoveredCheck: ['discoveredAttack', 'discoveredCheck'], doubleCheck: ['doubleCheck', 'discoveredAttack'],
-  trappedPiece: ['trappedPiece'], capturingDefender: ['capturingDefender', 'deflection', 'attraction'], overload: ['deflection', 'overloading'], hanging: ['hangingPiece'],
+  trappedPiece: ['trappedPiece'], capturingDefender: ['capturingDefender', 'deflection', 'attraction'], overload: ['deflection', 'overloading', 'capturingDefender'], hanging: ['hangingPiece'],
+  deflection: ['deflection', 'overloading'], attraction: ['attraction'], xRayAttack: ['xRayAttack', 'skewer'],
 };
 export async function runExplainBench(n = 200, depth = 12, seed = 7) {
   const C = loadCorpus(60); const sample: typeof C = [];
   let h = seed; for (const p of C) { h = (h * 1103515245 + 12345) & 0x7fffffff; if (h % Math.max(1, Math.floor(C.length / n)) === 0) sample.push(p); if (sample.length >= n) break; }
   const e = new Uci(); await e.init();
-  const st = { n: 0, flaggedBad: 0, specific: 0, tacticClaims: 0, tacticAgree: 0, mateClaims: 0, mateAgree: 0, materialClaims: 0, materialSupported: 0, unsupported: 0, refutationMatches: 0, examples: [] as any[] };
+  const st = { n: 0, flaggedBad: 0, specific: 0, tacticClaims: 0, tacticAgree: 0, mateClaims: 0, mateAgree: 0, materialClaims: 0, materialSupported: 0, unsupported: 0, refutationMatches: 0, tacLabelled: 0, tacNamed: 0, examples: [] as any[] };
   for (const p of sample) {
     const ms = p.m.split(' '); const fen = p.f; const blunder = ms[0];
     const ch = new Chess(fen); let after: string; try { ch.move({ from: blunder.slice(0, 2), to: blunder.slice(2, 4), promotion: blunder[4] }); after = ch.fen(); } catch { continue; }
@@ -36,6 +38,8 @@ export async function runExplainBench(n = 200, depth = 12, seed = 7) {
     if (tag.startsWith('allowed:') && !['allowed:material', 'allowed:hanging', 'allowed:threat'].some((x) => tag.startsWith(x))) {
       st.tacticClaims++; const motif = tag.split(':')[1]; if ((THEMES_OF[motif] || []).some((t) => p.t.includes(t))) st.tacticAgree++; else if (process.env.DBG) console.error('DIS', p.i, motif, p.t.join(','), ex.why);
     }
+    const TAC = ['fork', 'pin', 'skewer', 'discoveredAttack', 'trappedPiece', 'capturingDefender', 'deflection', 'attraction', 'xRayAttack'];
+    if (!p.t.includes('mate') && TAC.some((t) => p.t.includes(t))) { st.tacLabelled++; if (tag.startsWith('allowed:') && !['allowed:material', 'allowed:hanging', 'allowed:threat'].some((x) => tag.startsWith(x))) st.tacNamed++; }
     const lostFact = ex.facts.find((f: any) => Array.isArray(f.lost)) as any;
     if (lostFact) {
       st.materialClaims++;
@@ -48,6 +52,6 @@ export async function runExplainBench(n = 200, depth = 12, seed = 7) {
   }
   e.quit();
   const r = (a: number, b: number) => +(a / Math.max(1, b)).toFixed(3);
-  return { positions: st.n, depth, flaggedAsError: r(st.flaggedBad, st.n), specificReason: r(st.specific, st.n), tacticMotifAgreement: r(st.tacticAgree, st.tacticClaims), tacticClaims: st.tacticClaims, mateClaimsCorrect: r(st.mateAgree, st.mateClaims), mateClaims: st.mateClaims, materialClaimsSupported: r(st.materialSupported, st.materialClaims), materialClaims: st.materialClaims, unsupportedClaims: st.unsupported, engineAgreesWithLichessRefutation: r(st.refutationMatches, st.n), examples: st.examples };
+  return { positions: st.n, depth, flaggedAsError: r(st.flaggedBad, st.n), specificReason: r(st.specific, st.n), tacticMotifAgreement: r(st.tacticAgree, st.tacticClaims), tacticClaims: st.tacticClaims, mateClaimsCorrect: r(st.mateAgree, st.mateClaims), mateClaims: st.mateClaims, materialClaimsSupported: r(st.materialSupported, st.materialClaims), materialClaims: st.materialClaims, unsupportedClaims: st.unsupported, engineAgreesWithLichessRefutation: r(st.refutationMatches, st.n), tacticNamedWhenLabelled: r(st.tacNamed, st.tacLabelled), tacticLabelled: st.tacLabelled, examples: st.examples };
 }
-if (process.argv[1]?.endsWith('explain-bench.mts')) runExplainBench(+(process.argv[2] || 100)).then((r) => console.log(JSON.stringify(r, null, 1)));
+if (process.argv[1]?.endsWith('explain-bench.mts')) runExplainBench(+(process.argv[2] || 100)).then((r) => { console.log(JSON.stringify(r, null, 1)); if (process.env.OUT) fs.writeFileSync(process.env.OUT, JSON.stringify(r, null, 1)); });

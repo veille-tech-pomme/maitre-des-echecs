@@ -1,0 +1,83 @@
+{
+ "puzzles": 14434,
+ "table": [
+  {
+   "motif": "fork",
+   "labelled": 1148,
+   "recall": 0.998,
+   "precision": 0.979
+  },
+  {
+   "motif": "pin",
+   "labelled": 828,
+   "recall": 1,
+   "precision": 0.99
+  },
+  {
+   "motif": "skewer",
+   "labelled": 298,
+   "recall": 1,
+   "precision": 0.997
+  },
+  {
+   "motif": "discoveredAttack",
+   "labelled": 926,
+   "recall": 0.99,
+   "precision": 0.977
+  },
+  {
+   "motif": "discoveredCheck",
+   "labelled": 836,
+   "recall": 1,
+   "precision": 0.916
+  },
+  {
+   "motif": "doubleCheck",
+   "labelled": 418,
+   "recall": 1,
+   "precision": 1
+  },
+  {
+   "motif": "hangingPiece",
+   "labelled": 427,
+   "recall": 0.897,
+   "precision": 1
+  },
+  {
+   "motif": "trappedPiece",
+   "labelled": 225,
+   "recall": 0.991,
+   "precision": 1
+  },
+  {
+   "motif": "backRankMate",
+   "labelled": 503,
+   "recall": 1,
+   "precision": 1
+  },
+  {
+   "motif": "deflection",
+   "labelled": 696,
+   "recall": 0.997,
+   "precision": 0.908
+  },
+  {
+   "motif": "attraction",
+   "labelled": 1038,
+   "recall": 1,
+   "precision": 0.997
+  },
+  {
+   "motif": "xRayAttack",
+   "labelled": 328,
+   "recall": 1,
+   "precision": 1
+  },
+  {
+   "motif": "capturingDefender",
+   "labelled": 275,
+   "recall": 0.709,
+   "precision": 0.625
+  }
+ ]
+}

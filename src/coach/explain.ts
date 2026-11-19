@@ -6,6 +6,7 @@ import { moveMotifs, verifyOnLine, hanging, features, opposition, squareRule, ro
 import { my, his, the, a, cap, pick, lineFr, sanOf, materialWords, NAME, agree, list, fem } from './lang';
 import type { MoveClass } from './classify';
 import { pct } from './winprob';
+import { lineThemes, type Theme, type ThemeKey } from './themes';
 
 export type Level = 'beginner' | 'intermediate' | 'advanced';
 export const levelOf = (elo: number): Level => (elo < 1000 ? 'beginner' : elo < 1800 ? 'intermediate' : 'advanced');
@@ -95,6 +96,85 @@ function motifSentence0(m: Motif, pos: Pos, actorIsMe: boolean, seed: string, pr
     default: return '';
   }
 }
+
+// ——— thèmes lus sur la ligne entière (themes.ts) ———
+const THEME_FIRST: ThemeKey[] = ['overload', 'deflection', 'attraction', 'xRayAttack', 'skewer', 'pin', 'trappedPiece', 'capturingDefender'];
+const THEME_LATE: ThemeKey[] = ['fork', 'discoveredAttack'];
+const THEME_WORD: Partial<Record<ThemeKey, string>> = { overload: 'une surcharge', deflection: 'une déviation', attraction: 'une attraction', xRayAttack: 'une attaque en rayons X', skewer: 'une enfilade', pin: 'un clouage', trappedPiece: 'de piéger une pièce', capturingDefender: 'd’éliminer un défenseur', fork: 'une fourchette', discoveredAttack: 'une attaque à la découverte' };
+const THEME_SHORT: Partial<Record<ThemeKey, string>> = { overload: 'surcharge', deflection: 'déviation', attraction: 'attraction', xRayAttack: 'rayons X', skewer: 'enfilade', pin: 'clouage', trappedPiece: 'pièce piégée', capturingDefender: 'élimination du défenseur', fork: 'fourchette', discoveredAttack: 'découverte' };
+interface LineCtx { fens: string[]; sans: string[]; off: number }
+/** Positions et SAN le long d'une ligne ; `off` = décalage entre indices de thèmes et indices de la ligne. */
+function lineCtx(fen: string, line: string[], setup: boolean): LineCtx {
+  const fens = [fen]; const sans: string[] = []; let f = fen;
+  for (const u of line) { const san = sanOf(f, u); const nf = applyU(f, u); if (!nf) break; sans.push(san); fens.push(nf); f = nf; }
+  return { fens, sans, off: setup ? 0 : 1 };
+}
+function pickTheme(ts: Theme[], maxPly: number, keys: ThemeKey[], L?: LineCtx) { for (const k of keys) { const t = ts.find((x) => x.key === k && x.ply <= maxPly && (!L || themeExplains(x, L))); if (t) return t; } }
+/** Cohérence : le thème doit expliquer ce qui tombe vraiment (une de ses cibles est prise par l'auteur du thème). */
+function themeExplains(t: Theme, L: LineCtx): boolean {
+  const i = t.ply - L.off; const fenAt = (k: number) => L.fens[Math.max(0, Math.min(L.fens.length - 1, k))];
+  const actor = parseFen(fenAt(i)).turn; const taken = new Set<number>();
+  for (let k = Math.max(0, i); k < Math.min(L.sans.length, i + 5); k++) { const f = parseFen(fenAt(k)); if (f.turn !== actor) continue; const nb = parseFen(fenAt(k + 1)).b; for (let q = 0; q < 64; q++) if (f.b[q] && f.b[q]!.c !== actor && (!nb[q] || nb[q]!.c === actor)) taken.add(q); }
+  const pinned = t.key === 'pin' ? parseFen(fenAt(i + 1)).b[t.sq[0]] : null;
+  const tg: Record<string, number[]> = { pin: [t.sq[0]], skewer: [t.sq[1]], fork: t.sq.slice(1), deflection: [t.sq[1]], capturingDefender: [t.sq[1]], trappedPiece: [t.sq[0]], xRayAttack: [t.sq[1]], overload: [t.sq[2]], discoveredAttack: t.sq.slice(1) };
+  if (t.key === 'pin' && (!pinned || pinned.t === 'p')) return false;
+  if (t.key === 'capturingDefender') { const tp = parseFen(fenAt(i - 2)).b[t.sq[1]]; if (!tp || MAT[t.piece || 'p'] >= MAT[tp.t]) return false; }
+  if (t.key === 'attraction') return true;
+  if (t.key === 'deflection' && /=/.test(L.sans[i] || '')) return true;
+  return (tg[t.key] || []).some((q) => taken.has(q));
+}
+/** Phrase d'un thème, du point de vue de celui qui le subit (actorIsMe = false) ou le réalise. */
+function themeSentence(t: Theme, L: LineCtx, actorIsMe: boolean): string {
+  const i = t.ply - L.off; const at = (k: number) => Math.max(0, Math.min(L.fens.length - 1, k));
+  const pieceOn = (fenIdx: number, sq: number) => parseFen(L.fens[at(fenIdx)]).b[sq];
+  const theirs = (r: Role) => (actorIsMe ? his(r) : my(r)); const ours = (r: Role) => (actorIsMe ? my(r) : his(r));
+  const s = (k: number) => L.sans[k] ? L.sans[k].replace(/[+#]$/, '') + (L.sans[k].match(/[+#]$/)?.[0] || '') : '';
+  const pron = (r: Role) => (fem(r) ? 'elle' : 'il');
+  const sq = t.sq;
+  switch (t.key) {
+    case 'pin': {
+      const pinned = pieceOn(i + 1, sq[0]); const pinner = pieceOn(i + 1, sq[1]); if (!pinned || !pinner) return '';
+      return `${s(i)} cloue ${theirs(pinned.t)} en ${sqName(sq[0])} devant ${actorIsMe ? 'son' : 'ton'} roi : ${pron(pinned.t)} ne peut plus bouger, et ${ours(pinner.t)} en profite.`;
+    }
+    case 'skewer': {
+      const front = pieceOn(i - 1, sq[0]); const back = pieceOn(i, sq[1]); if (!front || !back) return '';
+      return `Enfilade : ${theirs(front.t)} doit s’écarter de la ligne, et ${theirs(back.t)} en ${sqName(sq[1])}, derrière, tombe (${s(i)}).`;
+    }
+    case 'xRayAttack': {
+      const mover = pieceOn(i, sq[0]); if (!mover) return '';
+      return `Rayons X : après l’échange en ${sqName(sq[1])}, ${ours(mover.t)} reprend à travers la case libérée (${s(i)}).`;
+    }
+    case 'deflection': {
+      const def = t.piece || 'p';
+      return `Déviation : ${s(i - 2)} détourne ${theirs(def)}, qui gardait ${sqName(sq[1])} ; ensuite ${s(i)}.`;
+    }
+    case 'attraction': {
+      const r = t.piece || 'k';
+      return r === 'k' ? `Attraction : ${s(i)} attire ${actorIsMe ? 'le roi adverse' : 'ton roi'} en ${sqName(sq[0])}, où ${s(i + 2)} ${actorIsMe ? 'le' : 'te'} prend en chasse.` : `Attraction : ${s(i)} attire ${theirs(r)} en ${sqName(sq[0])}, où ${pron(r)} est ensuite ${agree(r, 'gagné')} (${s(i + 4) || s(i + 2)}).`;
+    }
+    case 'overload': {
+      const def = t.piece || 'p';
+      return `${cap(theirs(def))} défendait à la fois ${sqName(sq[1])} et ${sqName(sq[2])} : ${agree(def, 'surchargé')}, ${pron(def)} ne peut pas tout faire. ${s(i)} puis ${s(i + 2)}.`;
+    }
+    case 'trappedPiece': {
+      const r = t.piece || 'n';
+      return `${cap(theirs(r))} en ${sqName(sq[0])} est ${agree(r, 'piégé')} : aucune case de fuite sûre, ${s(i)} ${fem(r) ? 'la' : 'le'} gagne.`;
+    }
+    case 'capturingDefender': {
+      const def = t.piece || 'p';
+      return `${s(i - 2)} élimine ${theirs(def)}, le défenseur de ${sqName(sq[1])}, qui tombe ensuite (${s(i)}).`;
+    }
+    case 'fork': {
+      const r = t.piece || 'n'; const tg = sq.slice(1).map((x) => { const p = pieceOn(i + 1, x); return p ? `${theirs(p.t)} en ${sqName(x)}` : ''; }).filter(Boolean);
+      return `${s(i)} : ${ours(r)} attaque en même temps ${list(tg)}.`;
+    }
+    case 'discoveredAttack': {
+      const mover = sq.length ? pieceOn(i, sq[0]) : null; const tgt = sq.length ? pieceOn(i, sq[1]) : null;
+      return mover && tgt ? `Attaque à la découverte : le coup ${s(i - 2)} ouvre la ligne de ${ours(mover.t)}, qui prend ${theirs(tgt.t)} (${s(i)}).` : `Attaque à la découverte : une pièce bouge et libère la ligne d’une autre (${s(i)}).`;
+    }
+    default: return '';
+  }
+}
 function matePattern(fen: string, pv: string[]): { key: MotifKey | null; len: number } {
   let f = fen;
   for (let i = 0; i < pv.length; i++) {
@@ -117,13 +197,16 @@ const TIPS: Record<string, string[]> = {
   discovered: ['Quand une pièce adverse est devant une tour ou un fou, demande-toi ce qu’elle découvre en bougeant.'],
   mate: ['Avant de jouer, vérifie les échecs que l’adversaire peut donner.', 'Compte les cases de fuite de ton roi après ton coup.'],
   missed: ['Cherche toujours dans l’ordre : échecs, prises, menaces.', 'Quand l’adversaire laisse une pièce sans défense, prends le temps de la compter.'],
+  overload: ['Une pièce qui défend deux choses à la fois ne défend vraiment ni l’une ni l’autre : donne-lui de l’aide.'],
+  deflection: ['Repère tes défenseurs clés : si l’un d’eux est attiré ailleurs, que devient ce qu’il gardait ?'],
+  trapped: ['Avant d’envoyer une pièce en territoire adverse, vérifie qu’elle garde une case de retraite.'],
   smothered: ['Quand ton roi est entouré de ses propres pièces, surveille chaque case d’où un cavalier adverse pourrait donner échec.'],
   backrank: ['Garde une case de fuite à ton roi (un « luft », par exemple h3 ou g3) : ta dernière rangée est fragile.'],
   opening: ['Dans l’ouverture : développe cavaliers et fous, contrôle le centre, roque tôt.'],
 };
 function tipFor(tag: string, level: Level, seed: string): string | undefined {
   if (level === 'advanced') return undefined;
-  const k = tag.startsWith('allowed:fork') ? 'fork' : tag.startsWith('allowed:pin') ? 'pin' : tag.startsWith('allowed:skewer') ? 'skewer' : tag.startsWith('allowed:discovered') ? 'discovered' : tag.startsWith('missed') ? 'missed' : tag.includes('Mate:smothered') ? 'smothered' : tag.includes('Mate:backRank') ? 'backrank' : tag.includes('Mate') ? 'mate' : tag.startsWith('missed') ? 'missed' : tag.startsWith('allowed:hanging') || tag === 'hanging' ? 'hanging' : tag.startsWith('opening') ? 'opening' : '';
+  const k = tag.startsWith('allowed:overload') ? 'overload' : tag.startsWith('allowed:deflection') || tag.startsWith('allowed:attraction') ? 'deflection' : tag.startsWith('allowed:xRay') ? 'skewer' : tag.startsWith('allowed:trapped') ? 'trapped' : tag.startsWith('allowed:capturingDefender') ? 'overload' : tag.startsWith('allowed:fork') ? 'fork' : tag.startsWith('allowed:pin') ? 'pin' : tag.startsWith('allowed:skewer') ? 'skewer' : tag.startsWith('allowed:discovered') ? 'discovered' : tag.startsWith('missed') ? 'missed' : tag.includes('Mate:smothered') ? 'smothered' : tag.includes('Mate:backRank') ? 'backrank' : tag.includes('Mate') ? 'mate' : tag.startsWith('missed') ? 'missed' : tag.startsWith('allowed:hanging') || tag === 'hanging' ? 'hanging' : tag.startsWith('opening') ? 'opening' : '';
   return k ? pick(TIPS[k], seed) : undefined;
 }
 const lineLen = (l: Level) => (l === 'beginner' ? 2 : l === 'intermediate' ? 4 : 6);
@@ -240,15 +323,26 @@ export function explainMove(c: MoveCtx): Explanation {
       const oppMotifs = replyPv[0] ? moveMotifs(after, mvOf(replyPv[0]), false) : [];
       const ver = replyPv.length ? verifyOnLine(oppMotifs, fenAfter, replyPv, applyU, isMateFen).verified : [];
       // cohérence : le motif doit expliquer ce qui est réellement perdu (une de ses cibles tombe)
-      const explainsLoss = (x: Motif) => x.key === 'promotion' ? tr.promoThem > 0 : x.targets.some((t) => { const r = after.b[t]?.t; return !!r && r !== 'k' && tr.lostNet.includes(r); }) || (x.key === 'discoveredCheck' || x.key === 'doubleCheck') && tr.lostNet.length > 0;
-      const tac = bestTactic(ver.filter((x) => x.key !== 'hangingCapture' && explainsLoss(x)));
+      const explainsLoss = (x: Motif) => x.key === 'pin' && after.b[x.targets[0]]?.t === 'p' ? false : x.key === 'promotion' ? tr.promoThem > 0 : x.targets.some((t) => { const r = after.b[t]?.t; return !!r && r !== 'k' && tr.lostNet.includes(r); }) || (x.key === 'discoveredCheck' || x.key === 'doubleCheck') && tr.lostNet.length > 0;
+      const tac0 = bestTactic(ver.filter((x) => x.key !== 'hangingCapture' && explainsLoss(x)));
+      // thèmes de la ligne complète (ton coup + réponse du moteur) : prioritaires pour les motifs « à plusieurs temps »
+      const LT = lineThemes(c.fenBefore, [c.uci, ...replyPv]); const LC = lineCtx(c.fenBefore, [c.uci, ...replyPv], true);
+      const th = pickTheme(LT, 8, THEME_FIRST, LC) || (!tac0 ? pickTheme(LT, 8, THEME_LATE, LC) : undefined);
+      const thTxt = th ? themeSentence(th, LC, false) : '';
+      const tac = thTxt ? undefined : tac0;
       const lostTxt = materialWords(tr.lostNet) || 'du matériel'; const lp = lossPhrase(tr); void lostTxt;
       const movedTo = sqIdx(c.uci.slice(2, 4)); const movedPiece = after.b[movedTo];
       const hb = new Set(hanging(before.b, me).map((h) => h.sq)); const ha = hanging(after.b, me);
       const fl = tr.firstLoss.find((x) => x.ply >= 1);
       if (replyPv[0]) out.arrows.push({ orig: replyPv[0].slice(0, 2), dest: replyPv[0].slice(2, 4), brush: 'red' });
       addBest();
-      if (tac) {
+      if (th && thTxt) {
+        out.headline = pick([`Ce coup permet ${THEME_WORD[th.key]} adverse`, `Attention : ${THEME_SHORT[th.key]} en vue`], seed);
+        out.why = `${thTxt} ${cap(lp)}.`;
+        for (const t of th.sq) out.marks.push({ sq: sqName(t), kind: 'danger' });
+        out.tags.push(`allowed:${th.key}:${th.piece || ''}`); out.facts.push({ kind: 'allowedTactic', motif: th.key, piece: th.piece, targets: th.sq.map(sqName), lost: tr.lostNet, net: tr.net, line: [c.uci, ...replyPv].slice(0, th.ply + 1) });
+        out.tip = tipFor('allowed:' + th.key, level, seed);
+      } else if (tac) {
         out.headline = pick([`Ce coup permet ${tac.key === 'fork' ? 'une fourchette' : tac.key === 'skewer' ? 'une enfilade' : tac.key === 'pin' ? 'un clouage' : tac.key === 'trappedPiece' ? 'de piéger une pièce' : 'une tactique'} adverse`, `Attention : ${tac.key === 'fork' ? 'fourchette' : tac.key === 'skewer' ? 'enfilade' : tac.key === 'pin' ? 'clouage' : 'tactique'} en vue`], seed);
         out.why = `Après ${sanOf(fenAfter, replyPv[0])}, ${motifSentence(tac, parseFen(applyU(fenAfter, replyPv[0]) || fenAfter), false, seed, after).replace(/^./, (x) => x.toLowerCase())} ${cap(lp)}.`;
         for (const t of tac.targets) out.marks.push({ sq: sqName(t), kind: 'danger' });
@@ -287,9 +381,20 @@ export function explainMove(c: MoveCtx): Explanation {
     if (best && trBest && trBest.net >= 1 && trBest.net > tr.net) {
       const bm = moveMotifs(before, mvOf(bestU), false);
       const ver = verifyOnLine(bm, c.fenBefore, best.pv, applyU, isMateFen).verified;
-      const tac = bestTactic(ver);
+      const tacOld = bestTactic(ver);
+      const LTm = lineThemes(c.fenBefore, best.pv, false); const LCm = lineCtx(c.fenBefore, best.pv, false);
+      const thm = pickTheme(LTm, 8, THEME_FIRST, LCm) || (!tacOld ? pickTheme(LTm, 8, THEME_LATE, LCm) : undefined);
+      const thmTxt = thm ? themeSentence(thm, LCm, true) : '';
+      const tac = thmTxt ? undefined : tacOld;
       const wp = gainPhrase(trBest); const free = tac?.key === 'hangingCapture' && !attackers(before.b, tac.targets[0], them).length;
       addBest();
+      if (thm && thmTxt) {
+        out.headline = `Tu pouvais ${wp} : ${THEME_SHORT[thm.key]} !`;
+        out.why = thmTxt; out.plan = lineFr(c.fenBefore, best.pv, L + 1);
+        for (const t of thm.sq) out.marks.push({ sq: sqName(t), kind: 'target' });
+        out.tags.push('missed:' + thm.key + ':' + (thm.piece || '')); out.facts.push({ kind: 'missedTactic', motif: thm.key, won: trBest.wonNet, line: best.pv.slice(0, 5) });
+        out.tip = tipFor('missed', level, seed); return out;
+      }
       out.headline = tac && tac.key !== 'promotion' ? `Tu pouvais ${wp} : ${tac.key === 'fork' ? 'fourchette' : tac.key === 'skewer' ? 'enfilade' : tac.key === 'pin' ? 'clouage' : tac.key === 'hangingCapture' ? (free ? 'pièce gratuite' : 'prise gagnante') : tac.key === 'discoveredAttack' ? 'découverte' : tac.key === 'trappedPiece' ? 'pièce piégée' : 'tactique'} !` : `Tu pouvais ${wp}`;
       const promoOnly = !tac && trBest.promoMe > 0 && wp === 'faire dame';
       const tgtRole = tac ? before.b[tac.targets[0]]?.t : undefined;

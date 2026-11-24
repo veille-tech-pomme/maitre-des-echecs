@@ -201,19 +201,19 @@ Périmètre (cahier §9) : piliers 8 (CI + validate-content + accepts.gen.json),
 Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste, `git log`, puis le point ⬜ suivant. Stockfish natif : /tmp/sf (sf 17.1 avx2, /tmp/stockfish ; à retélécharger si la machine a redémarré).
 - Q2 Maia-2 (poids) : 🟡 vérifié 24/11 — code MIT (CSSLab/maia2 LICENSE) ; poids = fichiers Google Drive téléchargés par maia2/model.py, sans licence ni fiche de modèle (aucun modèle Maia-2 sur huggingface.co/UofTCSSLab, seulement Maia-3) ; article arXiv 2409.20553 sous licence arXiv non exclusive (article seul). Licence des poids non explicite → NON intégré (et c'est la phase 3 de toute façon). Maia-3 (AGPL) exclu.
 - Pilier 8
-  - ⬜ P8.1 CI GitHub Actions (.github/workflows/ci.yml) : npm ci, tsc, vitest (Stockfish natif épinglé), validate-content (cache), build, e2e Chromium + WebKit, axe
-  - ⬜ P8.2 tools/validate-content.mts → src/data/accepts.gen.json + tools/data/validation-cache/ + rapport ; tests/content.test.ts
-  - ⬜ P8.3 CA8.1 position illégale volontaire → CI rouge (branche de test) ; CA8.3 2 exécutions identiques ; CA8.4 100 % des exercices à coups
+  - 🟡 P8.1 CI écrite (tools/ci/ci.yml : npm ci, tsc, validate-content, diff des fichiers générés, vitest, build, e2e Chromium+WebKit+axe ; --fresh la nuit) MAIS push de .github/workflows refusé : jeton gh sans portée « workflow » → à déplacer quand la portée sera accordée (`gh auth refresh -h github.com -s workflow`, interactif). En attendant tools/ci-local.sh (mêmes étapes). Protection de branche : impossible sans CI active.
+  - ✅ P8.2 tools/validate-content.mts → accepts.gen.json (61 Ko, 15 Ko gz) + cache + rapport ; 1292 positions, 1135 alternatives, 118 finales tablebase, 0 erreur ; tests/content.test.ts (commit a4d696f)
+  - 🟡 P8.3 CA8.1 rouge vérifié EN LOCAL (FEN illégale injectée dans d-mat#1 → exit 1, « le camp qui n’a pas le trait est en échec ») ; pas sur GitHub (cf. P8.1). ✅ CA8.3 : --fresh (de zéro, 6 min 54) = octet pour octet identique (accepts, rapport, 1180 entrées de cache). ✅ CA8.4 779/779.
 - Pilier 1
-  - ⬜ P1.1 src/coach/diagnose.ts (MistakeKind, diagnose, graduatedHints, explainIllegal) + corpus tests/diagnose-corpus.ts
-  - ⬜ P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux branchés : leçons, cours, finales, ouvertures, fil, puzzles
-  - ⬜ P1.3 Coups illégaux expliqués (Débutant)
+  - ✅ P1.1 src/coach/diagnose.ts (MistakeKind, diagnose, graduatedHints, explainIllegal) + corpus tests/diagnose-corpus.ts (36 tests verts, positions vérifiées au moteur ; commit de6955a)
+  - 🟡 P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux branchés : leçons, cours, finales, ouvertures, fil, puzzles (branché ; reste : indice moteur dans PlayGoal, e2e)
+  - 🟡 P1.3 Coups illégaux expliqués (Débutant) : explainIllegal + Board free branchés ; à vérifier en e2e
   - ⬜ P1.4 CA1.1 e2e coup faux → headline non générique ; CA1.6 latence 1re phrase iPhone
 - Pilier 2
-  - ⬜ P2.1 src/data/concepts.ts + étiquetage 100 % des étapes d'exercice
-  - ⬜ P2.2 src/coach/mastery.ts (BKT, règles de maîtrise), modèle v2 + migration v1→v2
-  - ⬜ P2.3 FSRS (ts-fsrs, MIT) derrière srs.ts + migration SM-2
-  - ⬜ P2.4 Erreurs de leçon/exercice → cartes « mistake » ; fil entrelacé sans thème annoncé, ≤ 2 cartes de la même notion à la suite
+  - 🟡 P2.1 src/data/concepts.ts (49 notions) ; étiquetage par leçon (conceptsOfLesson) ; test 100 % à écrire
+  - 🟡 P2.2 src/coach/mastery.ts + modèle v2 + migrateModel faits ; tests CA2.4 à écrire
+  - 🟡 P2.3 FSRS (lib/fsrs.ts, chunk séparé 8,7 Ko gz chargé 1,5 s après l'affichage ; repli SM-2) ; tests à écrire
+  - 🟡 P2.4 Erreurs de leçon/exercice → cartes « mistake » (lib/learning.ts, évènement brut « mistake ») ; reste : fil entrelacé ; fil entrelacé sans thème annoncé, ≤ 2 cartes de la même notion à la suite
   - ⬜ P2.5 Carte des notions (Mes progrès) ; export inclut les notions ; banc simulé (bench/)
 - Pilier 7 (séance)
   - ⬜ P7.1 « Ma séance de 5 minutes » en un geste depuis l'accueil, jauge, fin de séance (progrès + demain) ; e2e temps simulés

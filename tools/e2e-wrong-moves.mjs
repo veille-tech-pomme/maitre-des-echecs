@@ -18,7 +18,8 @@ const ids = [...new Set(ITEMS.map((x) => x.id))];
 const init = `localStorage.setItem('echecs-app-v1', JSON.stringify({ xp: 0, onboarded: true, lessons: Object.fromEntries(${JSON.stringify(ids)}.map((i) => [i, { done: true, stars: 3, step: 0 }]).concat([['unlock-intermediaire', { done: false, stars: 0, step: 0 }], ['unlock-avance', { done: false, stars: 0, step: 0 }]])) }));
 localStorage.setItem('echecs-dev-premium', JSON.stringify({ premium: true, source: 'dev', plan: 'lifetime' }));`;
 async function clickSq(page, sq, orient) {
-  const b = await page.locator('.lesson-board cg-board').first().boundingBox(); const s = b.width / 8;
+  let b = null; for (let i = 0; i < 30 && !(b = await page.locator('.lesson-board cg-board').first().boundingBox()); i++) await sleep(100); // WebKit : l'échiquier peut ne pas être encore posé
+  if (!b) throw new Error('échiquier introuvable'); const s = b.width / 8;
   let f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; if (orient === 'black') { f = 7 - f; r = 7 - r; }
   await page.mouse.click(b.x + s * (f + 0.5), b.y + s * (7 - r + 0.5)); await sleep(60);
 }

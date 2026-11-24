@@ -79,6 +79,28 @@ async function run(name, browserType, ctxOpts) {
     console.log(`    ${autos} étapes réussies enchaînées seules, ${reads} lectures « Continuer », leçon suivante ouverte seule en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     if (autos < 4) throw new Error('enchaînement des exercices : ' + autos);
   });
+  await check('leçon : coup équivalent accepté (Mat en 2, 1.Tb7), puis mat contre la meilleure défense', async () => {
+    await page.goto(URL0 + '#/lesson/i-calcul'); await sleep(600);
+    if (await page.locator('.locked-lesson').count()) { await page.click('text=Je connais déjà'); }
+    await page.waitForSelector('.lesson-grid');
+    for (let i = 0; i < 6 && !/Mat en 2/.test(await page.locator('.lesson-side h2').innerText()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(400); }
+    await sleep(400); await clickSq(page, 'b1'); await clickSq(page, 'b7');
+    await page.waitForFunction(() => /mate aussi vite/.test(document.querySelector('.lesson-board')?.textContent || document.body.textContent), null, { timeout: 15000 });
+    await sleep(1500); await clickSq(page, 'a2'); await clickSq(page, 'a8');
+    await page.waitForSelector('.feedback.solved, .success-box', { timeout: 8000 }); await shot('03c-lecon-alternative-acceptee');
+  });
+  await check('finale Philidor : la méthode est vérifiée (1…Tb1 refusé et expliqué)', async () => {
+    await page.goto(URL0 + '#/endgames/philidor'); await page.waitForSelector('cg-board'); await sleep(700);
+    await clickSq(page, 'b6', 'black'); await clickSq(page, 'b1', 'black');
+    await page.waitForFunction(() => /méthode Philidor/.test(document.querySelector('.feedback')?.textContent || ''), null, { timeout: 8000 }); await shot('03d-philidor-methode');
+  });
+  await check('jouer : pendule (blitz 3+2) qui décompte', async () => {
+    await page.goto(URL0 + '#/play/paulette'); await page.waitForSelector('.tc-pick'); await page.click('.tc-pick .color-opt:nth-child(4)'); await page.click('.sticky-cta .btn');
+    await page.waitForSelector('.player-bar .clock'); const t0 = await page.locator('.player-bar.me .clock').innerText(); await sleep(2300);
+    const t1 = await page.locator('.player-bar.me .clock').innerText(); if (t0 === t1) throw new Error(`pendule figée (${t0})`);
+    await shot('06c-pendule'); console.log(`    pendule ${t0} → ${t1}`);
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('echecs-app-v1')); s.settings.playTc = 'none'; localStorage.setItem('echecs-app-v1', JSON.stringify(s)); });
+  });
   await check('pour toi : 1re carte', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.feed-card:not(.skeleton)', { timeout: 20000 }); await sleep(600); await shot('01-pour-toi'); });
   await check('diagnostic : 6 à 8 premières cartes', async () => {
     let n = 0;

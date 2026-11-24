@@ -17,7 +17,26 @@ import { recommendedBot, markPlanDone } from '../lib/plan';
 import { checkBadges } from '../lib/progress';
 import { openingName } from '../data/openings';
 import { go } from '../lib/router';
+import CALIB from '../data/bot-calibration.json';
 
+/** Cadences (audit Magnus B7 : pendule contre les bots). */
+export const TCS = [
+  { id: 'none', label: 'Sans pendule', sub: 'Prends ton temps', base: 0, inc: 0 },
+  { id: '10+0', label: 'Rapide', sub: '10 min', base: 600, inc: 0 },
+  { id: '5+3', label: 'Blitz', sub: '5 min + 3 s', base: 300, inc: 3 },
+  { id: '3+2', label: 'Blitz', sub: '3 min + 2 s', base: 180, inc: 2 },
+] as const;
+export const fmtClock = (ms: number) => { const t = Math.max(0, ms); if (t < 10000) return (t / 1000).toFixed(1).replace('.', ','); const s = Math.ceil(t / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+/** Matériel suffisant pour mater (pour la règle du temps écoulé : sinon, nulle). */
+export function canMate(c: Chess, side: 'w' | 'b') { const ps = c.board().flat().filter((x) => x && x.color === side).map((x) => x!.type).filter((t) => t !== 'k'); return ps.some((t) => t === 'p' || t === 'r' || t === 'q') || ps.length >= 2; }
+
+/** Audit Magnus B7 : force mesurée (tournoi de calibration) ou réglage Stockfish, affichés honnêtement. */
+export function calibText(b: Bot): string {
+  const m = (CALIB as any).bots?.[b.id] as { elo: number; se: number; games: number } | undefined;
+  if (m) return `Elo mesuré : ≈ ${m.elo} (± ${m.se}, ${m.games} parties de calibration contre Stockfish et les bots voisins)`;
+  if (b.limitElo) return `Force réglée par Stockfish (UCI_Elo ${b.limitElo})`;
+  return `Stockfish à pleine force (${(b.movetime || 0) / 1000} s par coup)`;
+}
 export function BotSelect() {
   const s = useStore((x) => x);
   const rec = recommendedBot(s); const rb = botById(rec);
@@ -72,15 +91,34 @@ export function Game({ botId }: { botId: string }) {
   const [chat, setChat] = useState<string>('');
   const [over, setOver] = useState<{ text: string; result: string; id: string } | null>(null);
   const [takebacks, setTakebacks] = useState(0);
+  const [tcId, setTcId] = useState<string>(settings.playTc || 'none');
+  const tc = TCS.find((x) => x.id === tcId) || TCS[0];
+  const clock = useRef({ w: 0, b: 0 }); const myStart = useRef(0); const botStart = useRef(0); const [, tick] = useState(0);
   const evalCache = useRef(new Map<string, PvLine[]>());
   const gid = useRef('');
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; engine.stopAll(); }, []);
+  useEffect(() => {
+    if (!tc.base || setup || over) return;
+    const id = setInterval(() => {
+      tick((x) => x + 1);
+      const me = color; const mine = ch.turn() === me && !thinking && !(coach?.undoable && coach.cls === 'blunder');
+      if (mine && clock.current[me] - (Date.now() - myStart.current) <= 0) end(ch, hist, false, me);
+    }, 200);
+    return () => clearInterval(id);
+  });
+  const liveClock = (side: 'w' | 'b') => {
+    let t = clock.current[side];
+    if (!over) { if (side === color && ch.turn() === side && !thinking && !(coach?.undoable && coach.cls === 'blunder')) t -= Date.now() - myStart.current; else if (side !== color && botStart.current) t -= Date.now() - botStart.current; }
+    return t;
+  };
+  const clockEl = (side: 'w' | 'b') => { if (!tc.base) return null; const t = liveClock(side); const active = !over && ch.turn() === side; return <span class={'clock tnum' + (active ? ' on' : '') + (t < 20000 ? ' low' : '')} role="timer" aria-label={`Pendule ${side === color ? 'toi' : bot.name} : ${fmtClock(t)}`}>{fmtClock(t)}</span>; };
   const say = (arr: string[]) => setChat(arr[Math.floor(Math.random() * arr.length)]);
 
   const start = (c: 'w' | 'b' | 'r') => {
     const col = c === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c;
     engine.stopAll(); engine.newGame();
+    clock.current = { w: tc.base * 1000, b: tc.base * 1000 }; myStart.current = Date.now(); botStart.current = 0;
     setColor(col); const n = new Chess(); setCh(n); setHist([]); setCoach(null); setHint(null); setOver(null); setTakebacks(0); setSetup(false);
     gid.current = 'g' + Date.now().toString(36); say(bot.lines.hello); evalCache.current.clear();
     if (col === 'b') setTimeout(() => botTurn(n, []), 500); else if (coachOn) analyseBg(n.fen());
@@ -94,7 +132,7 @@ export function Game({ botId }: { botId: string }) {
   async function botTurn(c: Chess, h: Move[]) {
     if (c.isGameOver()) return end(c, h);
     setThinking(true);
-    const t0 = Date.now();
+    const t0 = Date.now(); botStart.current = t0;
     let u = '';
     try { u = await botMove(bot, c.fen(), h.map((m) => m.san)); } catch (e) { console.warn(e); }
     if (!alive.current) return;
@@ -103,6 +141,8 @@ export function Game({ botId }: { botId: string }) {
     const n = new Chess(c.fen()); const m = u ? tryMove(n, u) : null;
     if (!m) { const any = n.moves()[0]; if (!any) return end(c, h); tryMove(n, any); }
     const mm = m || n.history({ verbose: true }).slice(-1)[0];
+    if (tc.base) { const bc = mm.color; clock.current[bc] -= Date.now() - t0; if (clock.current[bc] <= 0) { botStart.current = 0; setThinking(false); return end(c, h, false, bc); } clock.current[bc] += tc.inc * 1000; }
+    botStart.current = 0; myStart.current = Date.now();
     playForMove(mm); const nh = [...h, mm]; setCh(n); setHist(nh); setThinking(false);
     if (mm.captured && Math.random() < 0.4) say(bot.lines.capture); else if (mm.san.includes('+') && Math.random() < 0.5) say(bot.lines.check);
     if (n.isGameOver()) return end(n, nh);
@@ -113,6 +153,7 @@ export function Game({ botId }: { botId: string }) {
     const before = ch.fen();
     const n = new Chess(before); const m = tryMove(n, { from, to, promotion: promotion || (isPromotion(ch, from, to) ? 'q' : undefined) });
     if (!m) return false;
+    if (tc.base) { clock.current[m.color] -= Date.now() - myStart.current; if (clock.current[m.color] <= 0) { end(ch, hist, false, m.color); return false; } clock.current[m.color] += tc.inc * 1000; }
     playForMove(m); const nh = [...hist, m]; setCh(n); setHist(nh); setHint(null); setCoach(null);
     if (coachOn && !n.isGameOver()) {
       setThinking(true);
@@ -136,7 +177,7 @@ export function Game({ botId }: { botId: string }) {
     const lastMine = hist[k - 1].color === color;
     k -= lastMine ? 1 : 2; if (k < 0) return;
     const n = new Chess(); for (const m of hist.slice(0, k)) tryMove(n, m.san);
-    setCh(n); setHist(hist.slice(0, k)); setCoach(null); setHint(null); setTakebacks((t) => t + 1); setOver(null);
+    setCh(n); setHist(hist.slice(0, k)); setCoach(null); setHint(null); setTakebacks((t) => t + 1); setOver(null); myStart.current = Date.now();
   }
   /** Indices gradués : 1. Menaces → 2. Idée → 3. Coup. */
   async function getHint() {
@@ -147,9 +188,10 @@ export function Game({ botId }: { botId: string }) {
     catch { toast('Indice indisponible', 'info'); }
     setThinking(false);
   }
-  function end(c: Chess, h: Move[], resigned = false) {
+  function end(c: Chess, h: Move[], resigned = false, flag?: 'w' | 'b') {
     let result: '1-0' | '0-1' | '1/2-1/2' = '1/2-1/2'; let text = gameOverText(c) || '';
     if (resigned) { result = color === 'w' ? '0-1' : '1-0'; text = 'Tu as abandonné'; }
+    else if (flag) { const other = flag === 'w' ? 'b' : 'w'; clock.current[flag] = 0; if (canMate(c, other)) { result = flag === 'w' ? '0-1' : '1-0'; text = 'Temps écoulé'; } else text = 'Nulle — temps écoulé, mais matériel insuffisant pour mater'; }
     else if (c.isCheckmate()) result = c.turn() === 'w' ? '0-1' : '1-0';
     const won = (result === '1-0' && color === 'w') || (result === '0-1' && color === 'b');
     const lost = (result === '1-0' && color === 'b') || (result === '0-1' && color === 'w');
@@ -165,12 +207,20 @@ export function Game({ botId }: { botId: string }) {
   if (setup) return (
     <div class="page game-setup">
       <NavBar back="#/play" backLabel="Jouer" />
-      <div class="bot-hero" style={{ '--c': bot.color } as any}><BotAvatar bot={bot} size={104} /><h1>{bot.name}</h1><p class="bh-style">{bot.style} · {bot.elo} Elo</p><p>{bot.bio}</p></div>
+      <div class="bot-hero" style={{ '--c': bot.color } as any}><BotAvatar bot={bot} size={104} /><h1>{bot.name}</h1><p class="bh-style">{bot.style} · {bot.elo} Elo</p><p class="bh-calib muted small">{calibText(bot)}</p><p>{bot.bio}</p></div>
       <div class="section-label">Tu joues</div>
       <div class="color-pick" role="radiogroup" aria-label="Couleur">
         {([['w', 'Blancs'], ['r', 'Hasard'], ['b', 'Noirs']] as const).map(([k, l]) => (
           <button class={'color-opt ' + (pick === k ? 'on' : '')} role="radio" aria-checked={pick === k} onClick={() => setPick(k)}>
             <span class={'kq ' + k}><Icon name={k === 'r' ? 'dice' : 'king'} size={26} /></span>{l}
+          </button>
+        ))}
+      </div>
+      <div class="section-label">Cadence</div>
+      <div class="color-pick tc-pick" role="radiogroup" aria-label="Cadence">
+        {TCS.map((x) => (
+          <button class={'color-opt ' + (tcId === x.id ? 'on' : '')} role="radio" aria-checked={tcId === x.id} onClick={() => { setTcId(x.id); setState((s) => { s.settings.playTc = x.id; }); }}>
+            <b>{x.label}</b><small class="muted">{x.sub}</small>
           </button>
         ))}
       </div>
@@ -199,7 +249,7 @@ export function Game({ botId }: { botId: string }) {
         <div class="board-col">
           <div class="player-bar">
             <BotAvatar bot={bot} size={36} /><span class="pb-name"><b>{bot.name}</b><small class="elo tnum">{bot.elo}</small></span>
-            {thinking ? <span class="thinking" aria-label="Réfléchit">…</span> : capsOf(botCaps, color === 'w' ? 'white' : 'black')}{!thinking && mat < 0 && <small class="adv">+{-mat}</small>}
+            {thinking ? <span class="thinking" aria-label="Réfléchit">…</span> : capsOf(botCaps, color === 'w' ? 'white' : 'black')}{!thinking && mat < 0 && <small class="adv">+{-mat}</small>}{clockEl(color === 'w' ? 'b' : 'w')}
           </div>
           {chat && <div class="bubble" key={chat}>{chat}</div>}
           <Board fen={ch.fen()} orientation={orient} turn={turnColor(ch)} movable={thinking || over || (coach?.undoable && coach.cls === 'blunder') ? 'none' : orient}
@@ -209,7 +259,7 @@ export function Game({ botId }: { botId: string }) {
             highlight={curHint ? new Map(curHint.marks.map((mk) => [mk.sq, 'mk-' + mk.kind])) : coach && coach.undoable ? new Map(coach.ex.marks.map((mk) => [mk.sq, 'mk-' + mk.kind])) : undefined} />
           <div class="player-bar me">
             <span class="me-avatar">{(settings.name || 'T').slice(0, 1).toUpperCase()}</span><span class="pb-name"><b>{settings.name || 'Toi'}</b>{myTurn && <small class="your-turn">À toi de jouer</small>}</span>
-            {capsOf(myCaps, color === 'w' ? 'black' : 'white')}{mat > 0 && <small class="adv">+{mat}</small>}
+            {capsOf(myCaps, color === 'w' ? 'black' : 'white')}{mat > 0 && <small class="adv">+{mat}</small>}{clockEl(color)}
           </div>
         </div>
         <aside class="side">

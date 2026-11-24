@@ -5,7 +5,7 @@ import type { SrsItem } from './srs';
 export type ThemeMode = 'auto' | 'dark' | 'light';
 export interface Settings {
   theme: ThemeMode; board: string; pieces: string; sound: boolean; coords: boolean; animation: boolean;
-  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; reduceMotion: boolean; boardSize: number; name: string;
+  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; playTc?: string; reduceMotion: boolean; boardSize: number; name: string;
 }
 export interface GameRecord {
   id: string; date: number; botId: string; color: 'w' | 'b'; result: '1-0' | '0-1' | '1/2-1/2' | '*';

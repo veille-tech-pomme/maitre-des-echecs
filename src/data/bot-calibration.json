@@ -1,0 +1,127 @@
+{
+ "date": "2026-11-24",
+ "method": "Tournoi : chaque bot contre ses 3 voisins de niveau et, dès 900, contre Stockfish 17.1 UCI_Elo 1320 (100 ms/coup) ; 24 parties par paire, couleurs alternées ; Elo par maximum de vraisemblance (ancre fixe). Échelle Stockfish (proche des listes moteurs), pas un classement FIDE.",
+ "games": 1536,
+ "bots": {
+  "bebert": {
+   "elo": 330,
+   "games": 72,
+   "score": 0.44,
+   "se": 42
+  },
+  "paulette": {
+   "elo": 320,
+   "games": 96,
+   "score": 0.36,
+   "se": 38
+  },
+  "zoe": {
+   "elo": 330,
+   "games": 120,
+   "score": 0.35,
+   "se": 34
+  },
+  "gaston": {
+   "elo": 480,
+   "games": 144,
+   "score": 0.53,
+   "se": 31
+  },
+  "leo": {
+   "elo": 560,
+   "games": 144,
+   "score": 0.56,
+   "se": 32
+  },
+  "nina": {
+   "elo": 560,
+   "games": 144,
+   "score": 0.46,
+   "se": 32
+  },
+  "martin": {
+   "elo": 620,
+   "games": 144,
+   "score": 0.44,
+   "se": 32
+  },
+  "lucie": {
+   "elo": 740,
+   "games": 144,
+   "score": 0.5,
+   "se": 32
+  },
+  "odette": {
+   "elo": 820,
+   "games": 144,
+   "score": 0.5,
+   "se": 33
+  },
+  "ourson": {
+   "elo": 890,
+   "games": 144,
+   "score": 0.5,
+   "se": 32
+  },
+  "ahmed": {
+   "elo": 1010,
+   "games": 168,
+   "score": 0.51,
+   "se": 30
+  },
+  "roquetout": {
+   "elo": 1070,
+   "games": 168,
+   "score": 0.52,
+   "se": 29
+  },
+  "chloe": {
+   "elo": 1050,
+   "games": 168,
+   "score": 0.41,
+   "se": 29
+  },
+  "hugo": {
+   "elo": 1130,
+   "games": 168,
+   "score": 0.44,
+   "se": 29
+  },
+  "kevin": {
+   "elo": 1150,
+   "games": 168,
+   "score": 0.4,
+   "se": 29
+  },
+  "pionnier": {
+   "elo": 1310,
+   "games": 168,
+   "score": 0.56,
+   "se": 29
+  },
+  "sophie": {
+   "elo": 1300,
+   "games": 168,
+   "score": 0.46,
+   "se": 29
+  },
+  "kamikaze": {
+   "elo": 1460,
+   "games": 144,
+   "score": 0.66,
+   "se": 32
+  },
+  "chouette": {
+   "elo": 1430,
+   "games": 120,
+   "score": 0.58,
+   "se": 33
+  },
+  "ines": {
+   "elo": 1480,
+   "games": 96,
+   "score": 0.64,
+   "se": 37
+  }
+ }
+}

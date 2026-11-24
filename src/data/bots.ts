@@ -24,11 +24,16 @@ const STYLE_LINES: Record<BotStyle, Omit<Lines, 'hello'>> = {
 /** Paramètres moteur dérivés de l'Elo visé (Stockfish affaibli). */
 function engineFor(elo: number, style: BotStyle) {
   let e: Pick<Bot, 'depth' | 'multipv' | 'temp' | 'randomPct' | 'limitElo' | 'movetime'>;
-  if (elo < 400) e = { depth: 1, multipv: 10, temp: 380, randomPct: 0.4 };
-  else if (elo < 700) e = { depth: 2, multipv: 8, temp: 240, randomPct: 0.2 };
-  else if (elo < 1000) e = { depth: 4, multipv: 6, temp: 150, randomPct: 0.1 };
-  else if (elo < 1250) e = { depth: 6, multipv: 5, temp: 95, randomPct: 0.05 };
-  else if (elo < 1450) e = { depth: 8, multipv: 4, temp: 55, randomPct: 0.025 };
+  // Audit Magnus B7 : réglage interpolé entre des paliers MESURÉS (tournoi tools/calibrate-bots.mts, 1 536 parties,
+  // tools/data/bot-calibration-v1.json) au lieu de paliers fixes qui rendaient les bots 1000-1450 bien plus forts qu'affiché.
+  if (elo < 1450) {
+    const T = [ // [Elo mesuré, profondeur, multipv, température, part d'erreurs humaines]
+      [150, 1, 10, 450, 0.5], [300, 1, 10, 380, 0.4], [540, 2, 8, 240, 0.2], [1000, 4, 6, 150, 0.1], [1390, 6, 5, 95, 0.05], [1860, 8, 4, 55, 0.025],
+    ];
+    let k = 0; while (k < T.length - 2 && elo > T[k + 1][0]) k++;
+    const f = Math.max(0, Math.min(1, (elo - T[k][0]) / (T[k + 1][0] - T[k][0]))); const L = (i: number) => T[k][i] + f * (T[k + 1][i] - T[k][i]);
+    e = { depth: Math.round(L(1)), multipv: Math.round(L(2)), temp: Math.round(L(3)), randomPct: +L(4).toFixed(3) };
+  }
   else if (elo < 3000) e = { depth: 12, multipv: 1, temp: 0, randomPct: 0, limitElo: Math.max(1320, Math.min(3190, elo)), movetime: elo < 2000 ? 600 : elo < 2600 ? 1000 : 1500 };
   else e = { depth: elo >= 3150 ? 22 : 18, multipv: 1, temp: 0, randomPct: 0, movetime: elo >= 3150 ? 3000 : 2000 };
   const bias = { agressif: { checkBias: 45, captureBias: 25 }, gambit: { checkBias: 30, captureBias: 15 }, tactique: { captureBias: 30, checkBias: 20 }, defensif: { tradeBias: 35 }, finales: { tradeBias: 60 }, positionnel: { tradeBias: 15 }, chaotique: { checkBias: 25 }, equilibre: {} }[style];
@@ -89,7 +94,7 @@ const P: Record<string, Persona> = {
   hugo: { kind: 'human', hat: 'pirate', beard: 'full', hairColor: '#5a3825', mouth: 'grin' }, ines: { kind: 'human', hair: 2, hairColor: '#2b2016', eyes: 'glasses', mouth: 'smile', skin: '#d9a07a' }, comte: { kind: 'human', hat: 'tophat', eyes: 'monocle', beard: 'moustache', hairColor: '#8a8a8a', mouth: 'smirk' },
   morgane: { kind: 'human', hat: 'wizard', hair: 2, hairColor: '#1f2a44', eyes: 'sharp', mouth: 'smirk' }, victor: { kind: 'human', hair: 4, hairColor: '#2b2016', beard: 'goatee', eyes: 'sharp', mouth: 'flat', skin: '#8d5a3b' }, max: { kind: 'robot' },
 };
-for (const b of ORIGINAUX) { b.persona = P[b.id]; b.group = b.elo < 700 ? 'Débutants' : b.elo < 1300 ? 'Intermédiaires' : b.elo < 2000 ? 'Club' : b.elo < 2500 ? 'Experts' : 'Maîtres'; }
+for (const b of ORIGINAUX) { if (b.elo < 1450) { const e = engineFor(b.elo, 'equilibre'); Object.assign(b, { depth: e.depth, multipv: e.multipv, temp: e.temp, randomPct: e.randomPct }); } b.persona = P[b.id]; b.group = b.elo < 700 ? 'Débutants' : b.elo < 1300 ? 'Intermédiaires' : b.elo < 2000 ? 'Club' : b.elo < 2500 ? 'Experts' : 'Maîtres'; }
 const NOUVEAUX: Bot[] = [
   mk('bebert', 'Bébert le Chaton', 200, '#ffb86b', 'Débutants', 'chaotique', 'Joue avec les pièces comme avec une pelote', 'Il pousse les pièces au hasard… et parfois, par miracle, il mate !', ['Miaou ? On joue ?'], { kind: 'cat', mouth: 'o' }),
   mk('zoe', 'Zoé', 320, '#7bdff2', 'Débutants', 'equilibre', 'Apprentie appliquée', 'Zoé a 8 ans et vient de recevoir son premier échiquier. Elle s’applique !', ['Bonjour ! J’ai appris le roque hier !'], { kind: 'human', hair: 3, hairColor: '#a0522d', hat: 'flower', mouth: 'grin' }),

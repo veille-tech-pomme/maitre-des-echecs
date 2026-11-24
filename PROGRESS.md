@@ -195,3 +195,27 @@ Statut par point (✅ fait · 🟡 partiel · ⬜ à faire). Ordre P0 → P1 →
 - En ligne (24/11, 18:56 Bruxelles) : main 1c4bd57, gh-pages 386be6f, bundle index-ZceGoXSS.js identique à dist
   - e2e en ligne bureau + iPhone 14 Pro WebKit : 88 vérifications, 0 échec, 0 erreur console (1er passage : 1 dépassement de délai sur « bilan de partie » iPhone, page correcte à l’écran ; 2e passage vert)
   - Premier chargement en ligne : 153 KiB ; Lighthouse mobile en ligne : 100 / 100 / 100 / 100 (LCP 1,5 s, TBT 10 ms, CLS 0)
+
+# PHASE 9 (24/11) — GOAT phase 1 : MVP « Le coach qui explique » — /workspace/audit-magnus/cahier-des-charges-goat.md
+Périmètre (cahier §9) : piliers 8 (CI + validate-content + accepts.gen.json), 1 (diagnostic, réfutation, indices 3 niveaux partout), 2 (notions + FSRS + révision des erreurs de leçon), 7 (séance de 5 minutes seulement).
+Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste, `git log`, puis le point ⬜ suivant. Stockfish natif : /tmp/sf (sf 17.1 avx2, /tmp/stockfish ; à retélécharger si la machine a redémarré).
+- Q2 Maia-2 (poids) : 🟡 vérifié 24/11 — code MIT (CSSLab/maia2 LICENSE) ; poids = fichiers Google Drive téléchargés par maia2/model.py, sans licence ni fiche de modèle (aucun modèle Maia-2 sur huggingface.co/UofTCSSLab, seulement Maia-3) ; article arXiv 2409.20553 sous licence arXiv non exclusive (article seul). Licence des poids non explicite → NON intégré (et c'est la phase 3 de toute façon). Maia-3 (AGPL) exclu.
+- Pilier 8
+  - ⬜ P8.1 CI GitHub Actions (.github/workflows/ci.yml) : npm ci, tsc, vitest (Stockfish natif épinglé), validate-content (cache), build, e2e Chromium + WebKit, axe
+  - ⬜ P8.2 tools/validate-content.mts → src/data/accepts.gen.json + tools/data/validation-cache/ + rapport ; tests/content.test.ts
+  - ⬜ P8.3 CA8.1 position illégale volontaire → CI rouge (branche de test) ; CA8.3 2 exécutions identiques ; CA8.4 100 % des exercices à coups
+- Pilier 1
+  - ⬜ P1.1 src/coach/diagnose.ts (MistakeKind, diagnose, graduatedHints, explainIllegal) + corpus tests/diagnose-corpus.ts
+  - ⬜ P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux branchés : leçons, cours, finales, ouvertures, fil, puzzles
+  - ⬜ P1.3 Coups illégaux expliqués (Débutant)
+  - ⬜ P1.4 CA1.1 e2e coup faux → headline non générique ; CA1.6 latence 1re phrase iPhone
+- Pilier 2
+  - ⬜ P2.1 src/data/concepts.ts + étiquetage 100 % des étapes d'exercice
+  - ⬜ P2.2 src/coach/mastery.ts (BKT, règles de maîtrise), modèle v2 + migration v1→v2
+  - ⬜ P2.3 FSRS (ts-fsrs, MIT) derrière srs.ts + migration SM-2
+  - ⬜ P2.4 Erreurs de leçon/exercice → cartes « mistake » ; fil entrelacé sans thème annoncé, ≤ 2 cartes de la même notion à la suite
+  - ⬜ P2.5 Carte des notions (Mes progrès) ; export inclut les notions ; banc simulé (bench/)
+- Pilier 7 (séance)
+  - ⬜ P7.1 « Ma séance de 5 minutes » en un geste depuis l'accueil, jauge, fin de séance (progrès + demain) ; e2e temps simulés
+- Fin
+  - ⬜ Tests complets (unit + e2e bureau + iPhone WebKit), déploiement GitHub Pages, vérification en ligne, captures screenshots/goat1/

@@ -86,7 +86,9 @@ async function run(name, browserType, ctxOpts) {
     for (let i = 0; i < 6 && !/Mat en 2/.test(await page.locator('.lesson-side h2').innerText()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(400); }
     await sleep(400); await clickSq(page, 'b1'); await clickSq(page, 'b7');
     await page.waitForFunction(() => /mate aussi vite/.test(document.querySelector('.lesson-board')?.textContent || document.body.textContent), null, { timeout: 15000 });
-    await sleep(1500); await clickSq(page, 'a2'); await clickSq(page, 'a8');
+    await page.waitForFunction(() => /Les Blancs jouent|À toi/.test(document.querySelector('.feedback')?.textContent || ''), null, { timeout: 10000 }); await sleep(400);
+    await page.locator('cg-board').first().scrollIntoViewIfNeeded(); await page.evaluate(() => document.querySelector('cg-board')?.scrollIntoView({ block: 'center' })); await sleep(300);
+    await clickSq(page, 'a2'); await clickSq(page, 'a8');
     await page.waitForSelector('.feedback.solved, .success-box', { timeout: 8000 }); await shot('03c-lecon-alternative-acceptee');
   });
   await check('finale Philidor : la méthode est vérifiée (1…Tb1 refusé et expliqué)', async () => {
@@ -143,6 +145,13 @@ async function run(name, browserType, ctxOpts) {
         await page.locator('.fc-choice', { hasText: new RegExp('^' + fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }).click(); await page.waitForSelector('.fc-reveal.good'); await shot('01c-pour-toi-menace');
         const t0 = Date.now(); await page.waitForFunction((r) => document.querySelector('.feed-end') || document.querySelector('.feed-card:not(.leaving)')?.getAttribute('data-ref') !== r, ref, { timeout: 8000 });
         console.log(`    menace juste → carte suivante en ${Date.now() - t0} ms`); return;
+      }
+      const z = kind !== 'diag' && kind !== 'threat' ? puzzleById(ref) : null;
+      if (z) { // une carte puzzle (le diagnostic de 6 à 8 cartes peut épuiser le fil avant une carte menace) : on la résout
+        const orient = z.f.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = z.m.split(' ');
+        for (let k = 1; k < mv.length; k += 2) { await clickSq(page, mv[k].slice(0, 2), orient); await clickSq(page, mv[k].slice(2, 4), orient); await sleep(900); }
+        const t0 = Date.now(); await page.waitForFunction((r) => document.querySelector('.feed-end') || document.querySelector('.feed-card:not(.leaving)')?.getAttribute('data-ref') !== r, ref, { timeout: 10000 });
+        console.log(`    puzzle juste (${kind}) → carte suivante en ${Date.now() - t0} ms`); return;
       }
       await page.click('.fc-skip'); await sleep(300);
     }

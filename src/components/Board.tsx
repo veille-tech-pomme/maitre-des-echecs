@@ -19,6 +19,8 @@ export interface BoardProps {
   highlight?: Map<string, string>;
   onMove?: (from: string, to: string, promotion?: string) => boolean | void;
   onSquare?: (sq: string) => void;
+  /** P0 : pièce sélectionnée (clic) ou soulevée (début de glisser) — candidats envisagés, 1er contact */
+  onTouch?: (sq: string, kind: 'select' | 'dragstart') => void;
   viewOnly?: boolean;
   free?: boolean;
   promotionCheck?: (from: string, to: string) => boolean;
@@ -52,7 +54,7 @@ export function Board(p: BoardProps) {
       draggable: { enabled: true, showGhost: true },
       selectable: { enabled: true },
       drawable: { enabled: true, visible: true, autoShapes: validShapes(q.shapes), defaultSnapToValidMove: true },
-      events: { select: (k: Key) => props.current.onSquare?.(k) },
+      events: { select: (k: Key) => { props.current.onSquare?.(k); props.current.onTouch?.(k, 'select'); } },
     };
   };
   function onAfter(from: Key, to: Key) {
@@ -76,6 +78,12 @@ export function Board(p: BoardProps) {
     let raf = 0;
     const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { const e = el.current; if (e && e.isConnected && e.clientWidth > 0) cg.current?.redrawAll(); }); });
     ro.observe(el.current);
+    // début de glisser (P0) : le pointeur bouge de plus de 8 px pendant l'appui
+    let down: { x: number; y: number; k?: string } | null = null;
+    const pd = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY, k: cg.current?.getKeyAtDomPos([e.clientX, e.clientY]) as string | undefined }; };
+    const pm = (e: PointerEvent) => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) { if (down.k) props.current.onTouch?.(down.k, 'dragstart'); down = null; } };
+    const pu = () => { down = null; };
+    el.current.addEventListener('pointerdown', pd, { passive: true }); el.current.addEventListener('pointermove', pm, { passive: true }); addEventListener('pointerup', pu, { passive: true });
     const unlock = () => unlockAudio();
     el.current.addEventListener('pointerdown', unlock, { once: true });
     // chessground garde en cache la position de l'échiquier : si elle a été mesurée pendant une animation d'entrée
@@ -85,7 +93,7 @@ export function Board(p: BoardProps) {
     el.current.addEventListener('mousedown', fresh, { capture: true }); el.current.addEventListener('touchstart', fresh, { capture: true, passive: true });
     const onAnim = (e: Event) => { const t = e.target; if (el.current && t instanceof Element && t !== el.current && t.contains(el.current)) { fresh(); cg.current?.state.dom.redraw(); } };
     document.addEventListener('animationend', onAnim); document.addEventListener('transitionend', onAnim);
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('animationend', onAnim); document.removeEventListener('transitionend', onAnim); cg.current?.destroy(); cg.current = null; };
+    return () => { removeEventListener('pointerup', pu); cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('animationend', onAnim); document.removeEventListener('transitionend', onAnim); cg.current?.destroy(); cg.current = null; };
   }, []);
   useEffect(() => { cg.current?.set(config()); cg.current?.setAutoShapes(validShapes(p.shapes)); });
 

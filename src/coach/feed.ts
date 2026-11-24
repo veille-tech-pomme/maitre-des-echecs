@@ -26,6 +26,8 @@ export interface FeedCard {
   ref?: string;
   /** notion travaillée (pilier 2) : entrelacement, jamais annoncée avant la réponse */
   concept?: string;
+  /** P0 (journal) : score glouton de la carte retenue et nombre de candidates éligibles (évaluation hors ligne future) */
+  score?: number; nCands?: number;
 }
 /** Au plus MAX_SAME_CONCEPT cartes de la même notion à la suite (CA2.3). */
 export const MAX_SAME_CONCEPT = 2;
@@ -116,7 +118,7 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
   const cands = feedCandidates(s, m, now, pending); const hist = [...f.served, ...pending].map((x) => ({ id: x.id, kind: x.kind as CardKind, skill: x.skill as SkillId | null, concept: x.concept }));
   const out: FeedCard[] = [];
   for (let k = 0; k < Math.min(n, left); k++) {
-    let best: FeedCard | null = null; let bs = -1;
+    let best: FeedCard | null = null; let bs = -1; let nc = 0;
     const prev = hist[hist.length - 1], prev2 = hist[hist.length - 2];
     // entrelacement (CA2.3) : jamais plus de MAX_SAME_CONCEPT cartes de la même notion à la suite
     const run = hist.slice(-MAX_SAME_CONCEPT); const blocked = run.length === MAX_SAME_CONCEPT && run.every((h) => h.concept && h.concept === run[0].concept) ? run[0].concept : null;
@@ -125,6 +127,7 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
       const times = hist.filter((h) => h.id === c.id).length;
       if (c.kind === 'mistake' && times) continue; // une erreur donnée : une fois par jour
       if (c.kind === 'lesson' && times >= 2) continue;
+      nc++;
       let sc = c.gain * Math.pow(c.kind === 'puzzle' || c.kind === 'mate1' ? 0.7 : 0.5, times) * kindFactor(f, c.kind);
       if (prev && prev.kind === c.kind) sc *= c.kind === 'puzzle' ? 0.75 : 0.45;
       if (c.skill && (prev?.skill === c.skill || prev2?.skill === c.skill)) sc *= 0.55;
@@ -132,6 +135,7 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
       if (sc > bs) { bs = sc; best = c; }
     }
     if (!best) break;
+    best = { ...best, score: +bs.toFixed(4), nCands: nc };
     out.push(best); hist.push({ id: best.id, kind: best.kind, skill: best.skill, concept: best.concept });
   }
   return out;

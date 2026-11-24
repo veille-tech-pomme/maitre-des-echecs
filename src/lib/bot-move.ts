@@ -50,7 +50,8 @@ export function naturalMove(ch: Chess, elo: number, rnd: () => number = Math.ran
 
 type Eng = Pick<typeof engine, 'analyse'>;
 /** `eng` : moteur injectable (calibration hors navigateur : tools/calibrate-bots.mts). */
-export async function botMove(bot: Bot, fen: string, history: string[], eng: Eng = engine): Promise<string> {
+/** `hurry` : pendule à moins de 10 % → calcul raccourci (brief P0 §4). */
+export async function botMove(bot: Bot, fen: string, history: string[], eng: Eng = engine, hurry = false): Promise<string> {
   const ch = new Chess(fen);
   const legal = ch.moves({ verbose: true });
   if (!legal.length) return '';
@@ -64,10 +65,10 @@ export async function botMove(bot: Bot, fen: string, history: string[], eng: Eng
     const m = naturalMove(ch, bot.elo); if (m) return m.from + m.to + (m.promotion || '');
   }
   if (bot.limitElo || bot.temp === 0) {
-    const r = await eng.analyse(fen, { depth: bot.limitElo ? undefined : bot.depth, movetime: bot.movetime || (bot.limitElo ? 700 : undefined), elo: bot.limitElo, multipv: 1 });
+    const r = await eng.analyse(fen, { depth: bot.limitElo ? undefined : bot.depth, movetime: hurry ? 150 : bot.movetime || (bot.limitElo ? 700 : undefined), elo: bot.limitElo, multipv: 1 });
     return r.best;
   }
-  const r = await eng.analyse(fen, { depth: bot.depth, multipv: Math.min(bot.multipv, legal.length) });
+  const r = await eng.analyse(fen, { depth: hurry ? Math.min(bot.depth, 6) : bot.depth, multipv: Math.min(bot.multipv, legal.length) });
   if (!r.lines.length) return r.best;
   const scored = r.lines.map((l) => {
     let s = l.mate != null ? (l.mate > 0 ? 5000 - l.mate * 50 : -5000 - l.mate * 50) : (l.cp || 0);

@@ -19,6 +19,10 @@ import { StepBoard } from './Lesson';
 import { SKILL } from '../coach/skills';
 import { useCoachSync } from '../coach/ui/common';
 import { ensureModel } from '../coach/curriculum';
+import { logEvent } from '../lib/events';
+import { shouldAskConsent } from '../lib/consent';
+import { lazy } from '../lib/lazy';
+const ConsentSheet = lazy<{ onClose: (d: boolean) => void }>(() => import('../components/ConsentSheet'), 'ConsentSheet', () => <div />);
 import { nextFeedCards, recordFeed, recordDiag, diagBeginner, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, sessionActive, sessionPlan, startSession, sessionCard, sessionOver, sessionSummary, type FeedCard, type FeedOutcome, type SessionSummary } from '../coach/feed';
 import { go as goTo } from '../lib/router';
 import { feedDiagPlanned } from '../coach/diagnostic';
@@ -85,8 +89,10 @@ export function Feed() {
   const nextRef = useRef<Promise<Slot | null> | null>(null);
   const [k, setK] = useState(0);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
+  /** consentement (brief P0 §6) : jamais avant le 1er mat de l'accueil ; à la 2e carte montrée, une fois */
+  const shown = useRef(0); const [askConsent, setAskConsent] = useState(false);
   /** un geste depuis l'accueil (CA7.1) : la séance démarre sur la carte affichée (ou en prépare une) */
-  const start = () => { setState((d) => startSession(d, ensureModel(d))); setSummary(null); if (cur === null) { nextRef.current = null; setCur(undefined); setK((x) => x + 1); } };
+  const start = () => { logEvent('session_start', { kind: 'coach5' }); setState((d) => startSession(d, ensureModel(d))); setSummary(null); if (cur === null) { nextRef.current = null; setCur(undefined); setK((x) => x + 1); } };
   useEffect(() => { toastPrefs.quietXp = true; return () => { toastPrefs.quietXp = false; }; }, []);
   /** prépare une carte jouable (si une source est indisponible, on essaie la suivante) */
   async function prepare(pending: FeedCard[]): Promise<Slot | null> {
@@ -108,7 +114,7 @@ export function Feed() {
   }, [go]);
   async function advance() {
     // fin de séance : budget de temps consommé → écran de fin (l'élève peut continuer ensuite)
-    if (sessionOver(getState())) { let sm: SessionSummary | null = null; setState((d) => { const m = ensureModel(d); sm = sessionSummary(d, m); d.session!.over = true; }); setSummary(sm); }
+    if (sessionOver(getState())) { let sm: SessionSummary | null = null; setState((d) => { const m = ensureModel(d); sm = sessionSummary(d, m); d.session!.over = true; }); setSummary(sm); logEvent('session_end', { kind: 'coach5', n: getState().session?.n ?? 0, ms: getState().session?.spent ?? 0 }); }
     let nx = nextRef.current ? await nextRef.current : await prepare([]);
     // préchargée avant le début de la séance (programme du jour fini → rien) : on redemande avec le budget de séance
     if (!nx && sessionActive(getState())) nx = await prepare([]);
@@ -116,6 +122,7 @@ export function Feed() {
     const gs = getState(); const left = sessionActive(gs) ? 1 : DAILY_CARDS - feedProgress(gs).done; // séance : budget en temps, pas le plafond du jour
     const slot = left > 0 ? nx : null;
     setCur(slot); setK((x) => x + 1);
+    if (slot && ++shown.current >= 1 && shouldAskConsent()) setAskConsent(true);
     nextRef.current = slot ? preload(slot) : null;
   }
   // le diagnostic s'adapte à chaque réponse : sa carte suivante ne peut pas être préparée d'avance
@@ -123,13 +130,14 @@ export function Feed() {
   if (summary) return <div class="page feed"><FeedHead onStart={start} /><SessionEnd sm={summary} onContinue={() => setSummary(null)} /></div>;
   if (!go || cur === undefined) return <div class="page feed"><FeedHead onStart={start} /><div class="feed-card skeleton" role="status" aria-busy="true" aria-label="Préparation de ton fil"><div class="fc-board" /></div></div>;
   if (cur === null) {
-    if (sessionActive(s)) { const m = s.coach; if (m) setTimeout(() => { let sm: SessionSummary | null = null; setState((d) => { sm = sessionSummary(d, ensureModel(d)); d.session!.over = true; }); setSummary(sm); }, 0); }
+    if (sessionActive(s)) { const m = s.coach; if (m) setTimeout(() => { let sm: SessionSummary | null = null; setState((d) => { sm = sessionSummary(d, ensureModel(d)); d.session!.over = true; }); setSummary(sm); logEvent('session_end', { kind: 'coach5', n: getState().session?.n ?? 0, ms: getState().session?.spent ?? 0 }); }, 0); }
     return <div class="page feed"><FeedHead onStart={start} /><FeedEnd /></div>;
   }
   return (
     <div class="page feed">
       <FeedHead onStart={start} />
       <CardView key={k} slot={cur} onDone={advance} />
+      {askConsent && <ConsentSheet onClose={() => setAskConsent(false)} />}
     </div>
   );
 }
@@ -170,6 +178,7 @@ const KIND_ICON: Record<FeedCard['kind'], { icon: IconName; color: string }> = {
 };
 
 function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
+  useEffect(() => { const c = slot.card; logEvent('card_served', { card: c.id, kind: c.kind, skill: c.skill, d: c.d, score: c.score ?? c.gain, p: 1, policy: 'greedy-v1', rank: 1, nCands: c.nCands ?? null, ref: c.ref ?? null }); }, []); // montrée (pas préchargée) ; p = 1 : politique gloutonne
   const { card, content } = slot; const c = content!;
   const t0 = useRef(Date.now()); const hidden = useRef(0); const hidAt = useRef(0); const outcome = useRef<FeedOutcome | null>(null); const failed = useRef(false);
   const [state, setSt] = useState<'play' | 'ok' | 'reveal'>('play');
@@ -178,7 +187,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
   useEffect(() => {
     const vis = () => { if (document.hidden) hidAt.current = Date.now(); else if (hidAt.current) { hidden.current += Date.now() - hidAt.current; hidAt.current = 0; } };
     document.addEventListener('visibilitychange', vis);
-    return () => { document.removeEventListener('visibilitychange', vis); if (!outcome.current && elapsed() > 10000) setState((d) => recordFeed(d, card, 'abandon', elapsed())); };
+    return () => { document.removeEventListener('visibilitychange', vis); if (!outcome.current && elapsed() > 10000) { setState((d) => recordFeed(d, card, 'abandon', elapsed())); logEvent('card_result', { card: card.id, kind: card.kind, out: 'abandon', ms: elapsed() }); } };
   }, []);
   const counted = c.t === 'puzzle';
   const isDiag = c.t === 'puzzle' && !!c.diag;
@@ -194,6 +203,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
       if (!d.puzzle.seen.includes(p.i)) d.puzzle.seen.push(p.i);
       ensureModel(d);
     });
+    logEvent('card_result', { card: card.id, kind: card.kind, out: ok ? 'ok' : 'fail', ms });
     setDres(res);
     if (ok) { addXp(8, KIND_LABEL.diag); setXp(8); }
     if (ok && !res) { setSt('ok'); go(450); return; }
@@ -210,6 +220,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
       if (sessionActive(d)) sessionCard(d, elapsed(), out === 'ok');
       ensureModel(d); // le modèle consomme le signal tout de suite
     });
+    logEvent('card_result', { card: card.id, kind: card.kind, out, ms: elapsed() });
     if (c.t === 'threat') markSeen('t' + c.x.id); if (c.t === 'master') markSeen('m' + c.x.f);
   };
   // révélation réussie (coup du maître, menace) : on lit la phrase puis on enchaîne seul, sauf si « pourquoi ? » est ouvert

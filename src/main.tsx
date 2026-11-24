@@ -8,6 +8,7 @@ import { applyAppearance } from './lib/theme';
 import { initEntitlements } from './lib/entitlements';
 import { setSoundEnabled } from './lib/sound';
 import { engine } from './lib/engine';
+import { startAppTracking } from './lib/events';
 import { Toasts } from './components/ui';
 import { Icon, type IconName } from './components/Icon';
 import { Onboarding } from './pages/Onboarding';
@@ -22,6 +23,7 @@ const playM = () => import('./pages/Play');
 const BotSelect = lazy(playM, 'BotSelect'), Game = lazy<{ botId: string }>(playM, 'Game');
 const GameReviewPage = lazy(() => import('./pages/GameReview'), 'GameReviewPage');
 const Analysis = lazy(() => import('./pages/Analysis'), 'Analysis');
+const DevMetrics = lazy(() => import('./pages/DevMetrics'), 'DevMetrics'), DevEvents = lazy(() => import('./pages/DevMetrics'), 'DevEvents');
 const openM = () => import('./pages/Openings');
 const OpeningsHub = lazy(openM, 'OpeningsHub'), OpeningDetail = lazy(openM, 'OpeningDetail'), RepertoireTrainer = lazy(openM, 'RepertoireTrainer');
 const endM = () => import('./pages/Endgames');
@@ -68,6 +70,7 @@ function App() {
     case 'settings': page = <Settings />; break;
     case 'premium': page = <Premium />; break;
     case 'privacy': page = <Privacy />; break;
+    case 'dev': page = b === 'events' ? <DevEvents /> : <DevMetrics />; break;
     case 'more': page = <Profile />; break;
     default: page = <Feed />;
   }
@@ -96,6 +99,7 @@ async function boot() {
   await initEntitlements().catch(() => {});
   applyAppearance();
   render(<App />, document.getElementById('app')!);
+  startAppTracking(); // journal local (R4a) : rien ne quitte l'appareil
   setTimeout(() => engine.warmup(), 800);
   // FSRS (répétition espacée) : chargé après le premier affichage, hors du premier chargement
   setTimeout(() => import('./lib/srs').then((m) => m.loadFsrs()), 1500);

@@ -95,7 +95,7 @@ export function GameReviewPage({ id }: { id: string }) {
   const orient = game.color === 'w' ? 'white' : 'black';
   const op = openingName(game.moves);
   const opp = game.color === 'w' ? 'b' : 'w';
-  const W = 600, H = 90; const pts = rvv.es.map((e, i) => [(i / Math.max(1, rvv.es.length - 1)) * W, H - e * H]);
+  const W = 600, H = 90; const pts = rvv.es.map((e, i) => [(i / Math.max(1, rvv.es.length - 1)) * W, H - (Number.isFinite(e) ? e : 0.5) * H]); // évaluation manquante (partie de maître en cours de calcul) : milieu, jamais NaN
   const rt = retry != null ? rvv.retries[retry] : null;
   const toBoard = () => requestAnimationFrame(() => { const b = document.querySelector('.review-board, .board-wrap, cg-board'); if (b && b.getBoundingClientRect().top < 0 || (b && b.getBoundingClientRect().top > innerHeight * 0.5)) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const goPly = (p: number) => { follow.current = false; setPly(p); setRetry(null); toBoard(); };

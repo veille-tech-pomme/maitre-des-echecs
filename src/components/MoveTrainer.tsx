@@ -32,6 +32,8 @@ export interface TrainerProps {
   /** diagnostic final d'un coup refusé (modèle de l'élève, pilier 2) */
   onDiagnosis?: (d: Diagnosis, ctx: { idx: number; uci: string; fenBefore: string; solution: string[]; hintLevel: number }) => void;
   onProgress?: (idx: number) => void;
+  /** P0 : un coup légal du joueur vient d'être joué (temps du 1er coup des puzzles) */
+  onPlayed?: (uci: string) => void;
   /** niveau d'indice imposé par la page (0 à 3) */
   hintLevel?: number;
   /** indices écrits à la main (prioritaires sur les générés, jamais s'ils dévoilent le coup) */
@@ -132,6 +134,7 @@ export function MoveTrainer(p: TrainerProps) {
       return false;
     }
     const L = lineR.current; const expected = L[idx]; const before = ch.fen(); const uci = moveToUci(m);
+    p.onPlayed?.(uci);
     // un mat est toujours accepté, à n'importe quel moment de la ligne
     const ok = uci === expected || (expected && uci === expected.slice(0, 4) && !expected[4]) || (p.accept?.(idx, m, n) ?? false) || n.isCheckmate();
     if (!ok && expected) {

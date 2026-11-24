@@ -17,6 +17,35 @@ async function clickSq(page, sq, orient = 'white') {
   let f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; if (orient === 'black') { f = 7 - f; r = 7 - r; }
   await page.mouse.click(b.x + s * (f + 0.5), b.y + s * (7 - r + 0.5)); await sleep(150);
 }
+/** P0 : position lue sur l'échiquier (éléments <piece> de chessground, clé cgKey) → un coup légal pour le joueur (Blancs) */
+async function pickMyMove(page) {
+  const pcs = await page.evaluate(() => [...document.querySelectorAll('.game-board cg-board piece, cg-board piece')].filter((e) => e.cgKey && !e.classList.contains('ghost') && !e.classList.contains('fading')).map((e) => ({ k: e.cgKey, c: e.className })));
+  const ch = new Chess(); ch.clear();
+  const T = { pawn: 'p', knight: 'n', bishop: 'b', rook: 'r', queen: 'q', king: 'k' };
+  for (const { k, c } of pcs) { const color = c.includes('white') ? 'w' : 'b'; const role = Object.keys(T).find((r) => c.includes(r)); if (role) ch.put({ type: T[role], color }, k); }
+  const fen = ch.fen().replace(/ [wb] .*/, ' w - - 0 1'); const c2 = new Chess(fen); const mv = c2.moves({ verbose: true });
+  if (!mv.length) return null;
+  const V = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  mv.sort((a, b) => (V[b.captured] || 0) - (V[a.captured] || 0) || (['e2', 'd2', 'g1', 'b1', 'f1', 'c1'].indexOf(b.from) - ['e2', 'd2', 'g1', 'b1', 'f1', 'c1'].indexOf(a.from)));
+  return mv[0];
+}
+/** P0 : lit le journal IndexedDB de la page (après l'écriture groupée) */
+async function readJournal(pg) {
+  await sleep(2600);
+  return pg.evaluate(() => new Promise((res) => { const rq = indexedDB.open('echecs-events', 1); rq.onsuccess = () => { const db = rq.result; if (!db.objectStoreNames.contains('ev')) return res([]); const g = db.transaction('ev', 'readonly').objectStore('ev').getAll(); g.onsuccess = () => res(g.result); g.onerror = () => res([]); }; rq.onerror = () => res([]); }));
+}
+/** P0 : joue n coups (Blancs, sans coach) contre le bot affiché */
+async function playMoves(pg, n) {
+  let played = 0;
+  for (; played < n; played++) {
+    const ok = await pg.waitForFunction(() => document.querySelector('.player-bar.me .clock.on') || document.querySelector('.play-grid div.over, div.over'), null, { timeout: 20000 }).then(() => true, () => false);
+    if (!ok || (await pg.locator('div.over').count())) break;
+    await sleep(250); const m = await pickMyMove(pg); if (!m) break;
+    await clickSq(pg, m.from); await clickSq(pg, m.to); if (m.promotion) await pg.click('.promo-piece[aria-label="Dame"]').catch(() => {});
+    await pg.waitForFunction(() => !document.querySelector('.player-bar.me .clock.on'), null, { timeout: 5000 }).catch(() => {});
+  }
+  return played;
+}
 /** résout le puzzle affiché (identifiant data-pz) : FEN avant le coup adverse, l'utilisateur joue les coups impairs */
 async function solvePz(page, scope) {
   const id = await page.locator(scope + ' [data-pz], ' + scope + '[data-pz]').first().getAttribute('data-pz'); const z = puzzleById(id); if (!z) throw new Error('puzzle introuvable : ' + id);
@@ -32,8 +61,11 @@ async function run(name, browserType, ctxOpts) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] ${page.url().split("#")[1] || "/"} console: ${m.text()}`); });
   const loaded = new Set(); page.on('response', (r) => { const u = r.url(); if (r.ok() && /packs\/|stockfish/.test(u)) loaded.add(u.replace(URL0, '')); });
   page.on('pageerror', (e) => errors.push(`[${name}] pageerror: ${e.message}`));
+  // P0 : la feuille de consentement peut apparaître à la 2e carte du fil ; dans le parcours principal on répond « Non merci »
+  let consentSeen = 0; await page.addLocatorHandler(page.locator('.consent-sheet'), async () => { consentSeen++; await page.click('.consent-sheet .cs-no'); });
   const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   /** captures GOAT phase 1 (à tester par l'utilisateur) */
+  const shotG2 = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4a-${n}.png`, fullPage: false }); };
   const shotG = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/goat1/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
@@ -99,7 +131,7 @@ async function run(name, browserType, ctxOpts) {
     await page.waitForFunction(() => /méthode Philidor/.test(document.querySelector('.feedback')?.textContent || ''), null, { timeout: 8000 }); await shot('03d-philidor-methode');
   });
   await check('jouer : pendule (blitz 3+2) qui décompte', async () => {
-    await page.goto(URL0 + '#/play/paulette'); await page.waitForSelector('.tc-pick'); await page.click('.tc-pick .color-opt:nth-child(4)'); await page.click('.sticky-cta .btn');
+    await page.goto(URL0 + '#/play/paulette'); await page.waitForSelector('.tc-pick'); await page.click('.tc-pick .color-opt:has-text("3 min + 2 s")'); await page.click('.sticky-cta .btn');
     await page.waitForSelector('.player-bar .clock'); const t0 = await page.locator('.player-bar.me .clock').innerText(); await sleep(2300);
     const t1 = await page.locator('.player-bar.me .clock').innerText(); if (t0 === t1) throw new Error(`pendule figée (${t0})`);
     await shot('06c-pendule'); console.log(`    pendule ${t0} → ${t1}`);
@@ -220,6 +252,95 @@ async function run(name, browserType, ctxOpts) {
     await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); const t = Date.now(); s.coach.concepts.fork = { p: 0.95, n: 9, lastOk: t, lastFail: 0, firstTryStreak: 6, contexts: ['a', 'b', 'c', 'd'], days: ['2026-11-23', '2026-11-24'], inter: 2, at: t, ever: true, last: [1, 1, 1, 1, 1] }; s.coach.masteredLog = [...(s.coach.masteredLog || []), { id: 'fork', t }]; localStorage.setItem(k, JSON.stringify(s)); });
     await page.reload(); await page.waitForSelector('.mastery-cel', { timeout: 10000 }); await shotG('10-notion-maitrisee');
     await page.click('.mastery-cel .btn'); await page.waitForFunction(() => !document.querySelector('.mastery-cel'));
+  });
+  // R4a (plan rétention §6, §2.13) : migration v1 → v2 (sauvegarde gardée), identifiant d'installation stable, journal local,
+  // J1/J7/J30 calculés sur l'appareil, export ; AUCUNE requête ne transporte l'identifiant ni le journal.
+  await check('R4a : migration v1→v2, identifiant stable, mesures locales, rien ne sort', async () => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    const d = (n) => { const x = new Date(); x.setDate(x.getDate() - n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+    const v1 = { v: 1, createdAt: Date.now() - 40 * 86400e3, xp: 420, onboarded: true, lessons: { 'd-echiquier': { done: true, stars: 3, step: 0 } }, activity: { [d(40)]: 30, [d(39)]: 10, [d(33)]: 5, [d(2)]: 8 }, streak: { count: 1, best: 3, last: d(2) }, settings: { name: 'Léa' } };
+    await c2.addInitScript((v) => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('echecs-app-v1', JSON.stringify(v)); } }, v1);
+    const reqs = []; p2.on('request', (r) => reqs.push(r.url() + ' ' + (r.postData() || '')));
+    await p2.goto(URL0 + '#/dev/metrics'); await p2.waitForSelector('[data-testid=retention] .mt-tile');
+    await sleep(600);
+    const st = await p2.evaluate(() => ({ s: JSON.parse(localStorage.getItem('echecs-app-v1') || '{}'), bak: localStorage.getItem('echecs-app-v1.bak-v1') }));
+    if (st.s.v !== 2 || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(st.s.deviceId || '')) throw new Error('migration : ' + JSON.stringify({ v: st.s.v, dev: st.s.deviceId }));
+    if (!st.bak || JSON.parse(st.bak).xp !== 420 || st.s.xp !== 420 || st.s.settings.name !== 'Léa') throw new Error('perte de données ou sauvegarde absente');
+    if (st.s.installDay !== d(40)) throw new Error('jour d’installation ' + st.s.installDay);
+    const ret = await p2.locator('[data-testid=retention] .mt-tile').evaluateAll((els) => els.map((e) => e.getAttribute('data-ret')));
+    if (ret.join() !== 'yes,yes,no') throw new Error('J1/J7/J30 attendus oui,oui,non : ' + ret);
+    for (const t of ['app_open', 'session_start', 'migration']) if (!(await p2.locator(`[data-testid=by-type] [data-type=${t}]`).count())) throw new Error('évènement absent : ' + t);
+    await shotG2(p2, '01-mes-mesures');
+    const [dl] = await Promise.all([p2.waitForEvent('download'), p2.click('.mt-export')]);
+    const j = JSON.parse(fs.readFileSync(await dl.path(), 'utf8')); if (j.dev !== st.s.deviceId || !j.events.some((e) => e.type === 'app_open' && e.dev === st.s.deviceId)) throw new Error('export du journal');
+    await p2.reload(); await p2.waitForSelector('[data-testid=retention] .mt-tile');
+    const dev2 = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).deviceId); if (dev2 !== st.s.deviceId) throw new Error('identifiant instable');
+    await p2.goto(URL0 + '#/settings'); await p2.waitForSelector('a[href="#/dev/metrics"]'); await shotG2(p2, '02-reglages-mes-mesures');
+    const leak = reqs.filter((u) => u.includes(st.s.deviceId)); if (leak.length) throw new Error('identifiant dans une requête : ' + leak[0].slice(0, 120));
+    const foreign = reqs.map((u) => u.split(' ')[0]).filter((u) => !u.startsWith(URL0) && !u.startsWith('data:') && !u.startsWith('blob:'));
+    console.log(`    ${reqs.length} requêtes, 0 avec l’identifiant ; hors site : ${foreign.length ? [...new Set(foreign.map((u) => new URL(u).host))].join(', ') : 'aucune'}`);
+    await c2.close();
+  });
+  await check('P0 : la feuille de consentement est apparue dans le fil (après le 1er mat), une seule fois', async () => {
+    if (consentSeen !== 1) throw new Error('feuille vue ' + consentSeen + ' fois');
+    const c = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).consent); if (!c || c.detail !== false || c.asked !== 1) throw new Error('consentement : ' + JSON.stringify(c));
+  });
+  // P0 (brief modélisation §9) : consentement accepté → partie 3+2 de 10 coups → compteurs ; aucune requête nouvelle
+  await check('P0 : consentement accepté, partie 3+2 de 10 coups journalisée (temps par coup), écran dev', async () => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    p2.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}] P0 console: ${m.text()}`); });
+    await c2.addInitScript(() => { if (!sessionStorage.getItem('s')) { sessionStorage.setItem('s', '1'); localStorage.setItem('echecs-app-v1', JSON.stringify({ xp: 0, onboarded: true, lessons: {}, puzzle: { rating: 1200, games: 20, history: [], solved: 15, failed: 5, seen: [], streak: 0, bestStreak: 0 } })); } });
+    const reqs = []; p2.on('request', (r) => reqs.push(r.url()));
+    await p2.goto(URL0 + '#/settings'); await p2.click('label:has(.detail-switch)');
+    await p2.waitForSelector('.consent-sheet'); await shotG2(p2, '03-consentement');
+    const yesBox = await p2.locator('.cs-yes').boundingBox(), noBox = await p2.locator('.cs-no').boundingBox();
+    const [bgY, bgN] = await Promise.all([p2.locator('.cs-yes').evaluate((e) => getComputedStyle(e).backgroundColor), p2.locator('.cs-no').evaluate((e) => getComputedStyle(e).backgroundColor)]);
+    if (Math.abs(yesBox.width - noBox.width) > 2 || Math.abs(yesBox.height - noBox.height) > 2 || bgY !== bgN) throw new Error('boutons de poids inégal');
+    if (await p2.locator('.consent-sheet input:checked').count()) throw new Error('case pré-cochée');
+    await p2.click('.cs-yes'); if (!(await p2.locator('.cs-need').count())) throw new Error('âge non demandé');
+    await p2.click('.cs-opt:has-text("13 ans ou plus")'); await p2.click('.cs-yes'); await p2.waitForSelector('.consent-sheet', { state: 'detached' });
+    await p2.goto(URL0 + '#/play/paulette'); await p2.waitForSelector('.tc-pick');
+    const def = await p2.locator('.tc-pick .color-opt.on').innerText(); if (!def.includes('Sans pendule')) throw new Error('cadence par défaut : ' + def);
+    await p2.click('.tc-pick .color-opt:has-text("3 min + 2 s")'); await p2.click('.color-pick .color-opt:has-text("Blancs")');
+    if (await p2.locator('.switch-row input.switch:checked').count()) await p2.click('.switch-row:has-text("Mode coach")');
+    await p2.click('.sticky-cta .btn'); await p2.waitForSelector('.player-bar .clock');
+    const n = await playMoves(p2, 10); await sleep(1500); await shotG2(p2, '04-partie-3+2');
+    const pgnClk = null;
+    await p2.goto(URL0 + '#/dev/events'); await p2.waitForSelector('[data-testid=ev-count]'); await sleep(400); await shotG2(p2, '05-ce-que-le-coach-sait');
+    const ev = await readJournal(p2);
+    const gs = ev.filter((e) => e.type === 'game_start'), mv = ev.filter((e) => e.type === 'move'), ge = ev.filter((e) => e.type === 'game_end');
+    const mine = mv.filter((e) => e.data.side === 'me');
+    if (gs.length !== 1 || ge.length !== 1) throw new Error(`game_start ${gs.length}, game_end ${ge.length}`);
+    if (mine.length !== n || Math.abs(mv.length - 2 * n) > 1) throw new Error(`coups ${mine.length} / ${mv.length} pour ${n} joués`);
+    if (!mine.every((e) => e.data.thinkMs > 0 && e.data.input && Array.isArray(e.data.lifts) && e.data.clockMs > 0)) throw new Error('move incomplet : ' + JSON.stringify(mine[0].data));
+    if (JSON.stringify(gs[0].data.tc) !== JSON.stringify({ base: 180, inc: 2 })) throw new Error('tc ' + JSON.stringify(gs[0].data.tc));
+    const ui = await p2.locator('[data-testid=ev-types] [data-type=move] b').innerText(); if (+ui !== mv.length) throw new Error(`écran dev move=${ui} ≠ ${mv.length}`);
+    const per = mv.reduce((a, e) => a + JSON.stringify(e).length, 0) / mv.length;
+    const foreign = [...new Set(reqs.filter((u) => !u.startsWith(URL0) && !u.startsWith('data:') && !u.startsWith('blob:')).map((u) => new URL(u).host))];
+    if (foreign.length) throw new Error('requêtes hors site : ' + foreign.join(', '));
+    console.log(`    ${n} coups joués : ${gs.length} game_start, ${mv.length} move (${mine.length} à moi, thinkMs médian ${mine.map((e) => e.data.thinkMs).sort((a, b) => a - b)[mine.length >> 1]} ms), ${ge.length} game_end (${ge[0].data.how}) ; ${Math.round(per)} o/coup ; 0 requête hors site`);
+    await c2.close();
+  });
+  await check('P0 : consentement refusé (feuille du fil) → aucun move journalisé', async () => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    await c2.addInitScript(() => { if (!sessionStorage.getItem('s')) { sessionStorage.setItem('s', '1'); localStorage.setItem('echecs-app-v1', JSON.stringify({ xp: 0, onboarded: true, lessons: {}, puzzle: { rating: 1200, games: 20, history: [], solved: 15, failed: 5, seen: [], streak: 0, bestStreak: 0 } })); } });
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.feed-card:not(.skeleton)', { timeout: 25000 });
+    if (await p2.locator('.consent-sheet').count()) throw new Error('feuille dès la 1re carte');
+    await p2.click('.fc-skip'); await p2.waitForSelector('.consent-sheet', { timeout: 15000 }); await shotG2(p2, '06-consentement-fil');
+    await p2.click('.cs-no'); await p2.waitForSelector('.consent-sheet', { state: 'detached' });
+    await p2.goto(URL0 + '#/play/paulette'); await p2.waitForSelector('.tc-pick'); await p2.click('.color-pick .color-opt:has-text("Blancs")');
+    if (await p2.locator('.switch-row input.switch:checked').count()) await p2.click('.switch-row:has-text("Mode coach")');
+    await p2.click('.sticky-cta .btn'); await p2.waitForSelector('cg-board');
+    // sans pendule : on attend la main en surveillant le tour (pas de .clock)
+    for (let i = 0; i < 3; i++) { await sleep(1800); const m = await pickMyMove(p2); if (!m) break; await clickSq(p2, m.from); await clickSq(p2, m.to); }
+    await p2.goto(URL0 + '#/dev/events'); await p2.waitForSelector('[data-testid=ev-count]');
+    const ev = await readJournal(p2);
+    const bad = ev.filter((e) => ['move', 'takeback', 'puzzle_try', 'lesson_step', 'visibility', 'puzzle_rush'].includes(e.type));
+    if (bad.length) throw new Error(`${bad.length} évènements détaillés sans accord (${bad[0].type})`);
+    const cons = ev.filter((e) => e.type === 'consent'); if (cons.length !== 1 || cons[0].data.detail !== false) throw new Error('trace du refus absente');
+    if (!ev.some((e) => e.type === 'game_start')) throw new Error('game_start (base) absent');
+    console.log(`    refus : ${ev.length} évènements de base, 0 détaillé`);
+    await c2.close();
   });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });
   await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });

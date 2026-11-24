@@ -1,5 +1,15 @@
 import { useState } from 'preact/hooks';
 import { useStore, setState, exportData, importData, resetAll } from '../lib/store';
+import { clearEvents, exportJsonl } from '../lib/events';
+import { withdrawConsent } from '../lib/consent';
+import { lazy } from '../lib/lazy';
+const ConsentSheet = lazy<{ onClose: (d: boolean) => void; from?: 'sheet' | 'settings' }>(() => import('../components/ConsentSheet'), 'ConsentSheet', () => <div />);
+/** export complet (brief P0 §6) : état + journal (JSON Lines) dans un ZIP (fflate, déjà une dépendance) */
+async function exportZip() {
+  const { zipSync, strToU8 } = await import('fflate');
+  const z = zipSync({ 'etat.json': strToU8(exportData()), 'journal.jsonl': strToU8(await exportJsonl()), 'LISEZMOI.txt': strToU8('Maître des Échecs : export de tes données.\netat.json = ta progression (importable dans Réglages).\njournal.jsonl = ton journal local, un évènement par ligne : {id, dev, sid, t, type, v, data}.\n') });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([z as BlobPart], { type: 'application/zip' })); a.download = `maitre-echecs-donnees-${new Date().toISOString().slice(0, 10)}.zip`; a.click();
+}
 import { BOARDS, PIECE_SETS, applyAppearance } from '../lib/theme';
 import { usePremium, devToggle, providerId } from '../lib/entitlements';
 import { setSoundEnabled, play } from '../lib/sound';
@@ -11,7 +21,7 @@ import { isNative } from '../lib/platform';
 const VERSION = '1.0.0';
 export function Settings() {
   const st = useStore((s) => s.settings); const ent = usePremium();
-  const [taps, setTaps] = useState(0);
+  const [taps, setTaps] = useState(0); const consent = useStore((s) => s.consent); const [askC, setAskC] = useState(false);
   const dev = taps >= 5 || (import.meta as any).env?.DEV || location.search.includes('dev=1');
   const set = (k: keyof typeof st, v: any) => { setState((s) => { (s.settings as any)[k] = v; }); if (k === 'sound') setSoundEnabled(v); setTimeout(applyAppearance, 0); };
   const Toggle = ({ k, label, desc, icon, color }: { k: keyof typeof st; label: string; desc?: string; icon: IconName; color: string }) => (
@@ -45,11 +55,24 @@ export function Settings() {
         <Item onClick={() => play('success')} icon="playIcon" color="#FF9F0A" title="Tester le son" chevron={false} />
       </div>
 
+      <div class="section-label">Données et coach</div>
+      <div class="list">
+        <label class="item switch-row"><span class="it-icon" style="--c:#5E5CE6"><Icon name="brain" size={18} /></span><span class="it-main"><span class="it-title">Analyse détaillée sur l’appareil</span><span class="it-sub">Temps par coup, hésitations, essais : pour que le coach te comprenne. Rien ne quitte l’appareil.</span></span>
+          <input type="checkbox" class="switch detail-switch" checked={!!consent?.detail} onChange={async (e) => { const on = (e.target as HTMLInputElement).checked;
+            if (on) { (e.target as HTMLInputElement).checked = false; setAskC(true); return; }
+            await withdrawConsent(confirm('Analyse détaillée arrêtée. Effacer aussi les données détaillées déjà enregistrées ?')); toast('Analyse détaillée arrêtée', 'info'); }} /></label>
+        <Item href="#/dev/events" icon="eye" color="#0A84FF" title="Voir ce que le coach sait de moi" sub="Nombre d’évènements, taille, date du plus ancien" />
+        <Item onClick={() => { void exportZip(); }} icon="download" color="#30A46C" title="Exporter mes données" sub="Un ZIP : ta progression et ton journal" chevron={false} />
+      </div>
+      {consent?.ageBand === '<13' && <p class="list-foot">Moins de 13 ans : aucun envoi vers un serveur ne sera jamais proposé.</p>}
+      {askC && <ConsentSheet from="settings" onClose={() => setAskC(false)} />}
+
       <div class="section-label">Données</div>
       <div class="list">
         <Item onClick={() => { const b = new Blob([exportData()], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `maitre-echecs-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`; a.click(); }} icon="download" color="#0A84FF" title="Exporter ma progression" sub="Un fichier à garder ou à importer sur un autre appareil" chevron={false} />
         <label class="item"><span class="it-icon" style="--c:#30A46C"><Icon name="upload" size={18} /></span><span class="it-main"><span class="it-title">Importer une sauvegarde</span></span><input type="file" accept="application/json" class="sr-only" onChange={async (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return; try { importData(await f.text()); applyAppearance(); toast('Progression restaurée', 'checkCircle'); } catch (err: any) { toast(err.message, 'info'); } }} /></label>
-        <Item onClick={() => { if (confirm('Effacer toute ta progression ? Cette action est irréversible.')) { resetAll(); applyAppearance(); toast('Progression effacée', 'trash'); } }} icon="trash" color="#FF453A" title={<span class="danger-text">Tout effacer</span>} chevron={false} />
+        <Item onClick={() => { if (confirm('Effacer toute ta progression ? Cette action est irréversible.')) { resetAll(); void clearEvents(); applyAppearance(); toast('Progression effacée', 'trash'); } }} icon="trash" color="#FF453A" title={<span class="danger-text">Tout effacer</span>} chevron={false} />
+        <Item href="#/dev/metrics" icon="chart" color="#5E5CE6" title="Mes mesures" sub="Est-ce que je reviens ? Calculé ici, rien n’est envoyé" />
       </div>
       <p class="list-foot">Ta progression reste sur cet appareil : aucun compte, aucune publicité, aucun traceur.</p>
 

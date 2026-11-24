@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { MoveTrainer } from '../components/MoveTrainer';
+import { log } from '../lib/events';
+import { computeThinkMs, type Span } from '../lib/timing';
 import { LineChart, Progress, toast, LargeTitle, NavBar, Item, Stars, AutoNext } from '../components/ui';
 import { go } from '../lib/router';
 import { Icon } from '../components/Icon';
@@ -116,6 +118,10 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
   const [p, setP] = useState<BankPuzzle | Puzzle | null | undefined>(undefined);
   const [failed, setFailed] = useState(false); const [solved, setSolved] = useState(false); const [delta, setDelta] = useState<number | null>(null);
   const [hint, setHint] = useState(0); const [sol, setSol] = useState(0); const recorded = useRef(false); const [count, setCount] = useState(0);
+  /** P0 : tentative du puzzle (temps corrigé de l'onglet caché, 1er coup, 1re erreur) */
+  const tr = useRef({ t0: 0, first: 0, wrong: null as null | { idx: number; uci: string }, hid: [] as Span[], hAt: 0 });
+  useEffect(() => { const v = () => { const T = tr.current; if (document.hidden) T.hAt = performance.now(); else if (T.hAt) { T.hid.push([T.hAt, performance.now()]); T.hAt = 0; } }; document.addEventListener('visibilitychange', v); return () => document.removeEventListener('visibilitychange', v); }, []);
+  useEffect(() => { if (p) tr.current = { t0: performance.now(), first: 0, wrong: null, hid: [], hAt: 0 }; }, [p?.i]);
   const s = useStore((x) => x);
   const custom = mode === 'custom' && query ? { theme: query.get('theme') || undefined, opening: query.get('opening') || undefined, min: +(query.get('min') || 0) || undefined, max: +(query.get('max') || 0) || undefined } : null;
   const next = async () => {
@@ -136,7 +142,8 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
   if (p === undefined) return <div class="page"><div class="loading" aria-label="Chargement du puzzle" /></div>;
   if (!p) return <div class="page"><NavBar back="#/puzzles" backLabel="Puzzles" close /><div class="empty"><div class="empty-icon"><Icon name={mode === 'review' ? 'checkCircle' : 'search'} size={30} /></div><h3>{mode === 'review' ? 'Rien à réviser pour l’instant' : 'Aucun puzzle trouvé'}</h3><p>{mode === 'review' ? 'Les puzzles ratés reviennent ici au bon moment (répétition espacée).' : 'Élargis la tranche de classement ou change de thème. Hors ligne, seuls les packs déjà téléchargés sont disponibles.'}</p><div class="col center-col"><a class="btn primary" href="#/puzzles/rated">Puzzles classés</a><a class="btn plain" href="#/">Retour à Pour toi</a></div></div></div>;
   const rated = mode === 'rated' || mode === 'theme' || mode === 'daily';
-  const record = (ok: boolean) => { if (recorded.current) return; recorded.current = true; const d = recordPuzzle(p, ok, mode === 'custom' ? 'rush' : mode === 'review' ? 'review' : mode); setDelta(rated ? d : null); setCount((c) => c + 1); if (count + 1 >= 5) setState((st) => markPlanDone(st, theme ? 'weak:' + theme : 'puzzles')); if (mode === 'review') setState((st) => markPlanDone(st, 'srs')); };
+  const record = (ok: boolean) => { if (recorded.current) return; recorded.current = true;
+    { const T = tr.current, now = performance.now(); log('puzzle_try', { pid: p.i, r: p.r, th: p.t, mode, firstMoveMs: T.first ? computeThinkMs(T.t0, T.first, T.hid) : null, totalMs: computeThinkMs(T.t0, now, T.hid), wrong: T.wrong ?? undefined, hints: hint, shown: sol > 0, ok }); } const d = recordPuzzle(p, ok, mode === 'custom' ? 'rush' : mode === 'review' ? 'review' : mode); setDelta(rated ? d : null); setCount((c) => c + 1); if (count + 1 >= 5) setState((st) => markPlanDone(st, theme ? 'weak:' + theme : 'puzzles')); if (mode === 'review') setState((st) => markPlanDone(st, 'srs')); };
   const userWhite = new Chess(p.f).turn() === 'b';
   const title = mode === 'daily' ? 'Puzzle du jour' : mode === 'review' ? 'Révision' : mode === 'theme' ? themeName(theme!) : mode === 'custom' ? (custom?.theme ? themeName(custom.theme) : 'Sur mesure') : 'Puzzles classés';
   const op = (p as BankPuzzle).o;
@@ -145,6 +152,8 @@ export function PuzzleSession({ mode, theme, query }: { mode: Mode; theme?: stri
       <div class="game-top"><a class="nb-btn round" href={mode === 'custom' ? '#/puzzles/custom' : '#/puzzles'} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{title}</div><span class="pill tnum">{mode === 'review' ? `${Object.values(s.srs).filter((x) => x.kind === 'puzzle' && isDue(x)).length} restants` : mode === 'custom' ? `${custom?.min ?? ''}–${custom?.max ?? ''}` : s.puzzle.rating}</span></div>
       <div class="play-grid">
         <MoveTrainer key={p.i + sol} fen={p.f} line={p.m.split(' ')} setup hintLevel={hint} showSolutionSignal={sol}
+          onPlayed={() => { if (!tr.current.first) tr.current.first = performance.now(); }}
+          onWrong={(idx, uci) => { if (!tr.current.wrong) tr.current.wrong = { idx, uci }; }}
           onMistake={() => { if (!failed) { setFailed(true); record(false); } }}
           goal="puzzle"
           onSolved={() => { setSolved(true); if (!failed) record(true); }} />
@@ -172,9 +181,10 @@ export function Rush() {
   const [cfg, setCfg] = useState<null | { mode: '3' | '5' | 'survie' }>(null);
   const [seq, setSeq] = useState<BankPuzzle[]>([]); const [k, setK] = useState(0); const [score, setScore] = useState(0); const [strikes, setStrikes] = useState(0);
   const [left, setLeft] = useState(0); const [over, setOver] = useState(false); const [results, setResults] = useState<boolean[]>([]); const [loading, setLoading] = useState(false);
-  const start = async (mode: '3' | '5' | 'survie') => { setLoading(true); const q = await sequence(70); setLoading(false); if (!q.length) { toast('Puzzles indisponibles hors ligne', 'info'); return; } setSeq(q); setK(0); setScore(0); setStrikes(0); setResults([]); setOver(false); setLeft(mode === '3' ? 180 : mode === '5' ? 300 : 0); setCfg({ mode }); };
+  const start = async (mode: '3' | '5' | 'survie') => { rushT.current = Date.now(); setLoading(true); const q = await sequence(70); setLoading(false); if (!q.length) { toast('Puzzles indisponibles hors ligne', 'info'); return; } setSeq(q); setK(0); setScore(0); setStrikes(0); setResults([]); setOver(false); setLeft(mode === '3' ? 180 : mode === '5' ? 300 : 0); setCfg({ mode }); };
   useEffect(() => { if (!cfg || cfg.mode === 'survie' || over) return; const t = setInterval(() => setLeft((l) => { if (l <= 1) { clearInterval(t); finish(); return 0; } if (l <= 11) play('tick'); return l - 1; }), 1000); return () => clearInterval(t); }, [cfg, over]);
-  const finish = () => { setOver(true); play('win'); setState((st) => { st.rush.runs++; if (cfg?.mode === '3') st.rush.best3 = Math.max(st.rush.best3, scoreRef.current); else if (cfg?.mode === '5') st.rush.best5 = Math.max(st.rush.best5, scoreRef.current); else st.rush.survival = Math.max(st.rush.survival, scoreRef.current); }); };
+  const rushT = useRef(0);
+  const finish = () => { log('puzzle_rush', { mode: cfg?.mode, solved: scoreRef.current, ms: Date.now() - rushT.current }); setOver(true); play('win'); setState((st) => { st.rush.runs++; if (cfg?.mode === '3') st.rush.best3 = Math.max(st.rush.best3, scoreRef.current); else if (cfg?.mode === '5') st.rush.best5 = Math.max(st.rush.best5, scoreRef.current); else st.rush.survival = Math.max(st.rush.survival, scoreRef.current); }); };
   const scoreRef = useRef(0); scoreRef.current = score;
   if (!cfg) return (
     <div class="page">

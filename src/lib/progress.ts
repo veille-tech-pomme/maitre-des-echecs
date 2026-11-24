@@ -4,6 +4,7 @@ import { newBadges } from './badges';
 import { updateRating } from './rating';
 import { newItem, review } from './srs';
 import type { Puzzle } from './puzzles';
+import { logEvent } from './events';
 
 export function checkBadges() {
   const b = newBadges(getState());
@@ -29,6 +30,7 @@ export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme
     if (mode === 'daily' && success) s.daily[today()] = true;
     if (mode !== 'rush') pushCoach(s, { k: 'puzzle', t: Date.now(), id: p.i, r: p.r, th: p.t, ok: success, plies: p.m.split(' ').length - 1, il: opts.interleaved ?? mode !== 'theme', fen: p.f });
   });
+  if (mode === 'daily') logEvent('daily_played', { id: p.i, ok: success });
   if (success) addXp(mode === 'rush' ? 2 : mode === 'daily' ? 20 : 8, mode === 'daily' ? 'Puzzle du jour' : 'Puzzle résolu');
   checkBadges();
   return delta;

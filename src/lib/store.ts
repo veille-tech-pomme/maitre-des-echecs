@@ -1,6 +1,8 @@
 // État persistant de l'application (localStorage), avec abonnement réactif.
 import { useEffect, useState } from 'preact/hooks';
 import type { SrsItem } from './srs';
+import { migrate, SCHEMA_VERSION } from './migrations';
+import { ulid } from './ulid';
 
 export type ThemeMode = 'auto' | 'dark' | 'light';
 export interface Settings {
@@ -10,12 +12,21 @@ export interface Settings {
 export interface GameRecord {
   id: string; date: number; botId: string; color: 'w' | 'b'; result: '1-0' | '0-1' | '1/2-1/2' | '*';
   pgn: string; moves: string[]; reviewed?: boolean; accuracy?: number;
+  /** P0 : cadence et temps de réflexion du joueur par coup (arrondis à 100 ms ; seulement avec consentement détaillé) */
+  tc?: { base: number; inc: number }; times?: number[];
   counts?: Record<string, number>; weaknesses?: string[]; phaseAcc?: { opening?: number; middlegame?: number; endgame?: number };
 }
 export interface ThemeStat { ok: number; ko: number }
 export interface State {
+  /** version du schéma (src/lib/migrations.ts) */
   v: number;
   createdAt: number;
+  /** identifiant d'installation : ULID aléatoire, local, jamais envoyé (R4a, plan §6.1) */
+  deviceId: string;
+  /** jour local de la première ouverture (base des mesures J1/J7/J30) */
+  installDay: string;
+  /** consentement à l'analyse détaillée sur l'appareil (brief P0 §6) ; upload toujours false en P0 */
+  consent?: Consent;
   xp: number;
   streak: { count: number; best: number; last: string };
   activity: Record<string, number>; // date -> xp gagné
@@ -49,6 +60,8 @@ export interface State {
   /** Fil « Pour toi » : programme du jour (cartes servies) et statistiques par type de carte (passes, temps). */
   feed?: FeedState;
 }
+/** textV = version du texte de consentement affiché ; asked = nombre de fois où la feuille a été montrée */
+export interface Consent { detail: boolean; upload: false; ageBand?: '13+' | '<13'; at: number; textV: number; asked: number }
 export interface FeedStat { n: number; ok: number; fail: number; skip: number; ab: number; ms: number }
 export interface FeedState { date: string; served: { id: string; kind: string; skill: string | null; out: string; concept?: string }[]; kinds: Record<string, FeedStat>; lessonStep?: Record<string, number> }
 /** Ajoute un évènement pour le coach sans charger son code (file bornée). */
@@ -59,7 +72,7 @@ const KEY = 'echecs-app-v1';
 export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export function defaultState(): State {
   return {
-    v: 1, createdAt: Date.now(), xp: 0, streak: { count: 0, best: 0, last: '' }, activity: {}, lessons: {},
+    v: SCHEMA_VERSION, createdAt: Date.now(), deviceId: ulid(), installDay: today(), xp: 0, streak: { count: 0, best: 0, last: '' }, activity: {}, lessons: {},
     puzzle: { rating: 800, games: 0, history: [], solved: 0, failed: 0, seen: [], streak: 0, bestStreak: 0 },
     themes: {}, daily: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
     badges: {}, openings: {}, repertoire: [], endgames: {}, plan: { date: '', done: [] },
@@ -71,12 +84,19 @@ function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
-    const s = JSON.parse(raw);
+    const m = migrate(JSON.parse(raw));
+    // sauvegarde de l'état brut avant toute migration (retour arrière possible)
+    if (m.applied.length) { try { localStorage.setItem(`${KEY}.bak-v${m.from}`, raw); } catch {} lastMigration = { from: m.from, to: m.to, at: Date.now() }; }
+    const s = m.state;
     const d = defaultState();
     return { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}) }, puzzle: { ...d.puzzle, ...(s.puzzle || {}) }, rush: { ...d.rush, ...(s.rush || {}) } };
   } catch { return defaultState(); }
 }
+/** migration appliquée au chargement (consignée dans le journal par events.ts) */
+export let lastMigration: { from: number; to: number; at: number } | null = null;
 let state: State = typeof localStorage !== 'undefined' ? load() : defaultState();
+// une migration appliquée est écrite tout de suite (sinon elle serait refaite à chaque lancement jusqu'à la 1re action)
+if (lastMigration && typeof localStorage !== 'undefined') { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
 const subs = new Set<() => void>();
 let saveTimer: any = null;
 export function getState() { return state; }
@@ -97,7 +117,12 @@ export function useStore<T>(sel: (s: State) => T): T {
   return sel(state);
 }
 export function exportData() { return JSON.stringify(state); }
-export function importData(json: string) { const s = JSON.parse(json); if (!s || typeof s !== 'object' || !('xp' in s)) throw new Error('Fichier invalide'); replaceState({ ...defaultState(), ...s }); }
+export function importData(json: string) {
+  const raw = JSON.parse(json); if (!raw || typeof raw !== 'object' || !('xp' in raw)) throw new Error('Fichier invalide');
+  const m = migrate(raw); const d = defaultState(); const s = m.state;
+  // l'identifiant d'installation reste celui de CET appareil (une sauvegarde importée ne clone pas un appareil)
+  replaceState({ ...d, ...s, deviceId: state.deviceId, installDay: state.installDay < (s.installDay || '9') ? state.installDay : s.installDay, settings: { ...d.settings, ...(s.settings || {}) }, puzzle: { ...d.puzzle, ...(s.puzzle || {}) }, rush: { ...d.rush, ...(s.rush || {}) } } as State);
+}
 export function resetAll() { replaceState(defaultState()); }
 
 // ——— XP, niveaux, séries ———

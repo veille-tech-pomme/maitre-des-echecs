@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { log } from '../lib/events';
 import { lessonById, LESSONS, LEVELS, findLesson, cachedCourseLesson, loadCourses, type Step, type Lesson as L } from '../data/lessons';
 import { Board, toShapes } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
@@ -44,10 +45,12 @@ export function LessonPage({ id }: { id: string }) {
   const [totalMist, setTotalMist] = useState(0);
   /** réussite interactive (pas « Passer », pas la solution) : l'étape avance seule */
   const [won, setWon] = useState(false);
+  /** P0 : journal de l'étape (temps, coups refusés) */
+  const stepLog = useRef({ t0: 0, wrong: [] as string[], logged: false });
   // #/lesson/<id>?step=N : ouvre directement une étape (reprise, liens de la carte des notions, tests e2e)
   const startStep = () => { const n = +(new URLSearchParams(location.hash.split('?')[1] || '').get('step') || 0); return Number.isFinite(n) && n > 0 ? n : 0; };
   useEffect(() => { setI(startStep()); setFinished(false); setTotalMist(0); }, [id, location.hash]);
-  useEffect(() => { setMist(0); setHints(0); setSolved(false); setSol(0); setWon(false); }, [i, id]);
+  useEffect(() => { setMist(0); setHints(0); setSolved(false); setSol(0); setWon(false); stepLog.current = { t0: Date.now(), wrong: [], logged: false }; }, [i, id]);
   if (!lesson) return missing ? <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>Leçon introuvable</h1></div> : <div class="page"><div class="loading" aria-label="Chargement de la leçon" /></div>;
   if (lesson.level === 'expert' && !ent.premium) return <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>{lesson.title}</h1><PremiumLock title="Leçon Expert" text="Le niveau Expert (calcul avancé, prophylaxie, finales complexes et parties légendaires commentées) fait partie de Premium." /><FreeNext /></div>;
   if (!lesson.course && !isUnlocked(st, lesson.id)) return <LockedLesson lesson={lesson} />;
@@ -67,9 +70,13 @@ export function LessonPage({ id }: { id: string }) {
   const observe = (ok: boolean) => { if (step.type !== 'exercise') return; const h = sol ? 3 : hints; setState((s) => recordStep(s, { lessonId: lesson.id, step, ok, hint: isMove ? h : Math.min(3, h), firstTry: mist === 0, fen: fenOf(step) }));
     // le modèle consomme l'observation tout de suite : la célébration de maîtrise tombe au bon moment (CA7.2)
     import('../coach/curriculum').then((c) => setState((d) => { c.ensureModel(d); })).catch(() => {}); };
-  const onSolved = () => { observe(!sol); setSolved(true); setWon(!sol); };
+  const onSolved = () => {
+    observe(!sol); setSolved(true); setWon(!sol);
+    const L = stepLog.current; if (!L.logged && interactive) { L.logged = true; log('lesson_step', { lesson: lesson.id, step: i, tries: mist + 1, wrong: L.wrong.slice(0, 8), ms: Date.now() - L.t0, ok: !sol }); }
+  };
   const onDiag = (d: Diagnosis, c: { uci: string; fenBefore: string; solution: string[] }) => {
     if (step.type !== 'exercise') return;
+    if (stepLog.current.wrong.length < 8) stepLog.current.wrong.push(c.uci);
     setState((s) => recordExerciseMistake(s, { lessonId: lesson.id, stepIdx: i, step, fen: c.fenBefore, sol: c.solution, played: c.uci, headline: d.headline, concept: d.conceptId, course: !!lesson.course }));
   };
   const onMistake = () => { setMist((m) => m + 1); setTotalMist((m) => m + 1); };

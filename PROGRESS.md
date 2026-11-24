@@ -241,7 +241,7 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste 
   - Livré 24/11 : commit 4c278d6, en ligne index-DmOHvzXp.js. vitest 1495/1495, e2e local + en ligne bureau + iPhone WebKit verts, 0 erreur console, coups faux 283/283. Premier chargement 138,0 Kio gzip (avant 134,6 ; limite 165). Lighthouse mobile en ligne : perf 99 / a11y 100 / BP 100, LCP 1,8 s.
   - Écarts : 297 o/coup (cible 250) ; settings.playTc gardé (le brief dit timeControl) ; State n'est pas une projection du journal (double écriture) ; fake-indexeddb (dev) ; p=1/rank=1 (politique gloutonne). Pas vérifiés : puzzle_try en e2e, navigation privée WebKit, partie de 40 coups.
 - ✅ R4b → voir PHASE 11
-- 🟡 R4c → voir PHASE 12
+- ✅ R4c → voir PHASE 12
 - ⬜ R4d rappels locaux (Capacitor + repli web, 1/jour max, écrits par le coach, coupables jamais, désactivables ; rappel d'essai Premium conservé ; mineurs)
 
 # PHASE 11 (24/11) — R4b « Coup du jour partageable » (plan §2.2, §2.11, §2.13, lignes rouges §9)
@@ -264,4 +264,5 @@ Reprise : relire cette section + `git log`. R4d reste dans PHASE 10.
   - ✅ R4c.5 mode vacances (1 à 7 jours, retour anticipé), écran #/serie (série, record, titre, gels, calendrier 28 j, réparation, vacances, affichage) ; paliers 3/7/30/100/365 : plein écran partageable + titre (Profil)
   - ✅ R4c.6 mineurs (<13) : série masquée par défaut, activable (#/serie) ; textes informatifs, jamais culpabilisants (test de mots interdits)
   - ✅ R4c.7 état v4 (migration : gels de départ = 1 par 7 jours de la série en cours, 2 au plus ; paliers passés sans célébration rétroactive) ; journal : streak_saved {via: play|freeze|mission|repair}, streak_broken, streak_milestone, vacation
-  - ⬜ R4c.8 tests unitaires + e2e bureau/iPhone local et en ligne, axe, Lighthouse, déploiement, captures screenshots/r4/*-r4c-*
+  - ✅ R4c.8 tests unitaires + e2e bureau/iPhone local et en ligne, axe, Lighthouse, déploiement, captures screenshots/r4/*-r4c-*
+  - Livré 24/11 : commit d1e1798, en ligne index-tHVHlJU0.js. vitest 1521/1521 (tests/r4c.test.ts) ; e2e local + en ligne bureau + iPhone WebKit verts, 0 erreur console, axe-core inclut #/serie ; coups faux 283/283. Lighthouse mobile en ligne : accueil 98/100/100 (LCP 2,0 s), #/serie 99/100/100 (LCP 2,0 s). Premier chargement 141,4 Kio gzip (R4b 138,9 ; limite 165).

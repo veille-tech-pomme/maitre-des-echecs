@@ -24,12 +24,12 @@ export class Uci {
   }
   send(s) { this.p.stdin.write(s + '\n'); }
   wait(re) { return new Promise(res => this.waiters.push({ re, res })); }
-  async init() { this.send('uci'); await this.wait(/^uciok/); this.send('setoption name Threads value 1'); this.send('setoption name Hash value 32'); this.send('isready'); await this.wait(/^readyok/); }
+  async init() { this.send('uci'); const id = await this.wait(/^uciok/); this.name = (id.find((l) => l.startsWith('id name ')) || '').slice(8); this.send('setoption name Threads value 1'); this.send('setoption name Hash value 32'); this.send('isready'); await this.wait(/^readyok/); }
   /** Retourne {best, lines:[{move, cp, mate}]} */
-  async analyse(fen, { depth = 14, multipv = 1, searchmoves } = {}) {
+  async analyse(fen, { depth = 14, multipv = 1, searchmoves, nodes } = {}) {
     this.send(`setoption name MultiPV value ${multipv}`);
     this.send('ucinewgame'); this.send(`position fen ${fen}`);
-    this.send(`go depth ${depth}${searchmoves ? ' searchmoves ' + searchmoves.join(' ') : ''}`);
+    this.send(`go ${nodes ? 'nodes ' + nodes : 'depth ' + depth}${searchmoves ? ' searchmoves ' + searchmoves.join(' ') : ''}`);
     const ls = await this.wait(/^bestmove/);
     const pv = {};
     for (const l of ls) {

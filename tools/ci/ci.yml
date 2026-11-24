@@ -1,0 +1,69 @@
+# ⚠ À placer dans .github/workflows/ci.yml : le jeton du compte veille-tech-pomme n’a pas la portée « workflow »
+#   (push refusé). Une fois la portée accordée (gh auth refresh -h github.com -s workflow) : git mv tools/ci/ci.yml .github/workflows/ci.yml
+#   En attendant, tools/ci-local.sh exécute les mêmes étapes.
+# CI « vérité moteur » (cahier GOAT, pilier 8). Dépôt public : minutes GitHub Actions gratuites (runners standard).
+# - check : types, validation du contenu au moteur (Stockfish 17.1 épinglé + cache commité), tests unitaires, build
+# - e2e   : parcours complet bureau (Chromium) + iPhone (WebKit), dont accessibilité axe-core
+# - nuit  : validation recalculée de zéro (--fresh) : la régénération ne doit produire aucun diff (reproductibilité)
+name: CI
+on:
+  push: { branches: ['**'] }
+  pull_request:
+  schedule: [{ cron: '17 2 * * *' }]
+  workflow_dispatch:
+concurrency: { group: 'ci-${{ github.ref }}', cancel-in-progress: true }
+permissions: { contents: read }
+env:
+  SF_URL: https://github.com/official-stockfish/Stockfish/releases/download/sf_17.1/stockfish-ubuntu-x86-64-avx2.tar
+  SF_SHA256: 09e953222dbe80aaea5c33dab265413b295cb8376418445c877708c61e31987d
+  STOCKFISH: /tmp/stockfish/stockfish/stockfish-ubuntu-x86-64-avx2
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - name: Stockfish 17.1 (binaire officiel épinglé, GPL-3.0)
+        uses: actions/cache@v4
+        id: sf
+        with: { path: /tmp/stockfish, key: sf-17.1-avx2-${{ env.SF_SHA256 }} }
+      - if: steps.sf.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/stockfish && cd /tmp/stockfish
+          curl -fsSL -o sf.tar "$SF_URL"
+          echo "$SF_SHA256  sf.tar" | sha256sum -c -
+          tar xf sf.tar && rm sf.tar
+      - run: echo "uci" | "$STOCKFISH" | head -1
+      - name: Types
+        run: npx tsc --noEmit
+      - name: Validation du contenu (légalité, solutions, alternatives, base de finales, « mat en N »)
+        run: npx tsx tools/validate-content.mts --jobs=4 ${{ github.event_name == 'schedule' && '--fresh' || '' }}
+      - name: Fichiers générés à jour (aucun diff)
+        run: git diff --stat --exit-code -- src/data/accepts.gen.json tools/data/validation-report.json tools/data/validation-cache
+      - name: Tests unitaires (vitest, Stockfish natif)
+        run: npx vitest run
+      - name: Build
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist, retention-days: 3 }
+  e2e:
+    needs: check
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - run: npx playwright install --with-deps chromium webkit
+      - name: e2e bureau Chromium + iPhone WebKit (+ axe-core)
+        run: node tools/e2e.mjs
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: e2e-screenshots, path: screenshots/*ERR*, retention-days: 7, if-no-files-found: ignore }

@@ -1,0 +1,22 @@
+{
+ "counts": {
+  "alternatives": 1135,
+  "analysed": 1291,
+  "exercises": 316,
+  "masterCards": 513,
+  "movePositions": 779,
+  "tbChecked": 118,
+  "tbSkipped": 3,
+  "withAccepts": 646
+ },
+ "coverage": {
+  "covered": 779,
+  "movePositions": 779
+ },
+ "engine": "sf17.1",
+ "equivCp": 30,
+ "errors": [],
+ "multipv": 5,
+ "nodes": 1500000,
+ "warnings": []
+}

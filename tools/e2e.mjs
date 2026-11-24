@@ -52,7 +52,7 @@ async function run(name, browserType, ctxOpts) {
   });
   // R3 : plus de cul-de-sac
   await check('leçon verrouillée → une prochaine action', async () => {
-    await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.locked-lesson'); await shot('03-lecon-verrouillee');
+    await page.goto(URL0 + '#/lesson/d-echiquier'); await page.waitForSelector('.locked-lesson'); await shot('03-lecon-verrouillee');
     if ((await page.locator('.locked-lesson .center-col .btn').count()) < 3) throw new Error('pas assez d’actions');
     if (!(await page.locator('.locked-lesson a[href^="#/lesson/"]').count())) throw new Error('pas de lien vers la leçon qui ouvre celle-ci');
     await page.click('text=Je connais déjà'); await page.waitForSelector('.lesson-grid');
@@ -230,6 +230,17 @@ async function run(name, browserType, ctxOpts) {
     await page.click('.review-moves .mv >> nth=2'); await page.waitForSelector('.coach-box h4'); await sleep(300); await shot('18b-bilan-coup');
   });
   await check('packs + moteur chargés', async () => { const l = [...loaded]; const pk = l.filter((u) => u.includes('packs/')), sf = l.filter((u) => u.includes('stockfish')); if (!pk.length || !sf.length) throw new Error('packs ' + pk.length + ' moteur ' + sf.length); console.log('    packs :', pk.length, '· moteur :', sf.map((u) => u.split('/').pop()).join(', ')); });
+  // pilier 8 (F8.4) : accessibilité axe-core (WCAG 2.x A/AA) sur les écrans principaux ; échec sur toute violation « serious » ou « critical »
+  await check('accessibilité axe-core (WCAG A/AA)', async () => {
+    const AXE = fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8'); const bad = [];
+    for (const r of ['#/', '#/learn', '#/lesson/d-echiquier', '#/play', '#/puzzles', '#/coach', '#/profile', '#/settings']) {
+      await page.goto(URL0 + r); await page.waitForSelector('.page, main', { timeout: 15000 }); await sleep(900);
+      await page.evaluate(AXE);
+      const v = await page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} (${x.nodes.length}) ${x.nodes[0]?.target}`));
+      for (const x of v) bad.push(`${r} ${x}`);
+    }
+    if (bad.length) throw new Error(bad.join(' | '));
+  });
   await check('service worker', async () => { const ok = await page.evaluate(async () => !!(await navigator.serviceWorker?.getRegistration())); if (!ok) throw new Error('pas de SW'); });
   await browser.close(); return true;
 }

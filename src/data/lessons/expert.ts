@@ -69,7 +69,7 @@ export const EXPERT: Lesson[] = [
         6: 'Le gambit Evans : un pion pour le développement.', 32: 'Cf6+ !! Ouvre la colonne e.', 36: 'Tad1 !! Un coup calme au milieu de la tempête.',
         38: 'Txe7+ ! Le début de la combinaison finale.', 40: 'Dxd7+ !! La dame se sacrifie.', 42: 'Ff5++ : échec double !', 46: 'Fxe7#.' },
         body: '**Anderssen** contre **Dufresne**. Steinitz l’a surnommée « la toujours jeune » (Evergreen).' },
-      { type: 'exercise', title: 'La combinaison', prompt: 'Rejoue la combinaison finale d’Anderssen : **mat en 5** !', fen: START, pre: TOUJOURS_JEUNE.slice(0, 38), goal: { kind: 'line', moves: TOUJOURS_JEUNE.slice(38) }, hints: ['Commence par prendre en e7 avec échec.', 'Puis la dame se sacrifie en d7.', 'L’échec double Ff5++ est décisif.'] },
+      { type: 'exercise', title: 'La combinaison', prompt: 'Rejoue la combinaison finale d’Anderssen, jusqu’au mat. (Après 20.Txe7+, la meilleure défense était 20…Rd8 ! : pas de mat, mais les Blancs gagnent quand même. Dufresne a pris 20…Cxe7 ?, et là tout est forcé.)', fen: START, pre: TOUJOURS_JEUNE.slice(0, 38), goal: { kind: 'line', moves: TOUJOURS_JEUNE.slice(38) }, hints: ['Commence par prendre en e7 avec échec.', 'Puis la dame se sacrifie en d7.', 'L’échec double Ff5++ est décisif.'] },
     ] },
   { id: 'e-siecle', level: 'expert', title: 'Fischer : la partie du siècle (1956)', icon: '⭐', minutes: 14, summary: 'Bobby Fischer, 13 ans, sacrifie sa dame.',
     steps: [

@@ -7,7 +7,7 @@ export type Goal =
   | { kind: 'stars'; piece: 'Q' | 'R' | 'B' | 'N' | 'K'; from: string; stars: string[]; blockers?: string[]; par?: number }
   | { kind: 'select'; squares: string[] }
   | { kind: 'quiz'; options: string[]; answer: number; verify?: 'win' | 'draw' | 'loss' }
-  | { kind: 'play'; result: 'mate' | 'promote' | 'draw'; maxMoves: number };
+  | { kind: 'play'; result: 'mate' | 'promote' | 'draw'; maxMoves: number; script?: Record<string, string> };
 export type Step =
   | { type: 'text'; title: string; body: string; fen?: string; pre?: string[]; shapes?: string[]; orientation?: 'white' | 'black' }
   | { type: 'demo'; title: string; body: string; fen?: string; pre?: string[]; moves: string[]; comments?: Record<number, string>; orientation?: 'white' | 'black' }

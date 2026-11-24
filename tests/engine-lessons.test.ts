@@ -17,6 +17,7 @@ async function evalMove(fen: string, mv: string, depth = 16) {
 }
 function ok(best: any, mine: any, margin: number) {
   if (!mine) return false;
+  if (mine.move === best.move) return true; // même coup : écart dû au bruit de deux recherches
   if (best.mate != null && best.mate > 0) return mine.mate != null && mine.mate > 0;
   return score(best) - score(mine) <= margin;
 }
@@ -55,6 +56,7 @@ describe('Validation moteur des exercices', () => {
         if (g.kind === 'quiz') {
           const white = ch.turn() === 'w' ? sc : -sc;
           if (g.verify === 'win' && white < 300) problems.push(`${l.id}#${i} quiz gain blanc attendu ${white}`);
+          if (g.verify === 'loss' && white > -300) problems.push(`${l.id}#${i} quiz gain noir attendu ${white}`);
           if (g.verify === 'draw' && Math.abs(white) > 100) problems.push(`${l.id}#${i} quiz nulle attendue ${white}`);
         }
       }

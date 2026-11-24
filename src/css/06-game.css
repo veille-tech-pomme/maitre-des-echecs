@@ -116,3 +116,9 @@ button.bot-card { border: 0; font: inherit; cursor: pointer; }
 }
 @media (min-width: 760px) { .side > .actionbar { order: -1; } .play-grid, .lesson-grid, .analysis-grid { margin-top: 4px; } }
 @media (min-width: 1024px) { .game-top { max-width: 100%; } }
+/* audit P1 : explication d'un coup refusé dans une leçon */
+.feedback .fb-why { display: flex; flex-direction: column; gap: 4px; font-weight: 500; }
+.feedback .fb-why b { display: flex; gap: 8px; align-items: center; font-weight: 650; color: var(--red); }
+.feedback .fb-why p { margin: 0; font-size: 15px; line-height: 1.4; color: var(--text); }
+.feedback .fb-why p.muted { color: var(--text-2); }
+.feedback.checking { background: var(--surface); color: var(--text-2); box-shadow: var(--shadow); }

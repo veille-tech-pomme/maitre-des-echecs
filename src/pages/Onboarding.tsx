@@ -7,8 +7,7 @@ import { Icon } from '../components/Icon';
 
 // Accueil en moins de 15 secondes : un prénom (facultatif), puis un premier mat gagnant tout de suite.
 // Pas de niveau à déclarer : le diagnostic se fait dans les premières cartes du fil « Pour toi ».
-const MATE_FEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';
-const MATE = 'h5f7';
+import { MATE_FEN, MATE } from '../data/onboarding';
 const AUTO_MS = 4200;
 
 export function Onboarding() {

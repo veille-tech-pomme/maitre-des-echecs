@@ -10,6 +10,7 @@ import { classifyMove } from './classify';
 import { expectedStm } from './winprob';
 import { hintsFor, nullMoveFen, type Hint } from './hints';
 import { getState } from '../lib/store';
+import { equivalence } from '../lib/judge-rule';
 import { globalRating } from './model';
 /** Note utilisée pour calibrer le coach (modèle du joueur, sinon classement puzzles). */
 export const currentElo = () => { const s = getState(); return s.coach ? globalRating(s.coach) : s.puzzle.rating || 800; };
@@ -123,4 +124,32 @@ export function noSpoil(ex: Explanation, solSan: string): Explanation {
   if (t.startsWith('missed:')) { const k = t.split(':')[1] as MotifKey; const lab = MOTIF_LABEL[k]; return { ...ex, headline: lab ? `Une tactique t’échappe : ${lab.toLowerCase()}` : 'Il y a mieux à trouver', why: 'Ton coup laisse passer l’occasion. Repère les pièces adverses mal protégées et les coups forçants.' }; }
   if (!t.startsWith('allowed') && !t.startsWith('ignored')) return { ...ex, headline: 'Ce n’est pas le coup du puzzle', why: 'Ton coup n’est pas une faute grave, mais il y a beaucoup plus fort : cherche un coup forçant (échec, prise ou menace).' };
   return { ...ex, headline: hide(ex.headline), why: hide(ex.why) };
+}
+
+// ---------- Leçons : juger un coup différent de la solution prévue (audit P1) ----------
+export type LessonJudge =
+  | { accept: true; note: string; continuation: string[] }
+  | { accept: false; headline: string; why: string; tip?: string; refutation: string[] };
+/**
+ * Coup joué ≠ coup prévu : on l'accepte s'il mate aussi vite (on continue alors contre la meilleure défense),
+ * ou s'il est à moins de 30 cp du coup prévu ; sinon on explique pourquoi il échoue, avec la réfutation.
+ */
+export async function judgeLessonMove(fen: string, played: string, expected: string[], elo = currentElo()): Promise<LessonJudge> {
+  const [re, rp] = await Promise.all([
+    engine.analyse(fen, { depth: 16, movetime: 900, searchmoves: [expected[0]] }),
+    engine.analyse(fen, { depth: 16, movetime: 900, searchmoves: [played] }),
+  ]);
+  const le = re.lines[0], lp = rp.lines[0]; const eq = equivalence(le, lp);
+  const sanP = sanOf(fen, played), sanE = sanOf(fen, expected[0]);
+  const expMate = le?.mate != null && le.mate > 0;
+  if (eq === 'mate-equal') {
+    return { accept: true, note: `${sanP} mate aussi vite que la solution prévue (${sanE}) : bien joué. Termine le mat.`, continuation: (lp!.pv || []).slice(1) };
+  }
+  if (eq === 'equal') {
+    return { accept: true, note: `${sanP} est aussi bon selon le moteur. L’idée de la leçon était ${sanE}.`, continuation: [] };
+  }
+  const ex = await explainPuzzleMiss(fen, played, expected, elo);
+  const refutation = (lp?.pv || []).slice(1, 3);
+  const loss = expMate ? `Il y avait un mat ; après ${sanP}, ${lp?.mate != null && lp.mate > 0 ? `le mat est plus lent (${lp.mate} coups au lieu de ${le!.mate})` : 'il n’y en a plus'}.` : '';
+  return { accept: false, headline: ex.headline, why: [ex.why, loss].filter(Boolean).join(' '), tip: ex.tip, refutation };
 }

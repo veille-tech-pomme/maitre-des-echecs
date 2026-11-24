@@ -5,6 +5,7 @@ import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, gameOv
 import { engine, whiteScore } from '../lib/engine';
 import { play, playForMove } from '../lib/sound';
 import { Icon } from './Icon';
+import { promotionVerdict, scriptKey, loneKingWin } from '../lib/goal';
 
 const ROLE: Record<string, string> = { Q: 'Q', R: 'R', B: 'B', N: 'N', K: 'K' };
 /** Ramasser les étoiles avec une pièce seule. */
@@ -61,7 +62,7 @@ export function Quiz({ options, answer, onDone, onMistake, success }: { options:
   );
 }
 /** Jouer une position contre le moteur jusqu'à l'objectif (mat, promotion, nulle). */
-export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, resetSignal }: { fen: string; result: 'mate' | 'promote' | 'draw'; maxMoves: number; onDone: (clean: boolean) => void; onFail?: (why: string) => void; orientation?: 'white' | 'black'; resetSignal?: number }) {
+export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, resetSignal, script }: { fen: string; result: 'mate' | 'promote' | 'draw'; maxMoves: number; onDone: (clean: boolean) => void; onFail?: (why: string) => void; orientation?: 'white' | 'black'; resetSignal?: number; /** défense imposée : position (placement + trait) → coup UCI du moteur */ script?: Record<string, string> }) {
   const [ch, setCh] = useState(() => new Chess(fen)); const [last, setLast] = useState<[string, string] | null>(null);
   const [n, setN] = useState(0); const [state, setStateS] = useState<'play' | 'think' | 'won' | 'lost'>('play'); const [msg, setMsg] = useState('');
   const user = useRef(new Chess(fen).turn()); const alive = useRef(true);
@@ -72,16 +73,22 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
     const c = new Chess(ch.fen()); const m = tryMove(c, { from, to, promotion: promotion || (isPromotion(ch, from, to) ? 'q' : undefined) }); if (!m) return false;
     playForMove(m); setCh(c); setLast([m.from, m.to]); const moves = n + 1; setN(moves);
     if (result === 'mate' && c.isCheckmate()) { setStateS('won'); setMsg(`Mat en ${moves} coups !`); play('win'); onDone(moves <= maxMoves * 0.7); return true; }
-    if (result === 'promote' && m.promotion) { setStateS('won'); setMsg('Promotion réussie !'); play('win'); onDone(true); return true; }
+    // promotion : jugée après la réponse du moteur (une dame prise aussitôt, ou un pat, ne compte pas)
+    const promoted = result === 'promote' && m.promotion ? m : null;
+    if (promoted && c.isGameOver()) { const v = promotionVerdict(c.isCheckmate() ? 10000 : 0, c, promoted, null); if (v.ok) { setStateS('won'); setMsg(v.msg); play('win'); onDone(true); } else fail(v.why); return true; }
+    if (result !== 'draw' && c.isCheckmate()) { setStateS('won'); setMsg(result === 'mate' ? `Mat en ${moves} coups !` : 'Mat ! Encore mieux qu’une promotion.'); play('win'); onDone(result !== 'mate' || moves <= maxMoves * 0.7); return true; }
     if (c.isGameOver()) { if (result === 'draw' && !c.isCheckmate()) { setStateS('won'); setMsg('Nulle obtenue !'); play('win'); onDone(true); } else fail(gameOverText(c) || 'Partie terminée'); return true; }
-    if (result !== 'draw' && moves >= maxMoves) { fail(`Limite de ${maxMoves} coups atteinte.`); return true; }
+    if (result !== 'draw' && moves >= maxMoves && !promoted) { fail(`Limite de ${maxMoves} coups atteinte.`); return true; }
     setStateS('think');
-    const r = await engine.analyse(c.fen(), { depth: 16, movetime: 500 });
+    const r = await engine.analyse(c.fen(), promoted ? { depth: 20, movetime: 1500 } : { depth: 16, movetime: 500 });
     if (!alive.current) return true;
     const sc = whiteScore(r.lines[0], c.fen()) * (user.current === 'w' ? 1 : -1);
-    const c2 = new Chess(c.fen()); const em = tryMove(c2, r.best);
+    const forced = script?.[scriptKey(c.fen())];
+    const c2 = new Chess(c.fen()); const em = (forced && tryMove(c2, forced)) || tryMove(c2, r.best);
     if (!em) return true;
     playForMove(em); setCh(c2); setLast([em.from, em.to]);
+    if (result === 'promote' && !promoted && loneKingWin(c2, user.current) && sc >= 300) { setStateS('won'); setMsg('La défense a rendu sa pièce pour ton pion : il ne lui reste que le roi, c’est gagné.'); play('win'); onDone(true); return true; }
+    if (promoted) { const v = promotionVerdict(sc, c2, promoted, em); if (v.ok) { setStateS('won'); setMsg(v.msg); play('win'); onDone(true); } else fail(v.why); return true; }
     if (c2.isGameOver()) { if (result === 'draw' && !c2.isCheckmate()) { setStateS('won'); setMsg('Nulle obtenue !'); play('win'); onDone(true); } else if (c2.isCheckmate()) fail('Tu as été maté.'); else fail((gameOverText(c2) || 'Nulle') + ' — il fallait gagner !'); return true; }
     if (result === 'draw') {
       if (sc < -400 || em.promotion) { fail('La position est perdue. Recommence et applique la méthode !'); return true; }

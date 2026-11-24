@@ -23,7 +23,7 @@ export const MATE_TEXTS: Record<string, ThemeText> = {
 };
 export const HAND_MATES = [
   { id: 'damiano', title: 'Le mat de Damiano', icon: '📜', level: 'intermediaire' as const, body: 'Décrit par Pedro Damiano en 1512 : la dame mate en h7, protégée par un pion en g6. Souvent précédé de sacrifices de tour sur la colonne h.', fen: '5rk1/8/6P1/8/8/8/8/6KQ w - - 0 1', accept: ['Qh7#'], tip: 'La dame va au contact du roi, protégée par le pion g6.' },
-  { id: 'baiser', title: 'Le mat du baiser', icon: '💋', level: 'debutant' as const, body: 'La dame donne mat juste à côté du roi adverse (elle « l’embrasse »), protégée par son roi ou une autre pièce.', fen: '6k1/8/5K2/8/8/8/8/6Q1 w - - 0 1', accept: ['Qg7#'], tip: 'La dame au contact, protégée par ton roi.' },
+  { id: 'baiser', title: 'Le mat du baiser', icon: '💋', level: 'debutant' as const, body: 'La dame donne mat juste à côté du roi adverse (elle « l’embrasse »), protégée par son roi ou une autre pièce.', fen: '6k1/Q7/5K2/8/8/8/8/8 w - - 0 1', accept: ['Qg7#'], tip: 'La dame au contact, protégée par ton roi.' },
   { id: 'legal', title: 'Le piège de Légal', icon: '🪤', level: 'intermediaire' as const, body: 'Nommé d’après Kermur de Légal, maître du café de la Régence à Paris au XVIIIe siècle. Les Blancs sacrifient leur dame pour un mat avec trois pièces mineures si les Noirs la prennent trop vite.', line: 'e4 e5 Nf3 d6 Bc4 Bg4 Nc3 g6 Nxe5 Bxd1 Bxf7+ Ke7 Nd5#', tip: 'Le cavalier e5 abandonne la dame : si le fou la prend, c’est mat !' },
 ];
 export const TACTIC_TEXTS: Record<string, ThemeText> = {

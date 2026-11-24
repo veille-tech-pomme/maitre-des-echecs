@@ -158,3 +158,27 @@ Ordre de travail (cocher au fur et à mesure) :
   - Mesures locales : vitest 1 286/1 286 ; e2e bureau + iPhone 0 échec, 0 erreur console (puzzle résolu → suivant en 0,3 s ; 4 étapes de leçon enchaînées seules, leçon suivante ouverte seule en 5,5 s) ; 1er chargement 154 KiB ; Lighthouse mobile 98/100/100/100
   - Captures iPhone (WebKit, iPhone 14 Pro, sombre) : screenshots/r3/ (tools/tmp/r3-shots.mjs)
   - **En ligne (19/11 21:58, heure de Bruxelles)** — https://veille-tech-pomme.github.io/maitre-des-echecs/ (main 8813956, gh-pages c57e6cb) : e2e en ligne bureau + iPhone 0 échec, 0 erreur console (puzzle → suivant 0,3 s, leçon suivante seule en 5,5 s, premier succès 1,4 s / 2,1 s) ; 1er chargement 149 KiB ; Lighthouse mobile 100/100/100/100 (FCP 1,1 s, LCP 1,5 s, TBT 50 ms, CLS 0)
+
+# PHASE 8 (24/11) — Audit Magnus (contenu échiquéen) — /workspace/audit-magnus/audit-complet-source.txt
+Statut par point (✅ fait · 🟡 partiel · ⬜ à faire). Ordre P0 → P1 → P2. Reprise : relire cette liste, `git log`, puis le point ⬜ suivant.
+- P0
+  - ✅ A1 Objectif « aller à dame » validé après la réponse du moteur, seulement si la position reste gagnante (Exercises.tsx, lib/goal.ts) ; tests (tests/goal.test.ts, lignes de la base de finales tools/data/promo-lines.json)
+  - ✅ A2 Saavedra : défense de l'étude imposée (…Td6+ … …Td4), 6.c8=D ? pat refusé, 6.c8=T !! accepté ; même règle dans la leçon « Théorie : études »
+  - ✅ A3 FEN illégale d-mat « Dame et roi » → 7k/8/6K1/8/8/8/Q7/8 w
+  - ✅ A4 FEN illégale « Le mat du baiser » → 6k1/Q7/5K2/8/8/8/8/8 w
+  - ✅ A5 Test de légalité de TOUTES les FEN (leçons, cours, finales, ouvertures, bots, parcours, fil, accueil, puzzles + packs) : tests/positions.test.ts, lib/legal.ts
+  - ✅ A6 Test de contenu multi-PV : coup prévu juste, alternatives aussi bonnes acceptées (tests/content-alternatives.test.ts, 275 coups à trouver, Stockfish 17.1 prof. 16) ; seul problème trouvé : « Attaque la pièce clouée » (1.d5 Rf7 décloue, 2.Txe6 valait mieux que 2.dxe6+) → exercice réduit à 1.d5
+- P1
+  - ✅ B1 Coups équivalents acceptés en leçon (autre mat à tout moment, ≤ 30 cp) — lib/judge-rule.ts, coach/client.ts judgeLessonMove, MoveTrainer judge ; « Mat en 2 » 1.Tb7 accepté, puis on finit le mat contre la meilleure défense
+  - ✅ B2 Explication d'erreur en leçon + réfutation jouée sur l'échiquier (explainPuzzleMiss sans dévoiler la solution ; le coup adverse qui réfute est joué puis la position revient)
+  - ⬜ B3 Leçons Expert et textes fautifs : zugzwang, triangulation, Lucena, Saavedra, sous-promotion (fourchette), kq-k-coin
+  - ⬜ B4 Parties célèbres : commentaires mécaniques
+  - ⬜ B5 Cours thématiques sur un même gabarit
+  - ⬜ B6 Diagnostic : « je débute », départ 600, 6 à 8 positions
+  - ⬜ B7 Bots : calibration, Elo mesuré, erreurs humaines, pendule
+  - ⬜ B8 Bilan : piège de l'éléphant mal expliqué
+- P2
+  - ⬜ C1 Bilan plus profond + corpus de pièges (éléphant, Légal, Noah) en non-régression
+  - ⬜ C2 Curriculum : opposition et carré en Intermédiaire, Lucena/Philidor étoffés, milieu de jeu (pion isolé, Carlsbad, Maroczy, pions pendants), calcul sur positions non forcées
+  - ⬜ C3 Finales à tenir nulle : vérifier la méthode (Philidor), pas seulement « tiens N coups »
+  - ⬜ C4 Captures `screenshots/*-ERR-*` orphelines

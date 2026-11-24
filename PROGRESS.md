@@ -208,14 +208,14 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste,
   - ✅ P1.1 src/coach/diagnose.ts (MistakeKind, diagnose, graduatedHints, explainIllegal) + corpus tests/diagnose-corpus.ts (36 tests verts, positions vérifiées au moteur ; commit de6955a)
   - 🟡 P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux branchés : leçons, cours, finales, ouvertures, fil, puzzles (branché ; reste : indice moteur dans PlayGoal, e2e)
   - 🟡 P1.3 Coups illégaux expliqués (Débutant) : explainIllegal + Board free branchés ; à vérifier en e2e
-  - ⬜ P1.4 CA1.1 e2e coup faux → headline non générique ; CA1.6 latence 1re phrase iPhone
+  - 🟡 P1.4 CA1.1 : tools/e2e-wrong-moves.mjs (283 exercices × 1 coup faux, Chromium) → 278/283 puis 5 corrigés (MoveTrainer : fiche honnête quand le coup « tient aussi ») ; 1re phrase médiane 147 ms, p95 184 ms. CA1.6 mesuré par tools/e2e.mjs (iPhone émulé, CPU ÷4 Chromium ; WebKit sans bridage) → tools/data/ca16-latency.json. Relance complète en cours (commit 5211095).
 - Pilier 2
-  - 🟡 P2.1 src/data/concepts.ts (49 notions) ; étiquetage par leçon (conceptsOfLesson) ; test 100 % à écrire
-  - 🟡 P2.2 src/coach/mastery.ts + modèle v2 + migrateModel faits ; tests CA2.4 à écrire
-  - 🟡 P2.3 FSRS (lib/fsrs.ts, chunk séparé 8,7 Ko gz chargé 1,5 s après l'affichage ; repli SM-2) ; tests à écrire
-  - 🟡 P2.4 Erreurs de leçon/exercice → cartes « mistake » (lib/learning.ts, évènement brut « mistake ») ; reste : fil entrelacé ; fil entrelacé sans thème annoncé, ≤ 2 cartes de la même notion à la suite
-  - ⬜ P2.5 Carte des notions (Mes progrès) ; export inclut les notions ; banc simulé (bench/)
+  - ✅ P2.1 src/data/concepts.ts (49 notions) ; étiquetage 100 % des étapes testé (tests/goat-p2.test.ts CA2.1)
+  - ✅ P2.2 mastery.ts (BKT, Maîtrisée = p≥0,9 + 3 contextes du 1er coup + autre jour + ≥1 entrelacé ; échec → Fragile ; drapeau ever) ; tests CA2.4 verts
+  - ✅ P2.3 FSRS (ts-fsrs MIT, chunk séparé 8,7 Ko gz ; repli SM-2 ; migration SM-2→FSRS) ; tests verts
+  - ✅ P2.4 Erreurs de leçon → cartes « mistake » dans le fil entrelacé (≤ 2 même notion à la suite, aucun thème annoncé avant la réponse) ; tests CA2.2/CA2.3 verts (commit 5211095)
+  - ✅ P2.5 Carte des notions (Coach) + célébration 1re maîtrise ; export inclut les notions ; banc bench/mastery-sim (400×30 j : faux « maîtrisé » 8,5 %, rappel 0,879, détection médiane 6 j)
 - Pilier 7 (séance)
-  - ⬜ P7.1 « Ma séance de 5 minutes » en un geste depuis l'accueil, jauge, fin de séance (progrès + demain) ; e2e temps simulés
+  - ✅ P7.1 « Ma séance de 5 minutes » (1 geste depuis l'accueil, jauge, fin de séance progrès + demain, continuer) ; tests CA7.1/CA7.2 ; correctif 24/11 : la séance n'est plus coupée par le plafond du jour. e2e temps simulés (page.clock) dans tools/e2e.mjs
 - Fin
-  - ⬜ Tests complets (unit + e2e bureau + iPhone WebKit), déploiement GitHub Pages, vérification en ligne, captures screenshots/goat1/
+  - 🟡 Contrastes AA : axe 0 violation grave (clair + sombre, 15 routes ; tools/axe-report.mjs). vitest 1457/1457. e2e complet en cours ; puis déploiement, vérification en ligne, Lighthouse, captures screenshots/goat1/

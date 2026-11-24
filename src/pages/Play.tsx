@@ -62,9 +62,9 @@ export function BotSelect() {
             {list.map((b) => {
               const games = s.games.filter((x) => x.botId === b.id); const wins = games.filter((x) => (x.result === '1-0' && x.color === 'w') || (x.result === '0-1' && x.color === 'b')).length;
               return (
-                <a class={'bot-card ' + (b.id === rec ? 'rec' : '')} href={`#/play/${b.id}`} style={{ '--c': b.color } as any} aria-label={`${b.name}, ${b.elo} Elo, ${b.style}`}>
+                <a class={'bot-card ' + (b.id === rec ? 'rec' : '')} href={`#/play/${b.id}`} style={{ '--c': b.color } as any}>
                   <BotAvatar bot={b} size={64} />
-                  <b>{b.name}</b><small class="elo tnum">{b.elo}</small>
+                  <b>{b.name}</b><small class="elo tnum">{b.elo}<span class="sr-only"> Elo</span></small>
                   <small class="muted">{games.length ? `${wins} sur ${games.length} gagnée${wins > 1 ? 's' : ''}` : b.style}</small>
                 </a>
               );

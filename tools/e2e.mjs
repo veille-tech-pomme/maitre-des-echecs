@@ -215,7 +215,7 @@ async function run(name, browserType, ctxOpts) {
     await page.reload(); // fin de l'horloge simulée
   });
   await check('GOAT P2 : carte des notions (Mes progrès) et célébration de maîtrise', async () => {
-    await page.goto(URL0 + '#/coach'); await page.waitForSelector('.concept-map .cm-chip'); const n = await page.locator('.concept-map .cm-chip').count(); if (n < 40) throw new Error('notions : ' + n);
+    await page.goto(URL0 + '#/coach'); await page.reload(); await page.waitForSelector('.concept-map .cm-chip'); // reload : après page.clock (P7), le seul changement de hash n'est pas toujours servi const n = await page.locator('.concept-map .cm-chip').count(); if (n < 40) throw new Error('notions : ' + n);
     await page.locator('.concept-map .cm-chip').first().click(); await page.waitForSelector('.cm-detail'); await page.locator('.concept-map').scrollIntoViewIfNeeded(); await shotG('09-carte-des-notions');
     await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); const t = Date.now(); s.coach.concepts.fork = { p: 0.95, n: 9, lastOk: t, lastFail: 0, firstTryStreak: 6, contexts: ['a', 'b', 'c', 'd'], days: ['2026-11-23', '2026-11-24'], inter: 2, at: t, ever: true, last: [1, 1, 1, 1, 1] }; s.coach.masteredLog = [...(s.coach.masteredLog || []), { id: 'fork', t }]; localStorage.setItem(k, JSON.stringify(s)); });
     await page.reload(); await page.waitForSelector('.mastery-cel', { timeout: 10000 }); await shotG('10-notion-maitrisee');

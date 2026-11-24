@@ -4,6 +4,8 @@ import { useStore, setState, getState } from '../lib/store';
 import { LargeTitle, NavBar, Progress, AutoNext } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { MoveTrainer } from '../components/MoveTrainer';
+import { CONCEPTS, CONCEPT } from '../data/concepts';
+import { masteryOf, MASTERY_LABEL, evidenceText, missingForMastery } from '../coach/mastery';
 import { radar, skillViews, weaknesses, strengths, globalRating, observe, confidence } from '../coach/model';
 import { coachPlan, weekProgress, ensureModel } from '../coach/curriculum';
 import { FAMILY_LABEL, FAMILIES, SKILL, MOTIF_SKILL, type Family } from '../coach/skills';
@@ -72,6 +74,7 @@ export function CoachPage() {
           <div class="list">{plan.map((a) => (
             <a class="item" href={a.route}><span class="it-icon" style={{ '--c': ACT_ICON[a.kind].color } as any}><Icon name={ACT_ICON[a.kind].icon} size={17} stroke={2.2} /></span><span class="it-main"><span class="it-title">{a.title}</span><span class="it-sub">{a.evidence || a.why}</span></span><Icon name="right" size={18} class="chev" stroke={2.4} /></a>
           ))}</div>
+          <ConceptMap m={m} />
           <div class="section-title"><h2>Compétences</h2></div>
           <div class="chips" role="tablist" aria-label="Familles">
             {(['all', ...FAMILIES] as const).map((f) => <button class={'chip ' + (fam === f ? 'on' : '')} role="tab" aria-selected={fam === f} onClick={() => setFam(f)}>{f === 'all' ? 'Toutes' : FAMILY_LABEL[f]}</button>)}
@@ -169,3 +172,34 @@ export function MistakesSession() {
     </div>
   );
 }
+
+/** Carte des notions (pilier 2) : état par notion (Pas vue / En cours / Fragile / Maîtrisée) avec sa preuve. */
+function ConceptMap({ m }: { m: import('../coach/model').CoachModel }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const fams = [...new Set(CONCEPTS.map((c) => c.family))];
+  const cs = m.concepts || {}; const nM = Object.values(cs).filter((c) => c.at).length; const nSeen = Object.values(cs).filter((c) => c.n).length;
+  const sel = open ? CONCEPT[open] : null; const st = open ? cs[open] : undefined;
+  return (
+    <section class="concept-map" aria-label="Carte des notions">
+      <div class="section-title"><h2>Carte des notions</h2><small class="muted">{nM} maîtrisée{nM > 1 ? 's' : ''} · {nSeen} travaillée{nSeen > 1 ? 's' : ''} sur {CONCEPTS.length}</small></div>
+      {fams.map((f) => (
+        <div class="cm-fam"><p class="eyebrow">{FAMILY_FR[f] || f}</p>
+          <div class="cm-chips">{CONCEPTS.filter((c) => c.family === f).map((c) => { const ms = masteryOf(cs[c.id]); return (
+            <button class={'cm-chip ' + ms + (open === c.id ? ' on' : '')} data-concept={c.id} data-state={ms} onClick={() => setOpen(open === c.id ? null : c.id)} aria-expanded={open === c.id} title={`${c.label} : ${MASTERY_LABEL[ms]}`}>
+              <span class="cm-dot" aria-hidden="true" />{c.label}<span class="sr-only"> : {MASTERY_LABEL[ms]}</span></button>); })}</div>
+        </div>
+      ))}
+      {sel && (
+        <div class="cm-detail" role="note">
+          <b>{sel.label}</b> · <span class={'cm-state ' + masteryOf(st)}>{MASTERY_LABEL[masteryOf(st)]}</span>
+          <p>{sel.def}</p>
+          <p class="muted small">{evidenceText(st)}</p>
+          {masteryOf(st) !== 'mastered' && <p class="muted small">Pour la maîtriser : {missingForMastery(st).join(' ; ')}.</p>}
+          {sel.lessons[0] && <a class="btn small secondary" href={`#/lesson/${sel.lessons[0]}`}>La leçon</a>}
+        </div>
+      )}
+      <p class="list-foot">« Maîtrisée » demande des réussites du premier coup sur plusieurs positions, sur au moins deux jours, et une fois sans que le thème soit annoncé. Une erreur la repasse en « Fragile ».</p>
+    </section>
+  );
+}
+const FAMILY_FR: Record<string, string> = { rules: 'Règles', tactics: 'Tactique', mates: 'Mats', openings: 'Ouvertures', endgames: 'Finales', strategy: 'Stratégie' };

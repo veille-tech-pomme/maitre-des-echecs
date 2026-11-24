@@ -1,0 +1,61 @@
+{
+ "summary": {
+  "browser": "chromium",
+  "exercises": 5,
+  "ok": 5,
+  "failed": 0,
+  "firstSentenceMs": {
+   "median": 153,
+   "p95": 215
+  },
+  "finalMs": {
+   "median": 246,
+   "p95": 2011
+  },
+  "bySource": {
+   "engine": 5
+  },
+  "byKind": {
+   "positional": 5
+  },
+  "seconds": 4
+ },
+ "failures": [],
+ "sample": [
+  {
+   "id": "d-coups-speciaux",
+   "step": 4,
+   "wrong": "b1a3",
+   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
+   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
+  },
+  {
+   "id": "a-pieces",
+   "step": 1,
+   "wrong": "c3a4",
+   "headline": "Il y a plus fort ici",
+   "why": "Bon choix, mais le bon coup était plus précis. Ton cavalier part au bord en a4 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
+  },
+  {
+   "id": "a-colonnes",
+   "step": 1,
+   "wrong": "a1b1",
+   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
+   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
+  },
+  {
+   "id": "e-plans",
+   "step": 1,
+   "wrong": "a1c1",
+   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
+   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
+  },
+  {
+   "id": "mil-carlsbad",
+   "step": 3,
+   "wrong": "c3a4",
+   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
+   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
+  }
+ ]
+}

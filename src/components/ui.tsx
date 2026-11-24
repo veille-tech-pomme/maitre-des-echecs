@@ -74,7 +74,7 @@ export function EvalBar({ cp, orientation = 'white', label }: { cp: number; orie
   const w = 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * Math.max(-2000, Math.min(2000, cp)))) - 1);
   const pct = cp >= 9000 ? 100 : cp <= -9000 ? 0 : w;
   return (
-    <div class={'evalbar ' + (orientation === 'black' ? 'flip' : '')} aria-label={`Évaluation ${label || ''}`} title={label}>
+    <div class={'evalbar ' + (orientation === 'black' ? 'flip' : '')} role="img" aria-label={`Évaluation ${label || ''}`} title={label}>
       <div class="evalbar-white" style={{ height: pct + '%' }} />
       <span class={'evalbar-label ' + (cp >= 0 ? 'w' : 'b')}>{label}</span>
     </div>

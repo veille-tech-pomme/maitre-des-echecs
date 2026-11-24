@@ -1,7 +1,7 @@
 /* ===== Maître des Échecs — système de design (voir DESIGN.md) ===== */
 :root {
   --bg: #0B0C10; --surface: #16181E; --surface-2: #1F222A; --surface-3: #2A2E38; --sep: rgba(255,255,255,.08);
-  --text: #F5F5F7; --text-2: rgba(235,235,245,.66); --text-3: rgba(235,235,245,.40);
+  --text: #F5F5F7; --text-2: rgba(235,235,245,.66); --text-3: rgba(235,235,245,.56);
   --gold: #F2B544; --gold-2: #FFD27A; --on-gold: #1C1404; --tint: #F2B544; --gold-soft: rgba(242,181,68,.14);
   --green: #30D158; --red: #FF453A; --blue: #0A84FF; --orange: #FF9F0A; --purple: #BF5AF2; --teal: #40C8E0; --pink: #FF375F; --indigo: #5E5CE6;
   --shadow: none; --shadow-lg: 0 24px 60px rgba(0,0,0,.5);
@@ -16,7 +16,7 @@
 }
 [data-theme='light'] {
   --bg: #F2F2F7; --surface: #FFFFFF; --surface-2: #F2F2F7; --surface-3: #E5E5EA; --sep: rgba(60,60,67,.13);
-  --text: #0B0C10; --text-2: rgba(60,60,67,.76); --text-3: rgba(60,60,67,.48);
+  --text: #0B0C10; --text-2: rgba(60,60,67,.76); --text-3: rgba(60,60,67,.74);
   --tint: #8A5D00; --gold-soft: rgba(242,181,68,.2);
   --green: #248A3D; --red: #D70015; --blue: #0066CC; --orange: #C93400; --purple: #8944AB; --teal: #0071A4; --pink: #D30F45; --indigo: #3634A3;
   --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); --shadow-lg: 0 24px 60px rgba(0,0,0,.18);
@@ -56,3 +56,8 @@ button { font: inherit; color: inherit; }
 .tnum { font-variant-numeric: tabular-nums; }
 .grad { color: var(--gold); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* GOAT CA : contrastes WCAG AA en thème clair (axe) : les couleurs vives servent au décor, le texte prend une variante foncée */
+[data-theme='light'] .eyebrow { color: color-mix(in srgb, var(--c, #8A5D00) 62%, #000); }
+[data-theme='light'] .hero-card .hc-eyebrow, [data-theme='light'] .pz-rating b, [data-theme='light'] .grad { color: var(--tint); }
+[data-theme='light'] .fc-kind { color: color-mix(in srgb, var(--c) 58%, #000); }

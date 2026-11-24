@@ -15,6 +15,7 @@ export interface ConceptState {
   /** réussites en contexte entrelacé (fil, révision : thème non annoncé) */ inter: number;
   /** date à laquelle la notion est devenue « Maîtrisée » (absent si elle ne l'est pas ou plus) */ at?: number;
   /** a déjà été maîtrisée puis ratée */ fragile?: boolean;
+  /** a déjà été maîtrisée au moins une fois (la célébration n'a lieu qu'à la première fois) */ ever?: boolean;
   /** 5 derniers résultats (1 réussite, 0 échec) pour la fiche */ last: number[];
 }
 /** Paramètres BKT par famille : p0 initiale, T apprentissage, G devinette, S inattention. À régler sur le banc simulé. */
@@ -58,7 +59,7 @@ export function observeConcept(c: ConceptState, id: ConceptId, o: Observation): 
   if (o.ok && hint < 3) {
     n.lastOk = t; const d = dayOf(t); if (!n.days.includes(d)) n.days = [...n.days, d].slice(-6);
     if (clean) { n.firstTryStreak++; if (o.ctx && !n.contexts.includes(o.ctx)) n.contexts = [...n.contexts, o.ctx].slice(-8); if (o.interleaved) n.inter++; }
-    if (!n.at && meetsMastery(n)) { n.at = t; n.fragile = false; became = 'mastered'; }
+    if (!n.at && meetsMastery(n)) { n.at = t; n.fragile = false; became = 'mastered'; if (!c.ever) n.ever = true; }
   } else {
     n.lastFail = t; n.firstTryStreak = 0;
     if (n.at) { delete n.at; n.fragile = true; became = 'fragile'; }

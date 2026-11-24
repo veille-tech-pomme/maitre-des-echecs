@@ -40,8 +40,9 @@ export function migrateModel(m: CoachModel): boolean {
 /** Observation d'une notion ; enregistre la transition « Maîtrisée » (célébration, CA7.2). */
 export function applyConceptObs(m: CoachModel, id: string, o: import('./mastery').Observation): 'mastered' | 'fragile' | undefined {
   if (!CONCEPT[id]) return undefined;
-  m.concepts ||= {}; const r = observeConcept(m.concepts[id] || newConceptState(id), id, o); m.concepts[id] = r.c;
-  if (r.became === 'mastered') { (m.masteredLog ||= []).push({ id, t: o.t ?? Date.now() }); if (m.masteredLog.length > 50) m.masteredLog.shift(); }
+  m.concepts ||= {}; const prev = m.concepts[id]; const r = observeConcept(prev || newConceptState(id), id, o); m.concepts[id] = r.c;
+  // célébration : la première maîtrise seulement (une erreur repasse en « Fragile », la reconquête n'est pas re-fêtée)
+  if (r.became === 'mastered' && !prev?.ever) { (m.masteredLog ||= []).push({ id, t: o.t ?? Date.now() }); if (m.masteredLog.length > 50) m.masteredLog.shift(); }
   return r.became;
 }
 function rawToConcepts(m: CoachModel, e: RawEvent) {

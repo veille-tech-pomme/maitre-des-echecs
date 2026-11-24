@@ -44,11 +44,13 @@ export interface State {
   /** Modèle du coach (chargé à la demande) et file d'évènements bruts qu'il consomme. */
   coach?: import('../coach/model').CoachModel;
   coachQ?: import('../coach/model').RawQueue;
+  /** séance de 5 minutes en cours (pilier 7) */
+  session?: import('../coach/feed').SessionState;
   /** Fil « Pour toi » : programme du jour (cartes servies) et statistiques par type de carte (passes, temps). */
   feed?: FeedState;
 }
 export interface FeedStat { n: number; ok: number; fail: number; skip: number; ab: number; ms: number }
-export interface FeedState { date: string; served: { id: string; kind: string; skill: string | null; out: string }[]; kinds: Record<string, FeedStat>; lessonStep?: Record<string, number> }
+export interface FeedState { date: string; served: { id: string; kind: string; skill: string | null; out: string; concept?: string }[]; kinds: Record<string, FeedStat>; lessonStep?: Record<string, number> }
 /** Ajoute un évènement pour le coach sans charger son code (file bornée). */
 export function pushCoach(s: State, e: import('../coach/model').RawEvent) {
   const q = (s.coachQ ||= { n: 0, items: [] }); q.items.push(e); q.n++; if (q.items.length > 300) q.items.splice(0, q.items.length - 300);

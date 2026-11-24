@@ -113,7 +113,9 @@ export function MoveTrainer(p: TrainerProps) {
     let d: Diagnosis; try { d = await dm.diagnose(ctx); } catch { d = dm.diagnoseFast(ctx); }
     if (token !== judging.current) return;
     if (d.accept && keepOnBoard) { accepted(keepOnBoard.n, keepOnBoard.m, uci, d.note || 'Bien vu.', d.continuation || []); return; }
-    if (d.accept) return; // coup accepté par le moteur mais la pièce est déjà revenue : rien à dire de faux
+    // le moteur rapide le trouve aussi bon, mais la position est précalculée (1,5 M nœuds, 5 meilleurs coups) et il n'y
+    // figure pas : on le dit honnêtement, sans « Réessaie » ni faux reproche
+    if (d.accept) d = { ...d, accept: false, kind: 'positional', headline: 'Ce coup tient aussi, mais ce n’est pas l’idée ici', why: 'Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice.', refutation: [], arrows: [], marks: [], source: 'engine' };
     if (keepOnBoard) { fail(before, uci, keepOnBoard.m.to); }
     rejected(before, uci, d, token);
   }

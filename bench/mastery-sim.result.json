@@ -1,0 +1,17 @@
+{
+  "players": 400,
+  "days": 30,
+  "concepts": 6,
+  "observations": 83810,
+  "masteryDeclared": 7339,
+  "falseMasteryRate": 0.087,
+  "firstMasteryCelebrated": 2281,
+  "falseFirstMasteryRate": 0.085,
+  "recallOfTrueMastery": 0.879,
+  "detectionLagDays": {
+    "p25": 2,
+    "median": 6,
+    "p75": 14
+  },
+  "wrongFragileOnKnown": 4278
+}

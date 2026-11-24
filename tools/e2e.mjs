@@ -10,7 +10,7 @@ const PORT = 4173, URL0 = process.env.E2E_URL || `http://localhost:${PORT}/`;
 mkdirSync('screenshots', { recursive: true });
 const srv = process.env.E2E_URL ? { kill() {} } : spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
 if (!process.env.E2E_URL) await new Promise((r) => { srv.stdout.on('data', (d) => String(d).includes('localhost') && r()); setTimeout(r, 8000); });
-const errors = []; let failures = 0;
+const errors = []; let failures = 0; const timings = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function clickSq(page, sq, orient = 'white') {
   const loc = page.locator('cg-board').first(); let b = null; for (let i = 0; i < 40 && !b; i++) { b = await loc.boundingBox(); if (!b) await sleep(100); } const s = b.width / 8;
@@ -33,6 +33,8 @@ async function run(name, browserType, ctxOpts) {
   const loaded = new Set(); page.on('response', (r) => { const u = r.url(); if (r.ok() && /packs\/|stockfish/.test(u)) loaded.add(u.replace(URL0, '')); });
   page.on('pageerror', (e) => errors.push(`[${name}] pageerror: ${e.message}`));
   const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
+  /** captures GOAT phase 1 (à tester par l'utilisateur) */
+  const shotG = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/goat1/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
   const tLoad = Date.now(); await page.goto(URL0); await page.waitForSelector('.ob', { timeout: 15000 });
@@ -52,7 +54,7 @@ async function run(name, browserType, ctxOpts) {
   });
   // R3 : plus de cul-de-sac
   await check('leçon verrouillée → une prochaine action', async () => {
-    await page.goto(URL0 + '#/lesson/d-echiquier'); await page.waitForSelector('.locked-lesson'); await shot('03-lecon-verrouillee');
+    await page.goto(URL0 + '#/lesson/d-pion'); await page.waitForSelector('.locked-lesson'); await shot('03-lecon-verrouillee');
     if ((await page.locator('.locked-lesson .center-col .btn').count()) < 3) throw new Error('pas assez d’actions');
     if (!(await page.locator('.locked-lesson a[href^="#/lesson/"]').count())) throw new Error('pas de lien vers la leçon qui ouvre celle-ci');
     await page.click('text=Je connais déjà'); await page.waitForSelector('.lesson-grid');
@@ -85,7 +87,7 @@ async function run(name, browserType, ctxOpts) {
     await page.waitForSelector('.lesson-grid');
     for (let i = 0; i < 6 && !/Mat en 2/.test(await page.locator('.lesson-side h2').innerText()); i++) { await page.click('.lesson-actions .btn.primary'); await sleep(400); }
     await sleep(400); await clickSq(page, 'b1'); await clickSq(page, 'b7');
-    await page.waitForFunction(() => /mate aussi vite/.test(document.querySelector('.lesson-board')?.textContent || document.body.textContent), null, { timeout: 15000 });
+    await page.waitForFunction(() => /marche aussi|mate en 2 comme/.test(document.querySelector('.lesson-board')?.textContent || document.body.textContent), null, { timeout: 15000 });
     await page.waitForFunction(() => /Les Blancs jouent|À toi/.test(document.querySelector('.feedback')?.textContent || ''), null, { timeout: 10000 }); await sleep(400);
     await page.locator('cg-board').first().scrollIntoViewIfNeeded(); await page.evaluate(() => document.querySelector('cg-board')?.scrollIntoView({ block: 'center' })); await sleep(300);
     await clickSq(page, 'a2'); await clickSq(page, 'a8');
@@ -156,6 +158,68 @@ async function run(name, browserType, ctxOpts) {
       await page.click('.fc-skip'); await sleep(300);
     }
     throw new Error('aucune carte menace rencontrée');
+  });
+  // ——— GOAT phase 1 ———
+  const pieces = () => page.evaluate(() => [...document.querySelectorAll('.lesson-board cg-board piece')].map((p) => p.className + '@' + p.style.transform).sort().join('|'));
+  await check('GOAT P1 : coup faux → fiche « Pourquoi » précise ; Montre-moi rejoue la réfutation et revient à la position (CA1.1, CA1.5, CA1.6)', async () => {
+    await page.goto(URL0 + '#/lesson/d-mat?step=1'); await page.waitForSelector('.lesson-board cg-board'); await page.waitForFunction(() => /jouent/.test(document.querySelector('.lesson-board .feedback')?.textContent || '')); await sleep(500);
+    const before = await pieces(); const t0 = Date.now();
+    await clickSq(page, 'd1'); await clickSq(page, 'd2');
+    await page.waitForSelector('.lesson-board .mistake-sheet'); const first = Date.now() - t0;
+    const h1 = (await page.locator('.mistake-sheet .ms-head').innerText()).trim();
+    await page.waitForFunction(() => document.querySelector('.mistake-sheet')?.getAttribute('data-source') !== 'symbolic' && document.querySelector('.mistake-sheet .ms-show'), null, { timeout: 15000 }); const fin = Date.now() - t0;
+    const h = (await page.locator('.mistake-sheet .ms-head').innerText()).trim();
+    if (/^(Réessaie|Pas tout à fait)/.test(h) || h.length < 10) throw new Error('titre générique : ' + h);
+    console.log(`    1re phrase en ${first} ms (« ${h1} »), diagnostic final en ${fin} ms : « ${h} »`); timings.push({ name, first, fin });
+    await shotG('01-fiche-pourquoi');
+    await page.click('.mistake-sheet .ms-show'); await page.waitForSelector('.mistake-sheet .ms-narr'); await sleep(1600); await shotG('02-montre-moi');
+    const narr = (await page.locator('.mistake-sheet .ms-narr').innerText()).trim(); if (!narr) throw new Error('narration vide');
+    await page.waitForSelector('.mistake-sheet .ms-actions', { timeout: 15000 }); await sleep(700);
+    if ((await pieces()) !== before) throw new Error('la position n’est pas revenue exactement au départ');
+  });
+  await check('GOAT P1 : 3 niveaux d’indice, sans le coup aux niveaux 1 et 2 (CA1.4)', async () => {
+    await page.goto(URL0 + '#/lesson/d-mat?step=1&h=1'); await page.waitForSelector('.lesson-board cg-board'); await sleep(500);
+    const txt = []; for (let k = 1; k <= 3; k++) { await page.click('.lesson-hint'); await page.waitForSelector(`.coach-hint[data-level="${k}"]`); txt.push((await page.locator('.coach-hint').innerText()).trim()); if (k === 2) await shotG('03-indice-2'); }
+    if (/Td8|Txd8/.test(txt[0]) || /Td8|Txd8/.test(txt[1])) throw new Error('le coup apparaît avant le niveau 3 : ' + txt.slice(0, 2).join(' / '));
+    if (!/Td8/.test(txt[2])) throw new Error('niveau 3 sans le coup : ' + txt[2]);
+    if (await page.locator('.lesson-hint').count()) throw new Error('un 4e niveau est proposé');
+    await shotG('04-indice-3');
+  });
+  await check('GOAT P1 : Débutant, coup illégal expliqué', async () => {
+    await page.goto(URL0 + '#/lesson/d-mat?step=1&i=1'); await page.waitForSelector('.lesson-board cg-board'); await sleep(500);
+    await clickSq(page, 'd1'); await clickSq(page, 'e3');
+    await page.waitForSelector('.mistake-sheet[data-kind="illegal"]', { timeout: 8000 }); const h = (await page.locator('.mistake-sheet .ms-head').innerText()).trim();
+    if (h.length < 10) throw new Error('explication courte : ' + h); console.log(`    « ${h} »`); await shotG('05-coup-illegal');
+  });
+  await check('GOAT P7 : séance de 5 minutes en un geste, temps simulés, fin de séance (CA7.1) ; thème jamais annoncé avant la réponse (CA2.3)', async () => {
+    await page.clock.install(); await page.goto(URL0 + '#/'); await page.reload();
+    await page.waitForSelector('.session-start', { timeout: 20000 }); const est = (await page.locator('.session-start small').innerText()).trim();
+    const m = est.match(/≈ (\d+) min · (\d+) cartes/); if (!m || +m[1] < 4 || +m[1] > 6) throw new Error('durée estimée : ' + est);
+    await shotG('06-accueil-seance');
+    await page.click('.session-start'); await page.waitForSelector('.session-gauge'); let n = 0; const seen = [];
+    for (; n < 25 && !(await page.locator('.session-end').count()); n++) {
+      await page.waitForSelector('.feed-card:not(.skeleton):not(.leaving), .session-end', { timeout: 20000 }); if (await page.locator('.session-end').count()) break;
+      const kind = await page.locator('.feed-card').getAttribute('data-kind'); const lab = (await page.locator('.feed-card .fc-kind').innerText()).trim(); seen.push(kind);
+      if (['puzzle', 'mate1', 'mistake'].includes(kind) && ((await page.locator('.feed-card .fc-sub').count()) || /Mat en 1|Rejoue/.test(lab))) throw new Error(`thème annoncé avant la réponse (${kind} : ${lab})`);
+      if (n === 1) await shotG('07-seance-jauge');
+      const ref = await page.locator('.feed-card').getAttribute('data-ref');
+      await page.clock.fastForward(32000); await page.click('.fc-skip');
+      await page.waitForFunction((r) => document.querySelector('.session-end') || (document.querySelector('.feed-card:not(.skeleton):not(.leaving)') && document.querySelector('.feed-card').getAttribute('data-ref') !== r), ref, { timeout: 15000 });
+    }
+    await page.waitForSelector('.session-end', { timeout: 10000 }); await shotG('08-fin-de-seance');
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).session);
+    console.log(`    estimé « ${est} » ; ${st.n} cartes en ${(st.spent / 60000).toFixed(1)} min simulées (${seen.join(', ')})`);
+    if (st.spent < 4.5 * 60000 || st.spent > 5.6 * 60000) throw new Error('durée simulée ' + st.spent);
+    if (!(await page.locator('.session-end .fe-teaser').innerText()).startsWith('Demain')) throw new Error('pas de « ce qui revient demain »');
+    await page.click('.se-continue'); await page.waitForSelector('.feed-card, .feed-end', { timeout: 15000 });
+    await page.reload(); // fin de l'horloge simulée
+  });
+  await check('GOAT P2 : carte des notions (Mes progrès) et célébration de maîtrise', async () => {
+    await page.goto(URL0 + '#/coach'); await page.waitForSelector('.concept-map .cm-chip'); const n = await page.locator('.concept-map .cm-chip').count(); if (n < 40) throw new Error('notions : ' + n);
+    await page.locator('.concept-map .cm-chip').first().click(); await page.waitForSelector('.cm-detail'); await page.locator('.concept-map').scrollIntoViewIfNeeded(); await shotG('09-carte-des-notions');
+    await page.evaluate(() => { const k = 'echecs-app-v1'; const s = JSON.parse(localStorage.getItem(k)); const t = Date.now(); s.coach.concepts.fork = { p: 0.95, n: 9, lastOk: t, lastFail: 0, firstTryStreak: 6, contexts: ['a', 'b', 'c', 'd'], days: ['2026-11-23', '2026-11-24'], inter: 2, at: t, ever: true, last: [1, 1, 1, 1, 1] }; s.coach.masteredLog = [...(s.coach.masteredLog || []), { id: 'fork', t }]; localStorage.setItem(k, JSON.stringify(s)); });
+    await page.reload(); await page.waitForSelector('.mastery-cel', { timeout: 10000 }); await shotG('10-notion-maitrisee');
+    await page.click('.mastery-cel .btn'); await page.waitForFunction(() => !document.querySelector('.mastery-cel'));
   });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });
   await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });
@@ -248,6 +312,30 @@ await run('desktop', chromium, { viewport: { width: 1366, height: 860 }, deviceS
 const iphone = devices['iPhone 14 Pro'] || devices['iPhone 13'];
 const wk = await run('iphone', webkit, { ...iphone });
 if (!wk) await run('iphone-chromium', chromium, { ...iphone, defaultBrowserType: undefined });
+// CA1.6 : latence de la 1re phrase sur iPhone émulé avec CPU ralenti 4× (bridage CPU par CDP : Chromium seulement,
+// WebKit n'en a pas ; la mesure WebKit non bridée est dans « timings »)
+{
+  const W = JSON.parse(fs.readFileSync('tools/data/e2e-wrong-moves.json', 'utf8')).filter((x) => x.level === 'debutant' || x.level === 'intermediaire').filter((_, i) => i % 6 === 0).slice(0, 12);
+  const b = await chromium.launch(); const ctx = await b.newContext({ ...iphone, defaultBrowserType: undefined });
+  await ctx.addInitScript(`localStorage.setItem('echecs-app-v1', JSON.stringify({ xp: 0, onboarded: true, lessons: Object.fromEntries(${JSON.stringify([...new Set(W.map((x) => x.id))])}.map((i) => [i, { done: true, stars: 3, step: 0 }]).concat([['unlock-intermediaire', { done: false, stars: 0, step: 0 }], ['unlock-avance', { done: false, stars: 0, step: 0 }]])) }));`);
+  const page = await ctx.newPage(); const cdp = await ctx.newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  const firsts = [], finals = [];
+  await page.goto(URL0 + '#/learn'); await sleep(1500);
+  for (const it of W) {
+    try {
+      await page.goto(`${URL0}#/lesson/${it.id}?step=${it.step}`); await page.waitForSelector('.lesson-board cg-board', { timeout: 20000 }); await sleep(900);
+      const bb = await page.locator('.lesson-board cg-board').first().boundingBox(); const sz = bb.width / 8;
+      const at = (sq) => { let f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; if (it.orient === 'black') { f = 7 - f; r = 7 - r; } return [bb.x + sz * (f + 0.5), bb.y + sz * (7 - r + 0.5)]; };
+      const t0 = Date.now(); await page.mouse.click(...at(it.wrong.slice(0, 2))); await page.mouse.click(...at(it.wrong.slice(2, 4)));
+      await page.waitForSelector('.lesson-board .mistake-sheet', { timeout: 15000 }); firsts.push(Date.now() - t0);
+      await page.waitForFunction(() => document.querySelector('.lesson-board .mistake-sheet')?.getAttribute('data-source') !== 'symbolic', null, { timeout: 30000 }); finals.push(Date.now() - t0);
+    } catch (e) { console.log('  ⚠ CA1.6', it.id, it.step, String(e.message).split('\n')[0]); }
+  }
+  await b.close();
+  const med = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[Math.floor((x.length - 1) / 2)] : null; };
+  const res = { device: 'iPhone 14 Pro émulé (Chromium) · CPU ÷4', n: firsts.length, firstSentenceMs: { median: med(firsts), max: Math.max(...firsts) }, finalDiagnosisMs: { median: med(finals), max: Math.max(...finals) }, webkitUnthrottled: timings };
+  console.log('▶ CA1.6', JSON.stringify(res)); fs.writeFileSync('tools/data/ca16-latency.json', JSON.stringify(res, null, 1) + '\n');
+}
 srv.kill();
 // WebKit + COOP/COEP locaux : le worker multi-thread est refusé puis le moteur repart en mono-thread (repli voulu, absent en production sans COEP).
 const real = errors.filter((e) => !/favicon|Failed to load resource.*(404)/.test(e) && !/^\[iphone\].*(Cross-Origin-Embedder-Policy|(stockfish-18-lite\.js|packs\/\w+\/b\d+\.gz).*access control checks)/.test(e)); // WebKit : téléchargement annulé par page.goto

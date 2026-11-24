@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore, getState, setState, addXp, levelFromXp, streakAlive } from '../lib/store';
 import { MoveTrainer } from '../components/MoveTrainer';
+import { CONCEPT } from '../data/concepts';
 import { Board, toShapes } from '../components/Board';
 import { Icon, type IconName } from '../components/Icon';
 import { Md, toastPrefs } from '../components/ui';
@@ -18,7 +19,7 @@ import { StepBoard } from './Lesson';
 import { SKILL } from '../coach/skills';
 import { useCoachSync } from '../coach/ui/common';
 import { ensureModel } from '../coach/curriculum';
-import { nextFeedCards, recordFeed, recordDiag, diagBeginner, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, type FeedCard, type FeedOutcome } from '../coach/feed';
+import { nextFeedCards, recordFeed, recordDiag, diagBeginner, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, sessionActive, sessionPlan, startSession, sessionCard, sessionOver, sessionSummary, type FeedCard, type FeedOutcome, type SessionSummary } from '../coach/feed';
 import { go as goTo } from '../lib/router';
 import { feedDiagPlanned } from '../coach/diagnostic';
 
@@ -83,6 +84,9 @@ export function Feed() {
   const [cur, setCur] = useState<Slot | null | undefined>(undefined); // undefined = chargement, null = fin du jour
   const nextRef = useRef<Promise<Slot | null> | null>(null);
   const [k, setK] = useState(0);
+  const [summary, setSummary] = useState<SessionSummary | null>(null);
+  /** un geste depuis l'accueil (CA7.1) : la séance démarre sur la carte affichée (ou en prépare une) */
+  const start = () => { setState((d) => startSession(d, ensureModel(d))); setSummary(null); if (cur === null) { nextRef.current = null; setCur(undefined); setK((x) => x + 1); } };
   useEffect(() => { toastPrefs.quietXp = true; return () => { toastPrefs.quietXp = false; }; }, []);
   /** prépare une carte jouable (si une source est indisponible, on essaie la suivante) */
   async function prepare(pending: FeedCard[]): Promise<Slot | null> {
@@ -103,27 +107,37 @@ export function Feed() {
     return () => { live = false; };
   }, [go]);
   async function advance() {
-    const nx = nextRef.current ? await nextRef.current : await prepare([]);
+    // fin de séance : budget de temps consommé → écran de fin (l'élève peut continuer ensuite)
+    if (sessionOver(getState())) { let sm: SessionSummary | null = null; setState((d) => { const m = ensureModel(d); sm = sessionSummary(d, m); d.session!.over = true; }); setSummary(sm); }
+    let nx = nextRef.current ? await nextRef.current : await prepare([]);
+    // préchargée avant le début de la séance (programme du jour fini → rien) : on redemande avec le budget de séance
+    if (!nx && sessionActive(getState())) nx = await prepare([]);
     // la carte préchargée a pu devenir caduque (programme terminé entre-temps)
-    const left = DAILY_CARDS - feedProgress(getState()).done;
+    const gs = getState(); const left = sessionActive(gs) ? 1 : DAILY_CARDS - feedProgress(gs).done; // séance : budget en temps, pas le plafond du jour
     const slot = left > 0 ? nx : null;
     setCur(slot); setK((x) => x + 1);
     nextRef.current = slot ? preload(slot) : null;
   }
   // le diagnostic s'adapte à chaque réponse : sa carte suivante ne peut pas être préparée d'avance
   const preload = (sl: Slot) => (sl.card.kind === 'diag' ? null : prepare([sl.card]));
-  if (!go || cur === undefined) return <div class="page feed"><FeedHead /><div class="feed-card skeleton" role="status" aria-busy="true" aria-label="Préparation de ton fil"><div class="fc-board" /></div></div>;
-  if (cur === null) return <div class="page feed"><FeedHead /><FeedEnd /></div>;
+  if (summary) return <div class="page feed"><FeedHead onStart={start} /><SessionEnd sm={summary} onContinue={() => setSummary(null)} /></div>;
+  if (!go || cur === undefined) return <div class="page feed"><FeedHead onStart={start} /><div class="feed-card skeleton" role="status" aria-busy="true" aria-label="Préparation de ton fil"><div class="fc-board" /></div></div>;
+  if (cur === null) {
+    if (sessionActive(s)) { const m = s.coach; if (m) setTimeout(() => { let sm: SessionSummary | null = null; setState((d) => { sm = sessionSummary(d, ensureModel(d)); d.session!.over = true; }); setSummary(sm); }, 0); }
+    return <div class="page feed"><FeedHead onStart={start} /><FeedEnd /></div>;
+  }
   return (
     <div class="page feed">
-      <FeedHead />
+      <FeedHead onStart={start} />
       <CardView key={k} slot={cur} onDone={advance} />
     </div>
   );
 }
-function FeedHead() {
+function FeedHead({ onStart }: { onStart?: () => void }) {
   const s = useStore((x) => x); const pr = feedProgress(s); const streak = streakAlive(s) ? s.streak.count : 0;
   const [, f] = useState(0); const tb = trialBanner();
+  const sess = sessionActive(s) ? s.session! : null;
+  const plan = useMemo(() => (!sess && s.coach && s.onboarded ? sessionPlan(s, s.coach) : null), [!!sess, !!s.coach, s.onboarded, pr.done]);
   return (<>
     <header class="feed-head">
       <h1>Pour toi</h1>
@@ -132,6 +146,15 @@ function FeedHead() {
       </div>
       <a class="streak-btn" href="#/profile" aria-label={`Série : ${streak} jour${streak > 1 ? 's' : ''}`}><Icon name="flame" size={18} class={streak ? 'lit' : ''} /><b class="tnum">{streak}</b></a>
     </header>
+    {onStart && !sess && plan && plan.cards > 0 && (
+      <button class="session-start" onClick={onStart}>
+        <span class="ss-ico"><Icon name="playIcon" size={20} /></span>
+        <span class="ss-txt"><b>Ma séance de 5 minutes</b><small class="tnum">≈ {Math.max(1, Math.round(plan.ms / 60000))} min · {plan.cards} carte{plan.cards > 1 ? 's' : ''}{plan.due ? ` · ${plan.due} à revoir` : ''}</small></span>
+        <Icon name="right" size={18} stroke={2.5} />
+      </button>
+    )}
+    {sess && (() => { const frac = Math.min(1, sess.spent / sess.budget); const left = Math.max(0, Math.ceil((sess.budget - sess.spent) / 60000));
+      return <div class="session-gauge" role="progressbar" aria-label="Séance de 5 minutes" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}><div class="sg-bar"><span style={{ width: `${Math.round(frac * 100)}%` }} /></div><span class="sg-txt tnum">{sess.n} carte{sess.n > 1 ? 's' : ''} · {left ? `≈ ${left} min restante${left > 1 ? 's' : ''}` : 'dernière carte'}</span></div>; })()}
     {tb && (
       <div class="banner">
         <Icon name="clock" size={20} />
@@ -167,6 +190,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
     setState((d) => {
       res = recordDiag(d, { id: p.i, r: p.r, th: p.t, ok, ms, plies: p.m.split(' ').length - 1 });
       recordFeed(d, card, ok ? 'ok' : 'fail', ms, true);
+      if (sessionActive(d)) sessionCard(d, ms, ok);
       if (!d.puzzle.seen.includes(p.i)) d.puzzle.seen.push(p.i);
       ensureModel(d);
     });
@@ -182,7 +206,8 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
     if (outcome.current) return; outcome.current = out;
     setState((d) => {
       if (c.t === 'mistake' && card.ref && d.srs[card.ref]) d.srs[card.ref] = srsReview(d.srs[card.ref], out === 'ok' ? 2 : out === 'fail' ? 0 : 1);
-      recordFeed(d, card, out, elapsed(), counted && out !== 'skip');
+      recordFeed(d, card, out, elapsed(), counted && out !== 'skip', Date.now(), c.t === 'mistake' ? c.fen : c.t === 'master' ? c.x.f : undefined);
+      if (sessionActive(d)) sessionCard(d, elapsed(), out === 'ok');
       ensureModel(d); // le modèle consomme le signal tout de suite
     });
     if (c.t === 'threat') markSeen('t' + c.x.id); if (c.t === 'master') markSeen('m' + c.x.f);
@@ -193,7 +218,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
   const success = (gain: number, auto = true) => {
     if (outcome.current) return;
     const clean = !failed.current;
-    if (c.t === 'puzzle') recordPuzzle(c.p, clean, c.review ? 'review' : 'theme');
+    if (c.t === 'puzzle') recordPuzzle(c.p, clean, c.review ? 'review' : 'theme', { interleaved: true });
     finish(clean ? 'ok' : 'fail');
     if (c.t !== 'puzzle' && clean) addXp(gain, KIND_LABEL[card.kind]);
     setXp(clean ? (c.t === 'puzzle' ? (c.review ? 8 : 8) : gain) : 0);
@@ -208,13 +233,16 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
   const onTouchEnd = (e: TouchEvent) => { const st = touch.current; touch.current = null; if (!st) return; const t = e.changedTouches[0]; const dy = t.clientY - st.y, dx = Math.abs(t.clientX - st.x); if (dy < -70 && dx < 60) { state === 'play' ? skip() : onDone(); } };
 
   const vis = KIND_ICON[card.kind];
-  const sub = card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : isDiag ? `Position ${+card.id.slice(3) + 1} sur ${feedDiagPlanned(getState().placement)}` : null;
   const finished = state !== 'play';
+  // CA2.3 : le thème n'est jamais annoncé avant la réponse (reconnaître le motif fait partie de l'exercice)
+  const conceptLabel = card.concept ? CONCEPT[card.concept]?.label : undefined;
+  const label = !finished && (card.kind === 'mate1' || card.kind === 'puzzle') ? 'Trouve le meilleur coup' : !finished && card.kind === 'mistake' ? 'À revoir' : KIND_LABEL[card.kind];
+  const sub = !finished && card.kind !== 'master' && !isDiag ? null : conceptLabel && card.kind !== 'master' && !isDiag ? `Notion : ${conceptLabel}` : card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : isDiag ? `Position ${+card.id.slice(3) + 1} sur ${feedDiagPlanned(getState().placement)}` : null;
   return (
-    <article class={'feed-card' + (leaving ? ' leaving' : '') + (state === 'ok' ? ' won' : '') + (state === 'reveal' ? ' revealed' : '')} style={{ '--c': vis.color } as any} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} aria-label={KIND_LABEL[card.kind]}
+    <article class={'feed-card' + (leaving ? ' leaving' : '') + (state === 'ok' ? ' won' : '') + (state === 'reveal' ? ' revealed' : '')} style={{ '--c': vis.color } as any} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} aria-label={label} data-concept={finished ? card.concept : undefined}
       data-kind={card.kind} data-ref={c.t === 'master' ? c.x.f : c.t === 'threat' ? c.x.id : c.t === 'puzzle' ? c.p.i : card.ref}>
       <div class="fc-top">
-        <span class="fc-kind"><span class="fc-ico"><Icon name={vis.icon} size={15} /></span>{KIND_LABEL[card.kind]}</span>
+        <span class="fc-kind"><span class="fc-ico"><Icon name={!finished && card.kind === 'mate1' ? 'puzzle' : vis.icon} size={15} /></span>{label}</span>
         {sub && <span class="fc-sub">{sub}</span>}
       </div>
       <div class="fc-body">
@@ -230,13 +258,14 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
       {why && (
         <div class="fc-why" role="note">
           <Icon name="brainCircuit" size={18} />
-          <div><p>{card.why}</p>{card.evidence && <p class="muted small">{card.evidence}</p>}{c.t === 'lesson' && c.notion && <p class="muted small"><Md text={c.notion} /></p>}</div>
+          {finished || card.kind === 'diag' || card.kind === 'master' ? <div><p>{card.why}</p>{card.evidence && <p class="muted small">{card.evidence}</p>}{c.t === 'lesson' && c.notion && <p class="muted small"><Md text={c.notion} /></p>}</div>
+            : <div><p>Je te dis pourquoi cette position juste après ta réponse : le thème n’est pas annoncé, c’est ce qui t’apprend à le reconnaître seul en partie.</p></div>}
         </div>
       )}
       {state === 'ok' && <div class="fc-xp" aria-live="polite"><Icon name="sparkles" size={16} />{xp ? `+${xp} XP` : 'Résolu'}</div>}
       <div class="fc-actions">
         <button class={'btn plain small fc-whybtn' + (why ? ' on' : '')} onClick={() => setWhy(!why)} aria-expanded={why}>Pourquoi ?</button>
-        {!finished && failed.current && (c.t === 'puzzle' || c.t === 'mistake' || c.t === 'master') && <button class="btn plain small" onClick={() => { setSol((x) => x + 1); if (!outcome.current) { if (c.t === 'puzzle') recordPuzzle(c.p, false, c.review ? 'review' : 'theme'); finish('fail'); } setSt('reveal'); }}><Icon name="eye" size={16} />Solution</button>}
+        {!finished && failed.current && (c.t === 'puzzle' || c.t === 'mistake' || c.t === 'master') && <button class="btn plain small" onClick={() => { setSol((x) => x + 1); if (!outcome.current) { if (c.t === 'puzzle') recordPuzzle(c.p, false, c.review ? 'review' : 'theme', { interleaved: true }); finish('fail'); } setSt('reveal'); }}><Icon name="eye" size={16} />Solution</button>}
         {isDiag && !finished && state === 'play' && <button class="btn plain small fc-beginner" onClick={() => { setState((d) => diagBeginner(d)); goTo('/lesson/d-echiquier'); }}>Je débute</button>}
         <span class="grow" />
         {finished && state === 'reveal' ? <button class={'btn primary fc-next' + ((isDiag || !failed.current) && !why ? ' auto' : '')} style={isDiag ? { '--auto-ms': dres ? '4.5s' : '2.2s' } as any : undefined} onClick={() => onDone()}>Suivant<Icon name="down" size={16} stroke={2.6} /></button>
@@ -283,6 +312,26 @@ function ThreatCard({ x, onAnswer }: { x: ThreatX; onAnswer: (ok: boolean) => vo
       </div>}
       {picked && <div class={'fc-reveal ' + (picked === x.t ? 'good' : 'bad')}><h4>{picked === x.t ? 'Bien vu : ' : `Pas ${sanFr(sanOf(nul, picked)).replace(/[+#]/g, '')}. La menace : `}{what}</h4><p class="muted small">{x.th ? `Le motif : ${x.th}. ` : ''}Avant chaque coup, cherche d’abord ce que veut ton adversaire.</p></div>}
     </div>
+  );
+}
+/** Fin de séance (pilier 7) : ce qui a progressé (notions, note) et ce qui revient demain ; on peut continuer. */
+function SessionEnd({ sm, onContinue }: { sm: SessionSummary; onContinue: () => void }) {
+  const min = Math.max(1, Math.round(sm.ms / 60000));
+  return (
+    <section class="session-end" aria-live="polite">
+      <span class="fe-icon"><Icon name="checkCircle" size={40} /></span>
+      <h2>Séance terminée</h2>
+      <p class="fe-stats"><b class="tnum">{sm.ok}</b>/{sm.n} réussies · {min} min</p>
+      {sm.mastered.length > 0 && <p class="se-mastered"><Icon name="trophy" size={18} />Maîtrisée{sm.mastered.length > 1 ? 's' : ''} : {sm.mastered.map((id) => CONCEPT[id]?.label || id).join(', ')}</p>}
+      {sm.progressed.length > 0 ? <div class="se-prog"><p class="eyebrow">Ce qui a progressé</p><ul>{sm.progressed.map((x) => <li><span>{CONCEPT[x.id]?.label || x.id}</span><b class="tnum">+{Math.round(x.dp * 100)} %</b></li>)}</ul></div>
+        : <p class="muted">Pas encore de notion qui bouge nettement : c’est en répétant sur plusieurs jours que la maîtrise se construit.</p>}
+      <p class="muted small">Note d’entraînement : <b class="tnum">{sm.rating}</b>{sm.dRating ? ` (${sm.dRating > 0 ? '+' : ''}${sm.dRating})` : ''}</p>
+      <p class="fe-teaser">{sm.tomorrow}</p>
+      <div class="fe-actions">
+        <button class="btn primary lg se-continue" onClick={onContinue}>Continuer</button>
+        <a class="btn secondary lg" href="#/play"><Icon name="play" size={18} />Jouer une partie</a>
+      </div>
+    </section>
   );
 }
 function FeedEnd() {

@@ -12,7 +12,8 @@ export function checkBadges() {
   for (const x of b) emit({ type: 'badge', id: `${x.icon} ${x.name}` });
 }
 /** mode : rated (classé), theme, daily, rush, review (SRS), lesson */
-export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme' | 'daily' | 'rush' | 'review') {
+/** opts.interleaved : thème non annoncé avant la réponse (fil « Pour toi ») */
+export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme' | 'daily' | 'rush' | 'review', opts: { interleaved?: boolean } = {}) {
   let delta = 0;
   setState((s) => {
     if (mode === 'rated' || mode === 'theme' || mode === 'daily') {
@@ -26,7 +27,7 @@ export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme
     if (mode === 'review' && s.srs[key]) s.srs[key] = review(s.srs[key], success ? 2 : 0);
     else if (!success && !s.srs[key]) s.srs[key] = newItem(key, 'puzzle');
     if (mode === 'daily' && success) s.daily[today()] = true;
-    if (mode !== 'rush') pushCoach(s, { k: 'puzzle', t: Date.now(), id: p.i, r: p.r, th: p.t, ok: success, plies: p.m.split(' ').length - 1, il: mode !== 'theme', fen: p.f });
+    if (mode !== 'rush') pushCoach(s, { k: 'puzzle', t: Date.now(), id: p.i, r: p.r, th: p.t, ok: success, plies: p.m.split(' ').length - 1, il: opts.interleaved ?? mode !== 'theme', fen: p.f });
   });
   if (success) addXp(mode === 'rush' ? 2 : mode === 'daily' ? 20 : 8, mode === 'daily' ? 'Puzzle du jour' : 'Puzzle résolu');
   checkBadges();

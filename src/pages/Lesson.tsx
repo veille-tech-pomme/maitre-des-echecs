@@ -44,12 +44,14 @@ export function LessonPage({ id }: { id: string }) {
   const [totalMist, setTotalMist] = useState(0);
   /** réussite interactive (pas « Passer », pas la solution) : l'étape avance seule */
   const [won, setWon] = useState(false);
-  useEffect(() => { setI(0); setFinished(false); setTotalMist(0); }, [id]);
+  // #/lesson/<id>?step=N : ouvre directement une étape (reprise, liens de la carte des notions, tests e2e)
+  const startStep = () => { const n = +(new URLSearchParams(location.hash.split('?')[1] || '').get('step') || 0); return Number.isFinite(n) && n > 0 ? n : 0; };
+  useEffect(() => { setI(startStep()); setFinished(false); setTotalMist(0); }, [id, location.hash]);
   useEffect(() => { setMist(0); setHints(0); setSolved(false); setSol(0); setWon(false); }, [i, id]);
   if (!lesson) return missing ? <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>Leçon introuvable</h1></div> : <div class="page"><div class="loading" aria-label="Chargement de la leçon" /></div>;
   if (lesson.level === 'expert' && !ent.premium) return <div class="page"><NavBar back="#/learn" backLabel="Apprendre" /><h1>{lesson.title}</h1><PremiumLock title="Leçon Expert" text="Le niveau Expert (calcul avancé, prophylaxie, finales complexes et parties légendaires commentées) fait partie de Premium." /><FreeNext /></div>;
   if (!lesson.course && !isUnlocked(st, lesson.id)) return <LockedLesson lesson={lesson} />;
-  const step = lesson.steps[i];
+  const step = lesson.steps[Math.min(i, lesson.steps.length - 1)];
   const lv = LEVELS.find((l) => l.id === lesson.level)!;
   const interactive = step.type === 'exercise' || step.type === 'puzzles';
   const canNext = !interactive || solved;
@@ -62,7 +64,9 @@ export function LessonPage({ id }: { id: string }) {
   };
   const isMove = step.type === 'exercise' && MOVE_GOALS.includes(step.goal.kind);
   /** une observation par exercice (pilier 2) : réussi sans la solution, niveau d'indice, du premier coup */
-  const observe = (ok: boolean) => { if (step.type !== 'exercise') return; const h = sol ? 3 : hints; setState((s) => recordStep(s, { lessonId: lesson.id, step, ok, hint: isMove ? h : Math.min(3, h), firstTry: mist === 0, fen: fenOf(step) })); };
+  const observe = (ok: boolean) => { if (step.type !== 'exercise') return; const h = sol ? 3 : hints; setState((s) => recordStep(s, { lessonId: lesson.id, step, ok, hint: isMove ? h : Math.min(3, h), firstTry: mist === 0, fen: fenOf(step) }));
+    // le modèle consomme l'observation tout de suite : la célébration de maîtrise tombe au bon moment (CA7.2)
+    import('../coach/curriculum').then((c) => setState((d) => { c.ensureModel(d); })).catch(() => {}); };
   const onSolved = () => { observe(!sol); setSolved(true); setWon(!sol); };
   const onDiag = (d: Diagnosis, c: { uci: string; fenBefore: string; solution: string[] }) => {
     if (step.type !== 'exercise') return;

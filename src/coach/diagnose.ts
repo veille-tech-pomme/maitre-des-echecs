@@ -224,6 +224,8 @@ export function diagnoseFast(ctx: DiagnoseCtx): Diagnosis {
   const pre = precomputedVerdict(ctx); if (pre) return pre;
   const r = ruleDiagnosis(ctx); if (r) return r;
   const me = parseFen(ctx.fen).turn;
+  // objectif « mat » : fait certain, immédiat (le moteur précise ensuite)
+  if (ctx.goal === 'mate') { const a = after(ctx.fen, ctx.played); if (a && !a.isCheckmate()) return { accept: false, kind: 'wrongGoal', conceptId: 'checkmate', headline: 'Ce coup ne mate pas', why: a.inCheck() ? 'Il donne échec, mais le roi adverse a encore une case ou une parade. Cherche le coup qui ne lui laisse aucune sortie.' : 'La consigne demande un mat : cherche un coup qui attaque le roi adverse sans lui laisser de case ni de parade.', refutation: [], narration: narrate(ctx.fen, [ctx.played], me), arrows: [], marks: [], source: 'rules' }; }
   return { accept: false, headline: 'Le coach regarde ton coup…', why: '', refutation: [], narration: narrate(ctx.fen, [ctx.played], me), arrows: [], marks: [], source: 'symbolic' };
 }
 function precomputedVerdict(ctx: DiagnoseCtx): Diagnosis | null {

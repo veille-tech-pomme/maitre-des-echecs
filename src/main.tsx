@@ -34,6 +34,7 @@ const ReviewHub = lazy(() => import('./pages/Review'), 'ReviewHub');
 const coachM = () => import('./pages/Coach');
 const CoachPage = lazy(coachM, 'CoachPage'), DiagnosticPage = lazy(coachM, 'DiagnosticPage'), MistakesSession = lazy(coachM, 'MistakesSession');
 import { isNative } from './lib/platform';
+const MasteryCelebration = lazy(() => import('./components/MasteryCelebration'), 'default');
 import { lazy } from './lib/lazy';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
@@ -45,6 +46,7 @@ const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) =
 function App() {
   const { parts, query } = useRoute();
   const ent = useStore((s) => s.settings);
+  const celebrate = useStore((s) => !!s.coach?.masteredLog?.some((x) => !x.seen));
   useEffect(() => { applyAppearance(); setSoundEnabled(ent.sound); }, [ent.theme, ent.board, ent.pieces, ent.sound, ent.reduceMotion]);
   const [a, b, c] = parts;
   let page;
@@ -84,6 +86,7 @@ function App() {
       </nav>
       <Toasts />
       <Onboarding />
+      {celebrate && <MasteryCelebration />}
     </div>
   );
 }

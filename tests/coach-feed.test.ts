@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { defaultState, pushCoach, type State } from '../src/lib/store';
 import { ensureModel } from '../src/coach/curriculum';
 import { newItem } from '../src/lib/srs';
-import { nextFeedCards, recordFeed, recordDiag, diagPending, feedCandidates, kindFactor, feedToday, tomorrowTeaser, DAILY_CARDS, lessonCardSteps, type FeedCard } from '../src/coach/feed';
+import { nextFeedCards, recordFeed, recordDiag, diagPending, diagBeginner, feedCandidates, kindFactor, feedToday, tomorrowTeaser, DAILY_CARDS, lessonCardSteps, type FeedCard } from '../src/coach/feed';
 import { rawToEvents, evidenceFor, sync } from '../src/coach/model';
 import { LESSONS } from '../src/data/lessons';
 import masters from '../src/data/feed-master.json';
@@ -108,23 +108,29 @@ describe('contenu des cartes', () => {
 
 describe('diagnostic unique dans le fil (R2)', () => {
   const answer = (s: State, ok: boolean) => { const [c] = nextFeedCards(s, s.coach!, 1, NOW); expect(c.kind).toBe('diag'); const r = recordDiag(s, { id: 'x' + c.id, r: c.d, th: [c.theme!], ok, ms: 15000, plies: 1 }, NOW); recordFeed(s, c, ok ? 'ok' : 'fail', 15000, true, NOW); return { c, r }; };
-  it('les 4 premières cartes sont le test, adaptatif, puis le fil classique', () => {
+  it('6 à 8 premières cartes sont le test, adaptatif (départ 600), puis le fil classique', () => {
     const s = newcomer({ ok: true, ms: 4000 });
-    const a = answer(s, true); expect(a.r).toBeNull();
+    const a = answer(s, true); expect(a.r).toBeNull(); expect(a.c.d).toBeLessThan(850); // un débutant ne part pas d'un milieu de partie
     expect(nextFeedCards(s, s.coach!, 1, NOW, [a.c])).toEqual([]); // pas de préchargement d'une carte adaptative
     const b = answer(s, true); expect(b.c.d).toBeGreaterThan(a.c.d); // réussite → plus difficile
     const c = answer(s, false); expect(c.c.d).toBeGreaterThan(a.c.d);
-    const d = answer(s, false); expect(d.r).not.toBeNull();
-    expect(s.coach!.diag!.r).toBe(d.r!.rating); expect(s.puzzle.rating).toBe(d.r!.rating);
-    expect(s.placement!.items.length).toBe(5); expect(s.placement!.items[0].id).toBe('ob:berger'); // le premier mat de l'accueil compte
+    let last = answer(s, false); for (let k = 0; k < 2; k++) { expect(last.r).toBeNull(); last = answer(s, k % 2 === 0); }
+    let n = 6; while (!last.r) { last = answer(s, n % 2 === 0); n++; }
+    expect(n).toBeGreaterThanOrEqual(6); expect(n).toBeLessThanOrEqual(8);
+    expect(s.coach!.diag!.r).toBe(last.r!.rating); expect(s.puzzle.rating).toBe(last.r!.rating);
+    expect(s.placement!.items.length).toBe(n + 1); expect(s.placement!.items[0].id).toBe('ob:berger'); // le premier mat de l'accueil compte
     expect(diagPending(s, s.coach!)).toBe(false); expect(nextFeedCards(s, s.coach!, 1, NOW)[0].kind).not.toBe('diag');
     expect(s.coach!.ev.filter((e) => e.src === 'diag').length).toBeGreaterThan(0); // nourrit Glicko par compétence
   });
   it('un échec complet donne un départ bas, une réussite complète ouvre le parcours avancé', () => {
-    const lo = newcomer({ ok: false, ms: 30000 }); for (let i = 0; i < 4; i++) answer(lo, false);
-    const hi = newcomer({ ok: true, ms: 3000 }); for (let i = 0; i < 4; i++) answer(hi, true);
-    expect(lo.coach!.diag!.r).toBeLessThan(800); expect(hi.coach!.diag!.r).toBeGreaterThan(1300);
+    const run = (ok: boolean) => { const s = newcomer({ ok, ms: ok ? 3000 : 30000 }); for (let i = 0; i < 8 && diagPending(s, s.coach!); i++) answer(s, ok); return s; };
+    const lo = run(false), hi = run(true);
+    expect(lo.coach!.diag!.r).toBeLessThan(600); expect(hi.coach!.diag!.r).toBeGreaterThan(1300);
     expect(lo.lessons['unlock-intermediaire']).toBeUndefined(); expect(hi.lessons['unlock-intermediaire']).toBeTruthy();
+  });
+  it('« Je débute » arrête le test : départ 600, plus de cartes Découverte', () => {
+    const s = newcomer({ ok: true, ms: 4000 }); answer(s, false); diagBeginner(s, NOW);
+    expect(s.coach!.diag!.r).toBe(600); expect(diagPending(s, s.coach!)).toBe(false); expect(nextFeedCards(s, s.coach!, 1, NOW)[0].kind).not.toBe('diag');
   });
   it('pas de diagnostic pour un joueur déjà classé', () => {
     const s = newcomer(); s.puzzle.games = 30; s.puzzle.rating = 1400;

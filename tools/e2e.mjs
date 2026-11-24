@@ -59,7 +59,7 @@ async function run(name, browserType, ctxOpts) {
   });
   await check('leçon : étape réussie → avance seule ; fin → leçon suivante seule', async () => {
     await page.goto(URL0 + '#/learn'); await page.waitForSelector('.path'); await page.goto(URL0 + '#/lesson/d-mat'); await page.waitForSelector('.lesson-grid'); await sleep(400);
-    const MATES = { 'Mat du couloir': ['d1', 'd8'], 'L’escalier des tours': ['h1', 'h8'], 'Dame et roi': ['a1', 'a8'], 'Le mat du berger': ['h5', 'f7'] };
+    const MATES = { 'Mat du couloir': ['d1', 'd8'], 'L’escalier des tours': ['h1', 'h8'], 'Dame et roi': ['a2', 'a8'], 'Le mat du berger': ['h5', 'f7'] };
     let autos = 0, reads = 0;
     for (let i = 0; i < 24 && !(await page.locator('.done-screen').count()); i++) {
       const title = (await page.locator('.lesson-side h2').innerText()).trim();
@@ -80,22 +80,24 @@ async function run(name, browserType, ctxOpts) {
     if (autos < 4) throw new Error('enchaînement des exercices : ' + autos);
   });
   await check('pour toi : 1re carte', async () => { await page.goto(URL0 + '#/'); await page.waitForSelector('.feed-card:not(.skeleton)', { timeout: 20000 }); await sleep(600); await shot('01-pour-toi'); });
-  await check('diagnostic : les 4 premières cartes', async () => {
-    for (let k = 0; k < 4; k++) {
+  await check('diagnostic : 6 à 8 premières cartes', async () => {
+    let n = 0;
+    for (let k = 0; k < 9; k++) {
       await page.waitForSelector('.feed-card:not(.skeleton):not(.leaving)'); await sleep(900);
       const kind = await page.locator('.feed-card').getAttribute('data-kind'); const ref = await page.locator('.feed-card').getAttribute('data-ref');
-      if (kind !== 'diag') throw new Error(`carte ${k + 1} : ${kind} au lieu du diagnostic`);
-      const z = puzzleById(ref);
+      if (kind !== 'diag') { if (k < 6) throw new Error(`carte ${k + 1} : ${kind} au lieu du diagnostic`); break; }
+      if (k === 0 && !(await page.locator('.fc-beginner').count())) throw new Error('pas de « Je débute »');
+      const z = puzzleById(ref); n++;
       if (k === 0 && z) { // la première : on la résout (réponse juste → carte suivante seule)
         const orient = z.f.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = z.m.split(' ');
         for (let i = 1; i < mv.length; i += 2) { await clickSq(page, mv[i].slice(0, 2), orient); await clickSq(page, mv[i].slice(2, 4), orient); await sleep(900); }
       } else await page.click('.fc-skip'); // « Je ne sais pas »
-      if (k === 3) { await page.waitForSelector('.fc-reveal.good', { timeout: 8000 }); await shot('01a-diagnostic-resultat'); }
+      if (k >= 5 && (await page.waitForSelector('.fc-reveal.good', { timeout: 1500 }).then(() => true, () => false))) await shot('01a-diagnostic-resultat');
       await page.waitForFunction((r) => document.querySelector('.feed-card:not(.leaving)')?.getAttribute('data-ref') !== r, ref, { timeout: 12000 });
     }
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')));
-    if (!st.coach?.diag || st.placement?.items.length !== 5) throw new Error('diagnostic non enregistré');
-    console.log(`    niveau de départ ${st.coach.diag.r} (classement puzzle ${st.puzzle.rating})`);
+    if (!st.coach?.diag || st.placement?.items.length !== n + 1 || n < 6 || n > 8) throw new Error(`diagnostic non enregistré (${n} positions)`);
+    console.log(`    ${n} positions, niveau de départ ${st.coach.diag.r} (classement puzzle ${st.puzzle.rating})`);
   });
   await check('pour toi : pourquoi ? + passer', async () => {
     await page.click('.fc-whybtn'); await page.waitForSelector('.fc-why'); await shot('01b-pour-toi-pourquoi'); await page.click('.fc-whybtn');

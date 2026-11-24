@@ -8,7 +8,7 @@ import { radar, skillViews, weaknesses, strengths, globalRating, observe, confid
 import { coachPlan, weekProgress, ensureModel } from '../coach/curriculum';
 import { FAMILY_LABEL, FAMILIES, SKILL, MOTIF_SKILL, type Family } from '../coach/skills';
 import { review as srsReview } from '../lib/srs';
-import { diagResult, DIAG_THEMES, FEED_DIAG, feedDiagCount } from '../coach/diagnostic';
+import { diagResult, DIAG_THEMES, FEED_DIAG, FEED_DIAG_MAX, feedDiagCount, feedDiagPlanned } from '../coach/diagnostic';
 import { ACT_ICON, useCoachSync } from '../coach/ui/common';
 import { themeName } from '../data/themes';
 
@@ -41,7 +41,7 @@ export function CoachPage() {
       <NavBar back="#/profile" backLabel="Moi" />
       <LargeTitle title="Mes progrès" sub={m.ev.length ? `Niveau estimé ${g} · ${m.games} partie${m.games > 1 ? 's' : ''} analysée${m.games > 1 ? 's' : ''} · ${m.ev.length} observations` : 'Le coach apprend à te connaître à chaque puzzle, leçon et partie analysée.'} />
       {!m.diag && s.puzzle.games < 10 && (
-        <a class="cc-main" href="#/"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Découvrir mon niveau</b><small>{feedDiagCount(s.placement)}/{FEED_DIAG} positions faites dans Pour toi, environ 1 minute</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
+        <a class="cc-main" href="#/"><span class="it-icon"><Icon name="gauge" size={20} /></span><span class="grow"><b>Découvrir mon niveau</b><small>{feedDiagCount(s.placement)}/{feedDiagPlanned(s.placement)} positions faites dans Pour toi, environ 2 minutes</small></span><Icon name="right" size={20} stroke={2.4} class="cc-go" /></a>
       )}
       <div class="cp-grid">
         <div>
@@ -104,7 +104,7 @@ export function DiagnosticPage() {
         <div class="diag-result">
           <span class="fe-icon"><Icon name="gauge" size={36} /></span>
           <h2>{est ? 'Ton niveau est déjà mesuré' : 'Ton niveau se découvre en jouant'}</h2>
-          <p class="muted">{est ? `Ton classement puzzle (${s.puzzle.rating}) sert de point de départ au coach, et chaque puzzle l’affine.` : `Les ${FEED_DIAG} premières cartes de ton fil « Pour toi » forment le test : elles s’adaptent à tes réponses. ${n}/${FEED_DIAG} faite${n > 1 ? 's' : ''}.`}</p>
+          <p class="muted">{est ? `Ton classement puzzle (${s.puzzle.rating}) sert de point de départ au coach, et chaque puzzle l’affine.` : `Les ${FEED_DIAG} à ${FEED_DIAG_MAX} premières cartes de ton fil « Pour toi » forment le test : elles s’adaptent à tes réponses, et le test s’arrête dès que ton niveau est assez sûr. ${n}/${feedDiagPlanned(st)} faite${n > 1 ? 's' : ''}.`}</p>
           <a class="btn primary lg" href="#/">{est ? 'Aller à Pour toi' : n ? 'Continuer dans Pour toi' : 'Commencer dans Pour toi'}</a>
         </div>
       </div>

@@ -25,7 +25,7 @@ await p.goto(U + '#/lesson/d-pion'); await p.waitForSelector('.locked-lesson'); 
 await p.click('text=Je connais déjà'); await p.waitForSelector('.lesson-grid');
 // 2. leçon : exercice réussi → « Continuer » se remplit seul
 await p.goto(U + '#/learn'); await p.waitForSelector('.path'); await p.goto(U + '#/lesson/d-mat'); await p.waitForSelector('.lesson-grid'); await sleep(400);
-const MATES = { 'Mat du couloir': ['d1', 'd8'], 'L’escalier des tours': ['h1', 'h8'], 'Dame et roi': ['a1', 'a8'], 'Le mat du berger': ['h5', 'f7'] };
+const MATES = { 'Mat du couloir': ['d1', 'd8'], 'L’escalier des tours': ['h1', 'h8'], 'Dame et roi': ['a2', 'a8'], 'Le mat du berger': ['h5', 'f7'] };
 let shotStep = false;
 for (let i = 0; i < 24 && !(await p.locator('.done-screen').count()); i++) {
   const title = (await p.locator('.lesson-side h2').innerText()).trim();

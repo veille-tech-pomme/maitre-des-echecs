@@ -18,8 +18,9 @@ import { StepBoard } from './Lesson';
 import { SKILL } from '../coach/skills';
 import { useCoachSync } from '../coach/ui/common';
 import { ensureModel } from '../coach/curriculum';
-import { nextFeedCards, recordFeed, recordDiag, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, type FeedCard, type FeedOutcome } from '../coach/feed';
-import { FEED_DIAG } from '../coach/diagnostic';
+import { nextFeedCards, recordFeed, recordDiag, diagBeginner, tomorrowTeaser, feedProgress, KIND_LABEL, DAILY_CARDS, type FeedCard, type FeedOutcome } from '../coach/feed';
+import { go as goTo } from '../lib/router';
+import { feedDiagPlanned } from '../coach/diagnostic';
 
 interface MasterX { f: string; m: string; r: number; hero: string; vs: string; y: string; ev: string; n: string; san: string; why: { k: 'mate' | 'win' | 'theme' | 'only'; n?: number; th?: string; line: string[] } }
 interface ThreatX { id: string; f: string; last: string; ls: string; t: string; d: string[]; r: number; w: { k: 'mate' | 'cap' | 'mat' | 'strong'; n?: number; p?: string }; line: string[]; th?: string }
@@ -207,7 +208,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
   const onTouchEnd = (e: TouchEvent) => { const st = touch.current; touch.current = null; if (!st) return; const t = e.changedTouches[0]; const dy = t.clientY - st.y, dx = Math.abs(t.clientX - st.x); if (dy < -70 && dx < 60) { state === 'play' ? skip() : onDone(); } };
 
   const vis = KIND_ICON[card.kind];
-  const sub = card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : isDiag ? `Position ${+card.id.slice(3) + 1} sur ${FEED_DIAG}` : null;
+  const sub = card.kind === 'puzzle' && card.skill ? SKILL[card.skill].label : card.kind === 'lesson' && c.t === 'lesson' ? c.lesson.title : card.kind === 'master' && c.t === 'master' ? `${c.x.hero} – ${c.x.vs}, ${c.x.y}` : isDiag ? `Position ${+card.id.slice(3) + 1} sur ${feedDiagPlanned(getState().placement)}` : null;
   const finished = state !== 'play';
   return (
     <article class={'feed-card' + (leaving ? ' leaving' : '') + (state === 'ok' ? ' won' : '') + (state === 'reveal' ? ' revealed' : '')} style={{ '--c': vis.color } as any} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} aria-label={KIND_LABEL[card.kind]}
@@ -236,6 +237,7 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
       <div class="fc-actions">
         <button class={'btn plain small fc-whybtn' + (why ? ' on' : '')} onClick={() => setWhy(!why)} aria-expanded={why}>Pourquoi ?</button>
         {!finished && failed.current && (c.t === 'puzzle' || c.t === 'mistake' || c.t === 'master') && <button class="btn plain small" onClick={() => { setSol((x) => x + 1); if (!outcome.current) { if (c.t === 'puzzle') recordPuzzle(c.p, false, c.review ? 'review' : 'theme'); finish('fail'); } setSt('reveal'); }}><Icon name="eye" size={16} />Solution</button>}
+        {isDiag && !finished && state === 'play' && <button class="btn plain small fc-beginner" onClick={() => { setState((d) => diagBeginner(d)); goTo('/lesson/d-echiquier'); }}>Je débute</button>}
         <span class="grow" />
         {finished && state === 'reveal' ? <button class={'btn primary fc-next' + ((isDiag || !failed.current) && !why ? ' auto' : '')} style={isDiag ? { '--auto-ms': dres ? '4.5s' : '2.2s' } as any : undefined} onClick={() => onDone()}>Suivant<Icon name="down" size={16} stroke={2.6} /></button>
           : <button class="btn secondary small fc-skip" onClick={skip} disabled={state === 'ok'}>{isDiag ? 'Je ne sais pas' : 'Passer'}<Icon name="down" size={15} stroke={2.6} /></button>}

@@ -11,7 +11,7 @@ import { SKILL, MOTIF_SKILL, type SkillId } from './skills';
 import { activities, zpdDifficulty } from './curriculum';
 import { skillOf, globalRating, levelIdx, weaknesses, observe, type CoachModel } from './model';
 import { ensureModel } from './curriculum';
-import { diagTarget, diagAnswer, diagResult, placementOf, feedDiagCount, FEED_DIAG, type DiagItem } from './diagnostic';
+import { diagTarget, diagAnswer, diagResult, placementOf, feedDiagCount, feedDiagDone, FEED_DIAG, FEED_DIAG_MAX, type DiagItem } from './diagnostic';
 
 export type CardKind = 'puzzle' | 'mate1' | 'threat' | 'master' | 'mistake' | 'lesson' | 'diag';
 export interface FeedCard {
@@ -101,7 +101,7 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
     if (pending.some((c) => c.kind === 'diag')) return [];
     const st = placementOf(s.placement, s.obMate); const tg = diagTarget(st); const i = feedDiagCount(st);
     return [{ id: 'dg:' + i, kind: 'diag', skill: null, d: tg.rating, theme: tg.theme, gain: 9,
-      why: `Je découvre ton niveau : ${FEED_DIAG} positions qui s’adaptent à tes réponses. Pas de niveau à déclarer, tu joues et je mesure. Une seule tentative ; « Je ne sais pas » est une vraie réponse.` }];
+      why: `Je découvre ton niveau : ${FEED_DIAG} à ${FEED_DIAG_MAX} positions qui s’adaptent à tes réponses. Pas de niveau à déclarer, tu joues et je mesure. Une seule tentative ; « Je ne sais pas » est une vraie réponse.` }];
   }
   const cands = feedCandidates(s, m, now, pending); const hist = [...f.served, ...pending].map((x) => ({ id: x.id, kind: x.kind as CardKind, skill: x.skill as SkillId | null }));
   const out: FeedCard[] = [];
@@ -123,17 +123,22 @@ export function nextFeedCards(s: State, m: CoachModel, n = 2, now = Date.now(), 
   return out;
 }
 /** Le diagnostic est-il encore à faire ? (pas si le coach a déjà un diagnostic ou une note puzzle établie) */
-export function diagPending(s: State, m: CoachModel) { return !m.diag && s.puzzle.games < 10 && feedDiagCount(s.placement) < FEED_DIAG; }
+export function diagPending(s: State, m: CoachModel) { return !m.diag && s.puzzle.games < 10 && !feedDiagDone(placementOf(s.placement, s.obMate)) && !s.lessons['diag-beginner']; }
 /** Réponse à une carte du diagnostic (brouillon setState). Renvoie le résultat quand le test est terminé. */
 export function recordDiag(s: State, it: DiagItem, now = Date.now()): { rating: number; rd: number } | null {
   const st = (s.placement = diagAnswer(placementOf(s.placement, s.obMate), it));
-  if (feedDiagCount(st) < FEED_DIAG) return null;
+  if (!feedDiagDone(st)) return null;
   const r = diagResult(st); const m = ensureModel(s);
   m.diag = { at: now, r: r.rating }; m.base = r.rating; for (const e of r.events) observe(m, e);
   if (s.puzzle.games < 10) s.puzzle.rating = r.rating;
   // le parcours s'ouvre au niveau mesuré (remplace l'ancien niveau déclaré)
   for (const [k, min] of [['intermediaire', 1150], ['avance', 1550]] as const) if (r.rating >= min) s.lessons['unlock-' + k] ||= { done: false, stars: 0, step: 0 };
   return { rating: r.rating, rd: r.rd };
+}
+/** « Je débute » : on arrête le test, niveau de départ 600, et l'élève commence par la leçon 1 (brouillon setState). */
+export function diagBeginner(s: State, now = Date.now()) {
+  const m = ensureModel(s); m.diag = { at: now, r: 600 }; m.base = 600; if (s.puzzle.games < 10) s.puzzle.rating = 600;
+  s.lessons['diag-beginner'] = { done: true, stars: 0, step: 0 };
 }
 export type FeedOutcome = 'ok' | 'fail' | 'skip' | 'abandon';
 /** Enregistre un signal du fil (dans un brouillon setState). `counted` : la réussite/l'échec est déjà passé par recordPuzzle. */

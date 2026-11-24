@@ -171,10 +171,10 @@ Statut par point (✅ fait · 🟡 partiel · ⬜ à faire). Ordre P0 → P1 →
 - P1
   - ✅ B1 Coups équivalents acceptés en leçon (autre mat à tout moment, ≤ 30 cp) — lib/judge-rule.ts, coach/client.ts judgeLessonMove, MoveTrainer judge ; « Mat en 2 » 1.Tb7 accepté, puis on finit le mat contre la meilleure défense
   - ✅ B2 Explication d'erreur en leçon + réfutation jouée sur l'échiquier (explainPuzzleMiss sans dévoiler la solution ; le coup adverse qui réfute est joué puis la position revient)
-  - ⬜ B3 Leçons Expert et textes fautifs : zugzwang, triangulation, Lucena, Saavedra, sous-promotion (fourchette), kq-k-coin
+  - ✅ B3 Leçons Expert et textes fautifs : zugzwang = trébuchet 8/8/8/4pK2/3kP3/8/8/8 (zugzwang mutuel, quiz « Noirs au trait » vérifié) au lieu d'un pat ; triangulation sur une vraie position (Dvoretsky 8/1p1k4/8/1PPK4/8/8/8/8, exercice joué contre le moteur) ; conseil Lucena (Td1+, Td4, la tour s'interpose en b4) ; conseil Saavedra (ligne de l'étude, 6.c8=T !!) ; sous-promotion : pion h2 ajouté, 1.e8=C+ devient le seul coup gagnant (base de finales), texte honnête ; « Dame : éviter le pat » → 7k/8/8/8/8/8/5Q2/6K1 (mat en 7, Df7 ?? pat)
   - ⬜ B4 Parties célèbres : commentaires mécaniques
   - ⬜ B5 Cours thématiques sur un même gabarit
-  - ⬜ B6 Diagnostic : « je débute », départ 600, 6 à 8 positions
+  - ✅ B6 Diagnostic : 6 positions au moins, arrêt dès σ < 125, 8 au plus ; départ 600 (mat de l'accueil compté comme item 400 : 1re carte ≈ 840 au lieu de 1 083) ; bouton « Je débute » sur les cartes Découverte → niveau 600 et leçon 1 (d-echiquier)
   - ⬜ B7 Bots : calibration, Elo mesuré, erreurs humaines, pendule
   - ⬜ B8 Bilan : piège de l'éléphant mal expliqué
 - P2

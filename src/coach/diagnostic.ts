@@ -35,10 +35,16 @@ export function diagResult(s: DiagState): { rating: number; rd: number; events: 
 }
 
 // Diagnostic unique (R2) : plus de niveau déclaré ni de test séparé. Le premier mat de l'accueil (très facile) est un
-// premier indice faible, puis les FEED_DIAG premières cartes du fil « Pour toi » sont les positions du test.
-export const FEED_DIAG = 4;
-export const OB_ITEM: Omit<DiagItem, 'ok' | 'ms'> = { id: 'ob:berger', r: 600, th: ['mateIn1', 'opening'], plies: 1 };
-export const DIAG_START = 900;
+// premier indice faible, puis les premières cartes du fil « Pour toi » sont les positions du test.
+// Audit Magnus : 6 positions au moins, arrêt dès σ < 125, 8 au plus (comme annoncé en tête) ; départ à 600
+// (un débutant ne reçoit pas d'emblée un milieu de partie) ; « Je débute » arrête le test et ouvre la leçon 1.
+export const FEED_DIAG = DIAG_MIN; export const FEED_DIAG_MAX = DIAG_MAX;
+export const OB_ITEM: Omit<DiagItem, 'ok' | 'ms'> = { id: 'ob:berger', r: 400, th: ['mateIn1', 'opening'], plies: 1 };
+export const DIAG_START = 600;
+/** le test du fil est-il fini ? (6 positions et σ < 125, ou 8 positions) */
+export const feedDiagDone = (d?: DiagState) => { const n = feedDiagCount(d); return n >= FEED_DIAG_MAX || (n >= FEED_DIAG && (d?.rd ?? 999) < DIAG_SD_STOP); };
+/** positions prévues (indicateur « Position k sur N ») */
+export const feedDiagPlanned = (d?: DiagState) => { const n = feedDiagCount(d); return feedDiagDone(d) ? n : n < FEED_DIAG ? FEED_DIAG : Math.min(FEED_DIAG_MAX, n + 1); };
 /** Nombre de positions du test faites dans le fil (sans le mat de l'accueil). */
 export const feedDiagCount = (d?: DiagState) => (d ? d.items.filter((x) => !x.id.startsWith('ob:')).length : 0);
 /** État du test : celui enregistré, sinon un départ (avec le mat de l'accueil s'il a été joué). */

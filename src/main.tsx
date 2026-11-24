@@ -94,6 +94,8 @@ async function boot() {
   applyAppearance();
   render(<App />, document.getElementById('app')!);
   setTimeout(() => engine.warmup(), 800);
+  // FSRS (répétition espacée) : chargé après le premier affichage, hors du premier chargement
+  setTimeout(() => import('./lib/srs').then((m) => m.loadFsrs()), 1500);
   if ('serviceWorker' in navigator && !(import.meta as any).env?.DEV && !isNative()) {
     import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true })).catch(() => {});
   }

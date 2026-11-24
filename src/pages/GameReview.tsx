@@ -147,7 +147,7 @@ export function GameReviewPage({ id }: { id: string }) {
         <div class="board-col with-eval">
           <EvalBar cp={ev} orientation={orient} label={formatScore(ev)} />
           {rt ? (
-            <MoveTrainer key={'rt' + retry} fen={rt.fen} line={rt.solution} orientation={orient} onMistake={() => setRetryRes((x) => x || 'ko')} onSolved={() => setRetryRes((x) => (x === 'ko' ? 'ko' : 'ok'))} />
+            <MoveTrainer key={'rt' + retry} fen={rt.fen} line={rt.solution} orientation={orient} ownHints goal="puzzle" onMistake={() => setRetryRes((x) => x || 'ko')} onSolved={() => setRetryRes((x) => (x === 'ko' ? 'ko' : 'ok'))} />
           ) : (
             <Board fen={fen} viewOnly orientation={orient} lastMove={cur ? [cur.uci.slice(0, 2), cur.uci.slice(2, 4)] : null} shapes={shapes} highlight={hl} />
           )}

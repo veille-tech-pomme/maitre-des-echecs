@@ -155,7 +155,7 @@ export function MistakesSession() {
     <div class="page puzzle-session">
       <div class="game-top"><a class="nb-btn round" href="#/review" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">Tes erreurs</div><span class="pill tnum">{k + 1}/{due.length}</span></div>
       <div class="play-grid">
-        <MoveTrainer key={id} fen={mk.fen} line={mk.sol} onMistake={() => { if (!failed.current) { failed.current = true; setStateL('ko'); } }} onSolved={() => { setStateL('ok'); grade(true); }} />
+        <MoveTrainer key={id} fen={mk.fen} line={mk.sol} ownHints goal="puzzle" onMistake={() => { if (!failed.current) { failed.current = true; setStateL('ko'); } }} onSolved={() => { setStateL('ok'); grade(true); }} />
         <aside class="side">
           <div class="coach-box cls-mistake"><div class="coach-head"><Icon name="brainCircuit" size={20} /><b>Tiré de ta partie</b></div><p>Dans cette position, tu avais joué un coup faible : « {mk.prompt} ». Trouve le meilleur coup.</p></div>
           {state === 'ko' && <p class="muted">Pas encore. Cherche les échecs, les prises et les menaces.</p>}

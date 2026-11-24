@@ -11,7 +11,7 @@ export type Goal =
 export type Step =
   | { type: 'text'; title: string; body: string; fen?: string; pre?: string[]; shapes?: string[]; orientation?: 'white' | 'black' }
   | { type: 'demo'; title: string; body: string; fen?: string; pre?: string[]; moves: string[]; comments?: Record<number, string>; orientation?: 'white' | 'black' }
-  | { type: 'exercise'; title: string; prompt: string; fen?: string; pre?: string[]; goal: Goal; hints?: string[]; success?: string; shapes?: string[]; orientation?: 'white' | 'black' }
+  | { type: 'exercise'; title: string; prompt: string; fen?: string; pre?: string[]; goal: Goal; hints?: string[]; /** notions travaillées (pilier 2), sinon celles de la leçon */ concepts?: string[]; success?: string; shapes?: string[]; orientation?: 'white' | 'black' }
   | { type: 'puzzles'; title: string; body: string; themes: string[]; count: number; maxRating: number; minRating?: number };
 export interface Lesson { id: string; level: Level; title: string; icon: string; minutes: number; summary: string; steps: Step[]; course?: string }
 export const LEVELS: { id: Level; name: string; desc: string; color: string; icon: string; elo: string }[] = [

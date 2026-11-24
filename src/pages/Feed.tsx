@@ -218,11 +218,11 @@ function CardView({ slot, onDone }: { slot: Slot; onDone: () => void }) {
         {sub && <span class="fc-sub">{sub}</span>}
       </div>
       <div class="fc-body">
-        {c.t === 'puzzle' && <MoveTrainer fen={c.p.f} line={c.p.m.split(' ')} setup showSolutionSignal={sol} onMistake={isDiag ? () => answerDiag(false) : miss} onSolved={isDiag ? () => answerDiag(true) : () => success(8)} />}
+        {c.t === 'puzzle' && <MoveTrainer fen={c.p.f} line={c.p.m.split(' ')} setup ownHints={!isDiag} goal="puzzle" showSolutionSignal={sol} onMistake={isDiag ? () => answerDiag(false) : miss} onSolved={isDiag ? () => answerDiag(true) : () => success(8)} />}
         {isDiag && state === 'reveal' && <div class={'fc-reveal ' + (dres ? 'good' : 'bad')} aria-live="polite">{dres
           ? <><h4>Je te connais mieux : niveau de départ {dres.rating}</h4><p class="muted small">Marge ± {dres.rd}, elle se resserre à chaque carte. À partir de maintenant, ton fil s’adapte à toi.</p></>
           : <><h4>Pas grave, voici le coup.</h4><p class="muted small">La position suivante sera plus abordable : le test s’adapte à tes réponses.</p></>}</div>}
-        {c.t === 'mistake' && <MoveTrainer fen={c.fen} line={c.sol} showSolutionSignal={sol} onMistake={miss} onSolved={() => success(10)} />}
+        {c.t === 'mistake' && <MoveTrainer fen={c.fen} line={c.sol} ownHints goal="puzzle" showSolutionSignal={sol} onMistake={miss} onSolved={() => success(10)} />}
         {c.t === 'master' && <MasterCard x={c.x} sol={sol} done={finished} onMistake={miss} onSolved={() => success(12, false)} />}
         {c.t === 'threat' && <ThreatCard x={c.x} onAnswer={(ok) => { if (!ok) failed.current = true; success(10, false); }} />}
         {c.t === 'lesson' && <div class="fc-lesson"><p class="fc-prompt"><Md text={c.step.prompt} /></p><StepBoard step={c.step} lessonId={c.lesson.id} hints={0} sol={sol} reset={0} onSolved={() => success(6)} onMistake={miss} /></div>}
@@ -257,7 +257,7 @@ function MasterCard({ x, sol, done, onSolved, onMistake }: { x: MasterX; sol: nu
   return (
     <div class="fc-master">
       {!done && <p class="fc-prompt">{x.hero} a les {white ? 'Blancs' : 'Noirs'}. <b>Trouve son coup.</b></p>}
-      <MoveTrainer fen={x.f} line={[x.m]} orientation={white ? 'white' : 'black'} showSolutionSignal={sol} onMistake={onMistake} onSolved={onSolved} feedback={false} />
+      <MoveTrainer fen={x.f} line={[x.m]} orientation={white ? 'white' : 'black'} ownHints goal="master" showSolutionSignal={sol} onMistake={onMistake} onSolved={onSolved} feedback={false} />
       {done && <div class="fc-reveal"><h4>{x.n}{sanFr(x.san)}{x.why.k === 'only' ? ' !' : ' !'} <span class="muted">· {x.hero}</span></h4><p>{said}</p><p class="muted small fc-line">{line ? `Suite : ${line} · ` : ''}{ev}</p></div>}
     </div>
   );

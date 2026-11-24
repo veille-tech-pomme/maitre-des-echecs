@@ -15,6 +15,10 @@ import { themedForLesson } from '../lib/puzzlebank';
 import { markPlanDone, isUnlocked, nextLesson } from '../lib/plan';
 import { playForMove, play } from '../lib/sound';
 import { checkBadges } from '../lib/progress';
+import { recordStep, recordExerciseMistake } from '../lib/learning';
+import type { Diagnosis } from '../coach/diagnose';
+
+const MOVE_GOALS = ['line', 'any', 'mate', 'check'];
 
 function fenOf(s: { fen?: string; pre?: string[] }) {
   if (!s.pre?.length) return s.fen || START_FEN;
@@ -56,7 +60,14 @@ export function LessonPage({ id }: { id: string }) {
     setState((s) => { const prev = s.lessons[lesson.id]; s.lessons[lesson.id] = { done: true, stars: Math.max(stars, prev?.stars || 0), step: 0 }; markPlanDone(s, 'lesson:' + lesson.id); pushCoach(s, { k: 'lesson', t: Date.now(), id: lesson.id, level: lesson.level, stars }); });
     addXp(first ? 30 + stars * 10 : 10, 'Leçon terminée'); play('win'); checkBadges(); setFinished(true);
   };
-  const onSolved = () => { setSolved(true); setWon(true); };
+  const isMove = step.type === 'exercise' && MOVE_GOALS.includes(step.goal.kind);
+  /** une observation par exercice (pilier 2) : réussi sans la solution, niveau d'indice, du premier coup */
+  const observe = (ok: boolean) => { if (step.type !== 'exercise') return; const h = sol ? 3 : hints; setState((s) => recordStep(s, { lessonId: lesson.id, step, ok, hint: isMove ? h : Math.min(3, h), firstTry: mist === 0, fen: fenOf(step) })); };
+  const onSolved = () => { observe(!sol); setSolved(true); setWon(!sol); };
+  const onDiag = (d: Diagnosis, c: { uci: string; fenBefore: string; solution: string[] }) => {
+    if (step.type !== 'exercise') return;
+    setState((s) => recordExerciseMistake(s, { lessonId: lesson.id, stepIdx: i, step, fen: c.fenBefore, sol: c.solution, played: c.uci, headline: d.headline, concept: d.conceptId, course: !!lesson.course }));
+  };
   const onMistake = () => { setMist((m) => m + 1); setTotalMist((m) => m + 1); };
   const seq = lesson.course ? courseList || [] : LESSONS; const idx = seq.indexOf(lesson); const nextL = seq[idx + 1];
   const backHref = lesson.course ? `#/learn/course/${lesson.course}` : '#/learn';
@@ -88,21 +99,21 @@ export function LessonPage({ id }: { id: string }) {
       </div>
       <div class="lesson-grid">
         <div class="lesson-board">
-          <StepBoard key={`${id}-${i}`} step={step} lessonId={lesson.id} hints={hints} sol={sol} reset={reset} onSolved={onSolved} onMistake={onMistake} />
+          <StepBoard key={`${id}-${i}`} step={step} lessonId={lesson.id} hints={hints} sol={sol} reset={reset} onSolved={onSolved} onMistake={onMistake} onDiagnosis={onDiag} beginner={lesson.level === 'debutant'} />
         </div>
         <div class="lesson-side">
           <p class="eyebrow">{lesson.title}</p>
           <h2>{step.title}</h2>
           {'body' in step && step.body && <Md text={step.body} />}
           {step.type === 'exercise' && <div class="prompt"><Md text={step.prompt} /></div>}
-          {step.type === 'exercise' && hints > 0 && step.hints && <div class="hint-box"><Icon name="bulb" size={18} /><div>{step.hints.slice(0, hints).map((h) => <p>{h}</p>)}</div></div>}
+          {step.type === 'exercise' && !isMove && hints > 0 && step.hints && <div class="hint-box"><Icon name="bulb" size={18} /><div>{step.hints.slice(0, hints).map((h) => <p>{h}</p>)}</div></div>}
           {step.type === 'exercise' && solved && step.success && <p class="success-box"><Icon name="checkCircle" size={20} />{step.success}</p>}
           <div class="lesson-actions">
             {step.type === 'exercise' && !solved && (
               <>
-                {step.hints && hints < step.hints.length + (['line', 'any', 'mate'].includes(step.goal.kind) ? 2 : 0) && <button class="btn secondary icon" onClick={() => setHints((h) => h + 1)} aria-label="Indice" title="Indice"><Icon name="bulb" size={20} /></button>}
+                {(isMove ? hints < 3 : !!step.hints && hints < step.hints.length) && <button class="btn secondary icon lesson-hint" onClick={() => setHints((h) => h + 1)} aria-label={isMove ? `Indice ${hints + 1} sur 3` : 'Indice'} title="Indice"><Icon name="bulb" size={20} /></button>}
                 {['play', 'stars'].includes(step.goal.kind) && <button class="btn secondary icon" onClick={() => setReset((r) => r + 1)} aria-label="Recommencer" title="Recommencer"><Icon name="reset" size={20} /></button>}
-                {['line', 'any', 'mate'].includes(step.goal.kind) && mist >= 2 && <button class="btn secondary icon" onClick={() => { setSol((x) => x + 1); onMistake(); setTimeout(() => setSolved(true), 300 + 700 * (step.goal.kind === 'line' ? step.goal.moves.length : 1)); }} aria-label="Solution" title="Solution"><Icon name="eye" size={20} /></button>}
+                {MOVE_GOALS.includes(step.goal.kind) && mist >= 2 && <button class="btn secondary icon" onClick={() => { setSol((x) => x + 1); onMistake(); observe(false); setTimeout(() => setSolved(true), 300 + 700 * (step.goal.kind === 'line' ? step.goal.moves.length : 1)); }} aria-label="Solution" title="Solution"><Icon name="eye" size={20} /></button>}
                 {step.goal.kind === 'play' && mist >= 1 && <button class="btn secondary" onClick={() => setSolved(true)}>Passer</button>}
               </>
             )}
@@ -115,30 +126,29 @@ export function LessonPage({ id }: { id: string }) {
   );
 }
 
-/** coup différent de la solution : le coach (chargé à la demande) l'accepte s'il est aussi bon, sinon l'explique */
-const judgeMove = (fen: string, uci: string, rest: string[]) => import('../coach/client').then((c) => c.judgeLessonMove(fen, uci, rest));
-/** exercices de méthode (audit C3) : un coup « qui tient aussi » est expliqué, mais seule la méthode est acceptée */
-const methodJudge = (method: string) => (fen: string, uci: string, rest: string[]) => judgeMove(fen, uci, rest).then((v) => (v.accept ? { accept: false as const, headline: 'Pas la méthode', why: `Ce coup ne perd pas tout de suite, mais ${method}`, tip: '', refutation: [] } : v));
-export function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMistake }: { step: Step; lessonId: string; hints: number; sol: number; reset: number; onSolved: () => void; onMistake: () => void }) {
+/** Exercices à coups (pilier 1) : un coup différent passe par le coach (coach/diagnose, chargé à la demande) :
+ *  équivalent précalculé ou vérifié par le moteur → accepté ; sinon diagnostic, fiche « Pourquoi » et « Montre-moi ».
+ *  Exercice de méthode : un coup qui tient aussi est expliqué mais refusé (audit C3). */
+export function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMistake, onDiagnosis, beginner }: { step: Step; lessonId: string; hints: number; sol: number; reset: number; onSolved: () => void; onMistake: () => void; onDiagnosis?: (d: Diagnosis, c: { uci: string; fenBefore: string; solution: string[] }) => void; beginner?: boolean }) {
   if (step.type === 'text') return <Board fen={fenOf(step)} viewOnly orientation={step.orientation} shapes={toShapes(step.shapes)} />;
   if (step.type === 'demo') return <Demo step={step} />;
   if (step.type === 'puzzles') return <LessonPuzzles step={step} lessonId={lessonId} onSolved={onSolved} onMistake={onMistake} />;
   const g = step.goal; const fen = fenOf(step);
-  const moveHints = Math.max(0, hints - (step.hints?.length || 0));
+  const common = { fen, orientation: step.orientation, hintLevel: Math.min(3, hints), showSolutionSignal: sol, authoredHints: step.hints, onSolved, onMistake, onDiagnosis, explainIllegal: !!beginner };
   switch (g.kind) {
     case 'stars': return <StarsExercise piece={g.piece} from={g.from} stars={g.stars} blockers={g.blockers} par={g.par} resetSignal={reset} onDone={(c) => { if (!c) onMistake(); onSolved(); }} />;
     case 'select': return <SelectExercise fen={fen} squares={g.squares} orientation={step.orientation} onDone={onSolved} onMistake={onMistake} />;
     case 'quiz': return <div><Board fen={fen} viewOnly orientation={step.orientation} shapes={toShapes(step.shapes)} /><Quiz options={g.options} answer={g.answer} onDone={onSolved} onMistake={onMistake} /></div>;
     case 'play': return <PlayGoal fen={fen} result={g.result} maxMoves={g.maxMoves} script={g.script} method={g.method} orientation={step.orientation} resetSignal={reset} onDone={onSolved} onFail={onMistake} />;
-    case 'line': return <MoveTrainer fen={fen} line={sanLineToUci(fen, g.moves)} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} judge={judgeMove} onSolved={onSolved} onMistake={onMistake} />;
+    case 'line': return <MoveTrainer {...common} line={sanLineToUci(fen, g.moves)} goal="line" allowEquivalent />;
     case 'any': {
       const line = sanLineToUci(fen, [g.accept[0]]);
-      return <MoveTrainer fen={fen} line={line} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} accept={(_, m) => g.accept.some((a) => a.replace(/[+#]/g, '') === m.san.replace(/[+#]/g, ''))} judge={g.method ? methodJudge(g.method) : judgeMove} onSolved={onSolved} onMistake={onMistake} />;
+      return <MoveTrainer {...common} line={line} goal="any" accept={(_, m) => g.accept.some((a) => a.replace(/[+#]/g, '') === m.san.replace(/[+#]/g, ''))} allowEquivalent={!g.method} method={g.method} />;
     }
     case 'mate': case 'check': {
       const ch = new Chess(fen);
       const target = ch.moves({ verbose: true }).find((m) => { const c = new Chess(fen); c.move(m); return g.kind === 'mate' ? c.isCheckmate() : c.inCheck(); });
-      return <MoveTrainer fen={fen} line={target ? [moveToUci(target)] : []} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} accept={(_, m, after) => (g.kind === 'mate' ? after.isCheckmate() : after.inCheck())} onSolved={onSolved} onMistake={onMistake} />;
+      return <MoveTrainer {...common} line={target ? [moveToUci(target)] : []} goal={g.kind} accept={(_, m, after) => (g.kind === 'mate' ? after.isCheckmate() : after.inCheck())} />;
     }
   }
 }
@@ -173,12 +183,12 @@ function LessonPuzzles({ step, lessonId, onSolved, onMistake }: { step: Extract<
   if (!p) return <div class="empty"><div class="empty-icon"><Icon name="trophy" size={30} /></div><h3>Série terminée</h3></div>;
   return (
     <div data-pz={p.i}>
-      <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup hintLevel={hint} showSolutionSignal={sol}
+      <MoveTrainer key={p.i} fen={p.f} line={p.m.split(' ')} setup hintLevel={Math.min(3, hint)} showSolutionSignal={sol} goal="puzzle"
         onMistake={() => { onMistake(); }} onSolved={() => { setSolvedCur(true); const d = done + 1; setDone(d); if (d >= list.length) onSolved(); else setTimeout(() => { setK((x) => x + 1); setHint(0); setSolvedCur(false); }, 900); }} />
       <div class="row between puzzle-bar">
         <span class="muted small tnum">Puzzle {k + 1} sur {list.length} · {p.r}</span>
         <div class="row">
-          {!solvedCur && <button class="btn small secondary" onClick={() => setHint((h) => h + 1)}><Icon name="bulb" size={16} />Indice</button>}
+          {!solvedCur && hint < 3 && <button class="btn small secondary" onClick={() => setHint((h) => h + 1)}><Icon name="bulb" size={16} />Indice{hint ? ` ${hint + 1}/3` : ''}</button>}
           {!solvedCur && <button class="btn small secondary" onClick={() => { setSol((x) => x + 1); onMistake(); setSolvedCur(true); const d = done + 1; setDone(d); if (d >= list.length) onSolved(); }}><Icon name="eye" size={16} />Solution</button>}
           {solvedCur && k < list.length - 1 && sol > 0 && <button class="btn small primary" onClick={() => { setK(k + 1); setHint(0); setSolvedCur(false); setSol(0); }}>Suivant<Icon name="right" size={16} stroke={2.5} /></button>}
         </div>

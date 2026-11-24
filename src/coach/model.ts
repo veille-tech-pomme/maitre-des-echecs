@@ -2,17 +2,24 @@
 // faiblesses récurrentes. Pur et sérialisable (stocké dans State.coach).
 import { SKILLS, SKILL, FAMILIES, skillsForPuzzle, skillsForLesson, type SkillId, type Family } from './skills';
 import type { SkillEvent } from './pipeline';
+import { observeConcept, newConceptState, ctxKey, type ConceptState } from './mastery';
+import { CONCEPT, conceptsForThemes, conceptsOfLesson } from '../data/concepts';
 
 export interface SkillState { r: number; rd: number; vol: number; n: number; last: number }
 export interface Evidence { t: number; k: SkillId; s: number; src: SkillEvent['src']; ref?: string; m?: string; p?: string; l?: number }
-export interface CoachModel { v: 1; base: number; skills: Partial<Record<SkillId, SkillState>>; ev: Evidence[]; seenQ: number; games: number; diag?: { at: number; r: number }; mistakes: Record<string, Mistake>; week?: WeekGoals }
-export interface Mistake { fen: string; sol: string[]; motif: string | null; game?: string; ply?: number; prompt: string; at: number }
+/** v2 (pilier 2) : + concepts (maîtrise par notion) et journal des notions maîtrisées. v1 est migré sans perte (migrateModel). */
+export interface CoachModel { v: 1 | 2; concepts?: Record<string, ConceptState>; masteredLog?: { id: string; t: number; seen?: boolean }[]; base: number; skills: Partial<Record<SkillId, SkillState>>; ev: Evidence[]; seenQ: number; games: number; diag?: { at: number; r: number }; mistakes: Record<string, Mistake>; week?: WeekGoals }
+export interface Mistake { fen: string; sol: string[]; motif: string | null; game?: string; ply?: number; prompt: string; at: number; /** notion en cause (pilier 2) */ concept?: string; /** origine : partie, leçon, exercice, fil */ src?: 'game' | 'lesson' | 'course' | 'feed'; /** coup joué (erreur) */ played?: string }
 export interface WeekGoals { start: string; focus: SkillId | null; goals: { id: string; label: string; target: number; done: number; route: string }[] }
 /** Évènement brut enregistré par le noyau de l'appli (sans charger le coach) puis consommé par `sync`. */
 export type RawEvent =
-  | { k: 'puzzle'; t: number; id: string; r: number; th: string[]; ok: boolean; plies: number }
+  | { k: 'puzzle'; t: number; id: string; r: number; th: string[]; ok: boolean; plies: number; /** thème non annoncé (classé, fil, révision) */ il?: boolean; fen?: string }
   | { k: 'lesson'; t: number; id: string; level: string; stars: number }
   | { k: 'endgame'; t: number; id: string; ok: boolean }
+  /** pilier 2 : observation d'une ou plusieurs notions (ok, niveau d'indice, du premier coup, position, contexte entrelacé) */
+  /** pilier 2 : erreur d'exercice ou de leçon à revoir (carte du fil quand FSRS la dit due) */
+  | { k: 'mistake'; t: number; id: string; fen: string; sol: string[]; played: string; concept?: string; prompt: string; src: 'lesson' | 'course' | 'feed' }
+  | { k: 'concept'; t: number; ids: string[]; ok: boolean; h?: number; f?: boolean; fen?: string; il?: boolean; src: string }
   /** signal du fil « Pour toi » : réussite/échec des cartes non-puzzle, passe (= négatif faible), abandon, temps passé */
   | { k: 'feed'; t: number; id: string; card: string; sk: SkillId | null; d: number; out: 'ok' | 'fail' | 'skip' | 'abandon'; ms: number; counted?: boolean };
 
@@ -20,7 +27,28 @@ const Q = 173.7178, TAU = 0.5, EPS = 1e-6, DAY = 86400000;
 const RD_ITEM: Record<SkillEvent['src'], number> = { puzzle: 60, game: 150, lesson: 200, diag: 80 };
 export const MAX_EV = 400;
 
-export function newModel(base = 800): CoachModel { return { v: 1, base, skills: {}, ev: [], seenQ: 0, games: 0, mistakes: {} }; }
+export function newModel(base = 800): CoachModel { return { v: 2, base, skills: {}, ev: [], seenQ: 0, games: 0, mistakes: {}, concepts: {}, masteredLog: [] }; }
+/** Migration v1 → v2 : on ajoute les notions sans rien retirer (compétences, preuves, erreurs, file inchangées). Les
+ *  leçons déjà réussies (preuves « l: ») amorcent les notions correspondantes (une observation réussie, sans contexte). */
+export function migrateModel(m: CoachModel): boolean {
+  if (m.v === 2 && m.concepts) return false;
+  m.concepts ||= {}; m.masteredLog ||= [];
+  const seeded = new Set<string>();
+  for (const e of m.ev) if (e.src === 'lesson' && e.ref?.startsWith('l:') && e.s >= 0.5) { const id = e.ref.slice(2); if (seeded.has(id)) continue; seeded.add(id); for (const c of conceptsOfLesson(id)) applyConceptObs(m, c, { ok: true, t: e.t, firstTry: false }); }
+  m.v = 2; return true;
+}
+/** Observation d'une notion ; enregistre la transition « Maîtrisée » (célébration, CA7.2). */
+export function applyConceptObs(m: CoachModel, id: string, o: import('./mastery').Observation): 'mastered' | 'fragile' | undefined {
+  if (!CONCEPT[id]) return undefined;
+  m.concepts ||= {}; const r = observeConcept(m.concepts[id] || newConceptState(id), id, o); m.concepts[id] = r.c;
+  if (r.became === 'mastered') { (m.masteredLog ||= []).push({ id, t: o.t ?? Date.now() }); if (m.masteredLog.length > 50) m.masteredLog.shift(); }
+  return r.became;
+}
+function rawToConcepts(m: CoachModel, e: RawEvent) {
+  if (e.k === 'mistake') { m.mistakes[e.id] = { fen: e.fen, sol: e.sol, motif: null, prompt: e.prompt, at: e.t, concept: e.concept, src: e.src, played: e.played }; return; }
+  if (e.k === 'concept') { for (const id of e.ids) applyConceptObs(m, id, { ok: e.ok, hint: e.h, firstTry: e.f, ctx: e.fen ? ctxKey(e.fen) : undefined, interleaved: e.il, t: e.t }); }
+  else if (e.k === 'puzzle') { for (const id of conceptsForThemes(e.th)) applyConceptObs(m, id, { ok: e.ok, firstTry: true, ctx: e.fen ? ctxKey(e.fen) : 'p:' + e.id, interleaved: e.il, t: e.t }); }
+}
 export function skillOf(m: CoachModel, k: SkillId, now = Date.now()): SkillState {
   const s = m.skills[k] || { r: m.base, rd: 300, vol: 0.06, n: 0, last: now };
   // inactivité : le RD remonte (c = 35 / jour, plafond 350)
@@ -77,6 +105,8 @@ export function rawToEvents(e: RawEvent): SkillEvent[] {
     return [{ skill: e.sk, s: 0, d: e.d, w: e.out === 'skip' ? 0.2 : 0.3, src: 'puzzle', ref: 'fs:' + e.id, t: e.t }];
   }
   if (e.k === 'lesson') { const d = LESSON_D[e.level] ?? 1000; return skillsForLesson(e.id).map((k) => ({ skill: k, s: e.stars >= 3 ? 1 : e.stars === 2 ? 0.8 : 0.6, d, w: 0.5, src: 'lesson', ref: 'l:' + e.id, t: e.t })); }
+  if (e.k === 'mistake') return [];
+  if (e.k === 'concept') return []; // notions : voir rawToConcepts (la note par compétence vient des leçons, puzzles, parties)
   return [{ skill: e.id.includes('tour') || e.id.includes('rook') ? 'rookEnd' : 'pawnEnd', s: e.ok ? 1 : 0, d: 1200, w: 0.6, src: 'lesson', ref: 'e:' + e.id, t: e.t }];
 }
 /** Consomme la file d'évènements bruts (indice seenQ) et met à jour le modèle. */
@@ -86,7 +116,8 @@ export function sync(m: CoachModel, q: RawQueue | undefined, base?: number): boo
   if (base && Math.abs(m.base - base) > 1 && !m.diag) { m.base = base; changed = true; }
   if (!q) return changed;
   const first = q.n - q.items.length;
-  for (let i = Math.max(m.seenQ, first); i < q.n; i++) { const e = q.items[i - first]; for (const ev of rawToEvents(e)) observe(m, ev, e.t); changed = true; }
+  if (migrateModel(m)) changed = true;
+  for (let i = Math.max(m.seenQ, first); i < q.n; i++) { const e = q.items[i - first]; for (const ev of rawToEvents(e)) observe(m, ev, e.t); rawToConcepts(m, e); changed = true; }
   m.seenQ = q.n; return changed;
 }
 /** Applique les observations d'une partie analysée (une seule fois par partie). */

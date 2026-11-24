@@ -53,7 +53,7 @@ export function Onboarding() {
             <h1>{won ? 'Échec et mat !' : <>Ton premier coup<span class="muted"> : fais mat.</span></>}</h1>
             <p class="lead">{won ? '' : miss ? miss > 1 ? 'La flèche montre le coup : joue-le.' : 'Indice : la case f7 n’est défendue que par le roi noir.' : 'Les Blancs jouent. Un seul coup gagne la partie.'}</p>
             <div class="ob-board">
-              <MoveTrainer fen={MATE_FEN} line={[MATE]} hintLevel={Math.min(2, miss)} feedback={false} onMistake={() => setMiss((x) => x + 1)} onSolved={solved} />
+              <MoveTrainer fen={MATE_FEN} line={[MATE]} hintLevel={[0, 2, 3][Math.min(2, miss)]} goal="mate" feedback={false} onMistake={() => setMiss((x) => x + 1)} onSolved={solved} />
               {won && <div class="fc-xp" aria-live="polite"><Icon name="sparkles" size={16} />+10 XP</div>}
             </div>
             {won && (

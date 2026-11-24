@@ -128,7 +128,7 @@ export function OpeningTrainer({ id, idx, custom }: { id: string; idx: number; c
       <div class="game-top"><a class="nb-btn round" href={custom ? '#/openings' : `#/openings/${id}`} aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{l.name}</div><span /></div>
       <div class="session-head center"><div class="seg small"><button class={mode === 'learn' ? 'on' : ''} onClick={() => { setMode('learn'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Apprendre</button><button class={mode === 'test' ? 'on' : ''} onClick={() => { setMode('test'); setSig(sig + 1); setDone(false); setMist(0); setK(0); }}>Tester</button></div></div>
       <div class="play-grid">
-        <MoveTrainer key={mode + sig} fen={fen} line={uci} setup={side === 'b'} orientation={side === 'w' ? 'white' : 'black'} hintLevel={mode === 'learn' ? 2 : 0}
+        <MoveTrainer key={mode + sig} fen={fen} line={uci} setup={side === 'b'} orientation={side === 'w' ? 'white' : 'black'} hintLevel={mode === 'learn' ? 3 : 0} goal="opening"
           onProgress={setK} onMistake={() => setMist((m) => m + 1)} onSolved={() => finish(mist === 0)} />
         <aside class="side">
           <p class="muted small">{mode === 'learn' ? 'Les flèches te montrent le coup à jouer.' : 'Sans aide, de mémoire.'}</p>

@@ -7,11 +7,11 @@ import { ENDGAMES } from '../endgames';
 import { Chess } from 'chess.js';
 
 export interface Course { id: string; title: string; icon: string; desc: string; premium?: boolean; lessons: Lesson[] }
-type Ex = { id: string; fen: string; pre: string[]; line: string[]; r: number };
+type Ex = { id: string; fen: string; pre: string[]; line: string[]; r: number; why?: string; hint?: string; notes?: Record<string, string> };
 const EX = (DATA as any).examples as Record<string, Ex[]>;
 const sideAfter = (e: Ex) => { const c = new Chess(e.fen); c.move(e.pre[0]); return c.turn() === 'w' ? 'white' : 'black'; };
-const exStep = (e: Ex, title: string, tip?: string): Step => ({ type: 'exercise', title, prompt: `${sideAfter(e) === 'white' ? 'Les Blancs' : 'Les Noirs'} jouent et gagnent (puzzle ${e.r}).`, fen: e.fen, pre: e.pre, orientation: sideAfter(e) as any, goal: { kind: 'line', moves: e.line }, hints: tip ? [tip] : undefined, success: 'Bravo !' });
-const demoStep = (e: Ex, title: string, body: string): Step => ({ type: 'demo', title, body, fen: e.fen, pre: e.pre, moves: e.line, orientation: sideAfter(e) as any, comments: { [e.line.length - 1]: e.line.length > 1 ? 'Et voilà le schéma !' : 'Le coup gagnant.' } });
+const exStep = (e: Ex, title: string, tip?: string): Step => ({ type: 'exercise', title, prompt: `${sideAfter(e) === 'white' ? 'Les Blancs' : 'Les Noirs'} jouent et gagnent (puzzle ${e.r}).`, fen: e.fen, pre: e.pre, orientation: sideAfter(e) as any, goal: { kind: 'line', moves: e.line }, hints: [tip, e.hint].filter(Boolean) as string[], success: e.why ? `Bravo ! ${e.why}` : 'Bravo !' });
+const demoStep = (e: Ex, title: string, body: string): Step => ({ type: 'demo', title, body, fen: e.fen, pre: e.pre, moves: e.line, orientation: sideAfter(e) as any, comments: e.notes ? Object.fromEntries(Object.entries(e.notes).map(([k, v]) => [Number(k), v])) : { [e.line.length - 1]: e.line.length > 1 ? 'Et voilà le schéma !' : 'Le coup gagnant.' } });
 function themeLesson(course: string, theme: string, t: { title: string; icon: string; body: string; tip: string; level: string }, opts: { min?: number; max?: number } = {}): Lesson | null {
   const ex = EX[theme] || []; if (ex.length < 2) return null;
   const steps: Step[] = [
@@ -63,7 +63,7 @@ const famous: Lesson[] = ((DATA as any).famous as any[]).map((g) => {
   const kEnd = g.keyIdx + g.keyLen; const blackKey = g.keyIdx % 2 === 1;
   const steps: Step[] = [
     { type: 'text', title: g.title, body: `**${g.white} – ${g.black}**, ${g.event || ''} ${year} (${g.result.replace('1/2-1/2', '½-½')})\n\n${g.intro}` },
-    { type: 'demo', title: 'La partie commentée', body: 'Avance coup par coup : chaque coup est commenté, les moments clés sont en gras.', moves: g.sans.slice(0, g.keyIdx), comments },
+    { type: 'demo', title: 'La partie commentée', body: 'Avance coup par coup. Les coups soulignés en pointillé portent un commentaire : idées de la partie, tournants et sacrifices, vérifiés avec Stockfish.', moves: g.sans.slice(0, g.keyIdx), comments },
     { type: 'exercise', title: 'Trouve le coup !', prompt: g.keyPrompt, pre: g.sans.slice(0, g.keyIdx), orientation: blackKey ? 'black' : 'white', goal: g.keyLen === 1 ? { kind: 'any', accept: [g.sans[g.keyIdx]] } : { kind: 'line', moves: g.sans.slice(g.keyIdx, kEnd) }, hints: ['Pense aux coups forcés : échecs, prises, menaces.'] },
     { type: 'demo', title: 'La fin de la partie', body: 'Découvre la suite et la conclusion.', pre: g.sans.slice(0, g.keyIdx), moves: g.sans.slice(g.keyIdx), comments: Object.fromEntries(g.comments.slice(g.keyIdx).map((c: string, i: number) => [i, c])), orientation: blackKey ? 'black' : 'white' },
     { type: 'text', title: 'Ce qu’il faut retenir', body: g.takeaways.map((t: string) => '• ' + t).join('\n') },
@@ -76,6 +76,6 @@ export const COURSES: Course[] = [
   { id: 'ouvertures', title: 'Ouvertures', icon: '📖', desc: `${openings.length} ouvertures expliquées ligne par ligne, avec exercice de mémorisation.`, lessons: openings },
   { id: 'strategie', title: 'Stratégie du milieu de jeu', icon: '🧠', desc: 'Centre, structures, avant-postes, colonnes, plans et prophylaxie.', lessons: strategy },
   { id: 'finales', title: 'Théorie des finales', icon: '♔', desc: 'Les finales théoriques jouées contre le moteur, plus les finales tactiques.', lessons: endgames },
-  { id: 'parties', title: 'Parties célèbres', icon: '🏛️', desc: `${famous.length} chefs-d’œuvre commentés coup par coup, de Morphy à Carlsen.`, premium: true, lessons: famous },
+  { id: 'parties', title: 'Parties célèbres', icon: '🏛️', desc: `${famous.length} chefs-d’œuvre et leurs moments clés, de Morphy à Carlsen.`, premium: true, lessons: famous },
 ];
 export const COURSE_LESSONS: Lesson[] = COURSES.flatMap((c) => c.lessons);

@@ -106,7 +106,7 @@ export function LessonPage({ id }: { id: string }) {
                 {step.goal.kind === 'play' && mist >= 1 && <button class="btn secondary" onClick={() => setSolved(true)}>Passer</button>}
               </>
             )}
-            {won && solved ? <AutoNext key={i} ms={Math.min(4000, 1300 + ((step.type === 'exercise' && step.success) || '').length * 30)} stop={null} onGo={next}>{i === lesson.steps.length - 1 ? 'Terminer' : 'Continuer'}</AutoNext>
+            {won && solved ? <AutoNext key={i} ms={Math.min(9000, 1300 + ((step.type === 'exercise' && step.success) || '').length * 30)} stop={null} onGo={next}>{i === lesson.steps.length - 1 ? 'Terminer' : 'Continuer'}</AutoNext>
               : <button class={'btn primary ' + (canNext ? '' : 'disabled')} disabled={!canNext} onClick={next}>{i === lesson.steps.length - 1 ? 'Terminer' : canNext ? 'Continuer' : interactive ? 'À toi de jouer' : 'Continuer'}</button>}
           </div>
         </div>

@@ -16,3 +16,15 @@ describe('B4 — parties célèbres', () => {
     }
   });
 });
+describe('B5 — cours thématiques', () => {
+  const EX = (DATA as any).examples as Record<string, { id: string; line: string[]; why?: string; hint?: string; notes?: Record<string, string> }[]>;
+  it('chaque position a sa propre explication et son indice', () => {
+    const all = Object.values(EX).flat();
+    for (const e of all) {
+      expect(e.why, e.id).toMatch(/^Pourquoi ça marche : /);
+      expect(e.hint, e.id).toMatch(/^Le coup clé se joue avec /);
+      expect(Object.keys(e.notes || {}).length, e.id).toBeGreaterThan(0);
+    }
+    expect(new Set(all.map((e) => e.why)).size).toBe(all.length);
+  });
+});

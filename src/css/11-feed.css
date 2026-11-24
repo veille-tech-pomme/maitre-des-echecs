@@ -92,9 +92,9 @@
 .daily-result { text-align: center; gap: 6px; }
 .daily-result h1 { margin: 6px 0 4px; }
 .dj-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; }
-.dj-num { font-weight: 700; color: var(--text-2); font-size: 15px; letter-spacing: .02em; } .dj-stars { color: var(--gold); font-size: 20px; letter-spacing: 2px; }
+.dj-num { font-weight: 700; color: var(--text-2); font-size: 15px; letter-spacing: .02em; } .dj-stars { color: var(--tint); font-size: 20px; letter-spacing: 2px; }
 .dj-stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; color: var(--text-2); margin: 6px 0 10px; } .dj-stats span { display: inline-flex; align-items: center; gap: 4px; }
 .dj-actions { gap: 8px; width: min(360px, 100%); margin: 6px auto 0; } .dj-actions .btn { width: 100%; }
 .dj-noshare { margin: -2px 0 6px; } .dj-next { margin-top: 14px; }
 .dj-archive .dj-cell { width: 14px; height: 14px; }
-.dj-pill { color: var(--gold); white-space: nowrap; }
+.dj-pill { color: var(--tint); white-space: nowrap; }

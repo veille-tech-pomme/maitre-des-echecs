@@ -365,6 +365,9 @@ async function run(name, browserType, ctxOpts) {
     const cells = await p2.locator('.daily-result .dj-grid.big .dj-cell').evaluateAll((l) => l.map((x) => x.className.replace('dj-cell ', '')));
     const exp = 'y' + 'g'.repeat(Math.floor(mv.length / 2) - 1); if (cells.join('') !== exp) throw new Error(`grille ${cells.join('')} ≠ ${exp}`);
     await shotB(p2, '02-resultat');
+    await p2.evaluate(fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8'));
+    const ax = await p2.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} ${x.nodes[0]?.target}`));
+    if (ax.length) throw new Error('axe (résultat) : ' + ax.join(' | '));
     await p2.click('.daily-result .btn.primary'); await sleep(300);
     const shared = await p2.evaluate(() => window.__shared); const txt = shared[0]?.text || '';
     if (!new RegExp(`^♟ Coup du jour #${n} · [★☆]{5}\\n🟨(🟩)*  ⏱ \\d+:\\d\\d  💡0\\n`).test(txt)) throw new Error('texte partagé : ' + JSON.stringify(txt));
@@ -486,7 +489,7 @@ async function run(name, browserType, ctxOpts) {
   // pilier 8 (F8.4) : accessibilité axe-core (WCAG 2.x A/AA) sur les écrans principaux ; échec sur toute violation « serious » ou « critical »
   await check('accessibilité axe-core (WCAG A/AA)', async () => {
     const AXE = fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8'); const bad = [];
-    for (const r of ['#/', '#/learn', '#/lesson/d-echiquier', '#/play', '#/puzzles', '#/coach', '#/profile', '#/settings']) {
+    for (const r of ['#/', '#/learn', '#/lesson/d-echiquier', '#/play', '#/puzzles', '#/coach', '#/profile', '#/settings', '#/jour', '#/jour/archives']) {
       await page.goto(URL0 + r); await page.waitForSelector('.page, main', { timeout: 15000 }); await sleep(900);
       await page.evaluate(AXE);
       const v = await page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} (${x.nodes.length}) ${x.nodes[0]?.target}`));

@@ -89,7 +89,7 @@ function DailyPlay({ e, rated, isToday, tn, onReplay }: { e: DailyEntry; rated: 
   if (res) return <DailyResultView e={e} r={res} onReplay={onReplay} isToday={isToday} fresh rated={rated} />;
   return (
     <div class="page puzzle-session daily-page" data-jour={e.n} data-rated={rated ? '1' : '0'}>
-      <div class="game-top"><a class="nb-btn round" href="#/" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">Coup du jour #{e.n}</div><span class="pill tnum dj-pill" aria-label={`Difficulté ${stars(e.rating)} sur 5`}>★ {stars(e.rating)}/5</span></div>
+      <div class="game-top"><a class="nb-btn round" href="#/" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">Coup du jour #{e.n}</div><span class="pill tnum dj-pill" role="img" aria-label={`Difficulté ${stars(e.rating)} sur 5`}>★ {stars(e.rating)}/5</span></div>
       <div class="play-grid">
         <MoveTrainer fen={e.fen} line={line} setup hintLevel={hint} revealSignal={reveal} goal={e.theme.startsWith('mate') ? 'mate' : 'puzzle'}
           onProgress={(i) => { setIdx(i); setHint(0); if (i === 1 && !T.current.t0) T.current.t0 = performance.now(); }}
@@ -100,7 +100,7 @@ function DailyPlay({ e, rated, isToday, tn, onReplay }: { e: DailyEntry; rated: 
           <p class="dj-goal"><b>{goalText(e)}</b></p>
           <p class="muted small">{rated ? 'Une seule tentative notée. Prends ton temps : le chrono ne compte que quand l’app est ouverte.' : isToday ? 'Rejouer : sans note.' : `Archive du ${dateFr(e.date)} : sans note et sans série.`}</p>
           {!isToday && !getState().jour?.[tn] && <p class="small"><a href="#/jour">Joue aussi celui d’aujourd’hui (#{tn}), noté →</a></p>}
-          <div class="dj-progress" aria-label={`Coup ${Math.min(k + 1, np)} sur ${np}`}>{Array.from({ length: np }, (_, j) => <span class={'dj-cell ' + (j < k ? (marks.current[j] || 'g') : j === k ? 'cur' : '')} />)}</div>
+          <div class="dj-progress" role="img" aria-label={`Coup ${Math.min(k + 1, np)} sur ${np}`}>{Array.from({ length: np }, (_, j) => <span class={'dj-cell ' + (j < k ? (marks.current[j] || 'g') : j === k ? 'cur' : '')} />)}</div>
           <div class="actionbar">
             {hint < 3 && <button class="tool" onClick={() => { setHint(hint + 1); setHints((h) => h + 1); mark(k, 'y'); }} aria-label={`Indice ${hint + 1} sur 3`}><Icon name="bulb" size={22} />Indice{hint ? ` ${hint + 1}/3` : ''}</button>}
             {(wrongs.current[k] || hint > 0) && <button class="tool" onClick={showMove}><Icon name="eye" size={22} />Montre le coup</button>}
@@ -118,7 +118,7 @@ function DailyResultView({ e, r, onReplay, isToday, fresh, rated }: { e: DailyEn
   return (
     <div class="page center-page daily-result" data-jour={e.n}>
       <NavBar back="#/" backLabel="Pour toi" close />
-      <div class="dj-head"><span class="dj-num">Coup du jour #{e.n}</span><span class="dj-stars" aria-label={`Difficulté ${stars(e.rating)} sur 5`}>{starStr(e.rating)}</span></div>
+      <div class="dj-head"><span class="dj-num">Coup du jour #{e.n}</span><span class="dj-stars" role="img" aria-label={`Difficulté ${stars(e.rating)} sur 5`}>{starStr(e.rating)}</span></div>
       <h1>{r.ok ? (good === r.grid.length ? 'Parfait.' : 'Trouvé.') : 'Bien essayé.'}</h1>
       <Grid g={r.grid} big />
       <p class="dj-stats tnum"><span><Icon name="clock" size={16} /> {fmtTime(r.ms)}</span><span><Icon name="bulb" size={16} /> {r.hints} indice{r.hints > 1 ? 's' : ''}</span><span>{good}/{r.grid.length} du premier coup</span></p>

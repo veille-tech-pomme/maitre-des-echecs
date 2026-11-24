@@ -5,6 +5,7 @@ import { play } from '../lib/sound';
 import { Icon, iconFor, type IconName } from './Icon';
 
 /** Mini-Markdown : **gras**, listes « - » et « 1. », sauts de ligne. */
+export const inlineMd = (s: string) => s.replace(/_\(([^)]*)\)_/g, '($1)').split(/(\*\*[^*]+\*\*)/g).map((part) => (part.startsWith('**') ? <strong>{part.slice(2, -2)}</strong> : part));
 export function Md({ text }: { text: string }) {
   const blocks = text.split('\n\n');
   const inline = (s: string) => s.split(/(\*\*[^*]+\*\*)/g).map((part) => (part.startsWith('**') ? <strong>{part.slice(2, -2)}</strong> : part));

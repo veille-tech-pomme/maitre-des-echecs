@@ -3,7 +3,7 @@ import { lessonById, LESSONS, LEVELS, findLesson, cachedCourseLesson, loadCourse
 import { Board, toShapes } from '../components/Board';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { StarsExercise, SelectExercise, Quiz, PlayGoal } from '../components/Exercises';
-import { Md, Progress, PremiumLock, NavBar, Stars, AutoNext } from '../components/ui';
+import { Md, inlineMd, Progress, PremiumLock, NavBar, Stars, AutoNext } from '../components/ui';
 import { go } from '../lib/router';
 import { Icon } from '../components/Icon';
 import { levelColor } from '../lib/visual';
@@ -151,7 +151,7 @@ function Demo({ step }: { step: Extract<Step, { type: 'demo' }> }) {
   return (
     <div class="demo">
       <Board fen={pos.fen} viewOnly orientation={step.orientation} lastMove={pos.last} />
-      <div class="demo-comment" aria-live="polite">{ply === 0 ? <span class="muted">Appuie sur lecture pour voir la démonstration.</span> : <><b>{num(ply - 1) || `${Math.floor((ply - 1) / 2) + 1}…`} {sanFr(step.moves[ply - 1])}</b> {comment || ''}</>}</div>
+      <div class="demo-comment" aria-live="polite">{ply === 0 ? <span class="muted">Appuie sur lecture pour voir la démonstration.</span> : <><b>{num(ply - 1) || `${Math.floor((ply - 1) / 2) + 1}…`} {sanFr(step.moves[ply - 1])}</b> {comment ? inlineMd(comment) : ''}</>}</div>
       <div class="demo-ctrl">
         <button class="btn icon" onClick={() => go(0)} aria-label="Début"><Icon name="first" size={20} /></button>
         <button class="btn icon" onClick={() => go(ply - 1)} aria-label="Précédent"><Icon name="left" size={22} stroke={2.4} /></button>

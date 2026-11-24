@@ -206,9 +206,9 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste,
   - 🟡 P8.3 CA8.1 rouge vérifié EN LOCAL (FEN illégale injectée dans d-mat#1 → exit 1, « le camp qui n’a pas le trait est en échec ») ; pas sur GitHub (cf. P8.1). ✅ CA8.3 : --fresh (de zéro, 6 min 54) = octet pour octet identique (accepts, rapport, 1180 entrées de cache). ✅ CA8.4 779/779.
 - Pilier 1
   - ✅ P1.1 src/coach/diagnose.ts (MistakeKind, diagnose, graduatedHints, explainIllegal) + corpus tests/diagnose-corpus.ts (36 tests verts, positions vérifiées au moteur ; commit de6955a)
-  - 🟡 P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux branchés : leçons, cours, finales, ouvertures, fil, puzzles (branché ; reste : indice moteur dans PlayGoal, e2e)
-  - 🟡 P1.3 Coups illégaux expliqués (Débutant) : explainIllegal + Board free branchés ; à vérifier en e2e
-  - 🟡 P1.4 CA1.1 : tools/e2e-wrong-moves.mjs (283 exercices × 1 coup faux, Chromium) → 278/283 puis 5 corrigés (MoveTrainer : fiche honnête quand le coup « tient aussi ») ; 1re phrase médiane 147 ms, p95 184 ms. CA1.6 mesuré par tools/e2e.mjs (iPhone émulé, CPU ÷4 Chromium ; WebKit sans bridage) → tools/data/ca16-latency.json. Relance complète en cours (commit 5211095).
+  - ✅ P1.2 MistakeSheet (Montre-moi / Indice / Réessayer) + indices 3 niveaux : leçons, cours, finales, ouvertures, fil, puzzles ; e2e CA1.4/CA1.5 verts (non fait, hors CA : indice moteur dans PlayGoal)
+  - ✅ P1.3 Coups illégaux expliqués (Débutant) : e2e « La tour ne va pas là » vert (bureau + iPhone)
+  - ✅ P1.4 CA1.1 : tools/e2e-wrong-moves.mjs, 283 exercices × 1 coup faux : Chromium 283/283 (1re phrase médiane 153 ms, p95 198 ; final médiane 209, p95 319), WebKit 283/283 (1re phrase médiane 160, p95 204 ; final 396 / 582). CA1.6 (iPhone émulé, CPU ÷4, Chromium car WebKit n'a pas de bridage) : 1re phrase médiane 164 ms, max 261 ; en ligne 149 / 295 (tools/data/ca16-latency*.json)
 - Pilier 2
   - ✅ P2.1 src/data/concepts.ts (49 notions) ; étiquetage 100 % des étapes testé (tests/goat-p2.test.ts CA2.1)
   - ✅ P2.2 mastery.ts (BKT, Maîtrisée = p≥0,9 + 3 contextes du 1er coup + autre jour + ≥1 entrelacé ; échec → Fragile ; drapeau ever) ; tests CA2.4 verts
@@ -218,4 +218,4 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste,
 - Pilier 7 (séance)
   - ✅ P7.1 « Ma séance de 5 minutes » (1 geste depuis l'accueil, jauge, fin de séance progrès + demain, continuer) ; tests CA7.1/CA7.2 ; correctif 24/11 : la séance n'est plus coupée par le plafond du jour. e2e temps simulés (page.clock) dans tools/e2e.mjs
 - Fin
-  - 🟡 Contrastes AA : axe 0 violation grave (clair + sombre, 15 routes ; tools/axe-report.mjs). vitest 1457/1457. e2e complet en cours ; puis déploiement, vérification en ligne, Lighthouse, captures screenshots/goat1/
+  - ✅ Fin (24/11) : axe 0 violation grave (clair + sombre) ; vitest 1457/1457 ; e2e local 100/100 (bureau Chromium + iPhone WebKit), 0 erreur console ; déployé (gh-pages, bundle index-CKP7XLSd.js vérifié en ligne) ; e2e EN LIGNE 100/100 ; Lighthouse mobile en ligne 98–99 / 100 / 100 / 100 (LCP 1,8–2,0 s, TBT 0, CLS 0) ; captures screenshots/goat1/ (local + live-). Reste bloqué : CI GitHub (P8.1, portée workflow).

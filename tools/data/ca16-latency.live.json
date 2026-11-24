@@ -1,0 +1,24 @@
+{
+ "device": "iPhone 14 Pro émulé (Chromium) · CPU ÷4",
+ "n": 12,
+ "firstSentenceMs": {
+  "median": 149,
+  "max": 295
+ },
+ "finalDiagnosisMs": {
+  "median": 280,
+  "max": 625
+ },
+ "webkitUnthrottled": [
+  {
+   "name": "desktop",
+   "first": 326,
+   "fin": 410
+  },
+  {
+   "name": "iphone",
+   "first": 327,
+   "fin": 521
+  }
+ ]
+}

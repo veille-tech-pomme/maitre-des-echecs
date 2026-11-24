@@ -5,7 +5,7 @@ import { useState } from 'preact/hooks';
 import { LineChart, Progress, PremiumLock, Ring, Item } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { levelColor, badgeVis } from '../lib/visual';
-import { isIOS, isStandalone, isNative } from '../lib/platform';
+import { isIOS, isStandalone, isNative, installPrompt, clearInstallPrompt } from '../lib/platform';
 import { weaknesses } from '../lib/plan';
 import { themeName } from '../data/themes';
 import { botById } from '../data/bots';
@@ -93,6 +93,7 @@ function InstallHelp() {
     <details class="card install">
       <summary><span class="it-icon" style="--c:#0A84FF"><Icon name="smartphone" size={18} /></span><b class="grow">Installer l’application</b><Icon name="down" size={18} class="chev" /></summary>
       {isIOS() ? <p>Dans Safari, touche <b>Partager</b> puis <b>Sur l’écran d’accueil</b>. L’app fonctionne ensuite hors ligne, en plein écran.</p>
+        : installPrompt() ? <p><button class="btn secondary" onClick={async () => { const p = installPrompt(); p.prompt(); await p.userChoice.catch(() => null); clearInstallPrompt(); }}>Installer l’application</button></p>
         : <p>Dans Edge ou Chrome, clique sur <b>Installer</b> dans la barre d’adresse, ou menu → <b>Applications → Installer</b>.</p>}
     </details>
   );

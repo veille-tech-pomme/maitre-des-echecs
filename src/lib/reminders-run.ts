@@ -1,7 +1,9 @@
 // Rappels (R4d) côté plateforme : notifications locales Capacitor (app iOS), pastille d'icône et .ics (web).
 import { getState, setState, today } from './store';
 import { isNative } from './platform';
-import { log } from './events';
+import { log as logEv, flushEvents } from './events';
+// évènements rares (réglage) : écrits tout de suite plutôt qu'au prochain lot de 2 s
+const log = (t: 'reminder' | 'notif_opened', d: Record<string, unknown>) => { logEv(t, d); void flushEvents(); };
 import { entry } from './daily';
 import { plan, reminderText, clampTime, icsFile, DEFAULT_TIME, DAYS_AHEAD, ID_BASE, type Reminder } from './reminders';
 

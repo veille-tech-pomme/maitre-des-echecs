@@ -117,7 +117,8 @@ function DailyResultView({ e, r, onReplay, isToday, fresh, rated }: { e: DailyEn
   const official = isToday && (!fresh || rated);
   const [, tick] = useState(0); useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(t); }, []);
   const good = [...r.grid].filter((c) => c === 'g').length;
-  const [inst, setInst] = useState(() => !!(fresh && rated && wantInstallSheet(r.ok)));
+  // §2.11 : juste après la 1re réussite notée (résultat officiel de moins de 2 min), une seule fois
+  const [inst, setInst] = useState(() => official && Date.now() - (r.at || 0) < 120000 && wantInstallSheet(r.ok));
   return (
     <div class="page center-page daily-result" data-jour={e.n}>
       <NavBar back="#/" backLabel="Pour toi" close />

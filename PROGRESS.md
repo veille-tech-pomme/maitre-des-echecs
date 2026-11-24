@@ -242,7 +242,7 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste 
   - Écarts : 297 o/coup (cible 250) ; settings.playTc gardé (le brief dit timeControl) ; State n'est pas une projection du journal (double écriture) ; fake-indexeddb (dev) ; p=1/rank=1 (politique gloutonne). Pas vérifiés : puzzle_try en e2e, navigation privée WebKit, partie de 40 coups.
 - ✅ R4b → voir PHASE 11
 - ✅ R4c → voir PHASE 12
-- ⬜ R4d rappels locaux (Capacitor + repli web, 1/jour max, écrits par le coach, coupables jamais, désactivables ; rappel d'essai Premium conservé ; mineurs)
+- ✅ R4d → voir PHASE 13
 
 # PHASE 11 (24/11) — R4b « Coup du jour partageable » (plan §2.2, §2.11, §2.13, lignes rouges §9)
 Reprise : relire cette section + `git log`. R4c et R4d restent dans PHASE 10.
@@ -266,3 +266,13 @@ Reprise : relire cette section + `git log`. R4d reste dans PHASE 10.
   - ✅ R4c.7 état v4 (migration : gels de départ = 1 par 7 jours de la série en cours, 2 au plus ; paliers passés sans célébration rétroactive) ; journal : streak_saved {via: play|freeze|mission|repair}, streak_broken, streak_milestone, vacation
   - ✅ R4c.8 tests unitaires + e2e bureau/iPhone local et en ligne, axe, Lighthouse, déploiement, captures screenshots/r4/*-r4c-*
   - Livré 24/11 : commit d1e1798, en ligne index-tHVHlJU0.js. vitest 1521/1521 (tests/r4c.test.ts) ; e2e local + en ligne bureau + iPhone WebKit verts, 0 erreur console, axe-core inclut #/serie ; coups faux 283/283. Lighthouse mobile en ligne : accueil 98/100/100 (LCP 2,0 s), #/serie 99/100/100 (LCP 2,0 s). Premier chargement 141,4 Kio gzip (R4b 138,9 ; limite 165).
+
+# PHASE 13 (24/11) — R4d « Rappels » + feuille d'installation (plan §2.11, lignes rouges §9.3, §9.8, §5 mineurs)
+Reprise : relire cette section + `git log`. Fin de R4.
+  - ✅ R4d.1 src/lib/reminders.ts (pur, testé) : réglage `settings.reminder {on, h, m, asked, declined}` ABSENT par défaut (opt-in) ; heure 07:00–21:30 par pas de 5 min ; textes du coach annonçant le Coup du jour du jour (« Coup du jour #6 · ★★★★★ / Ton coach a choisi un mat en 3 pour ce dimanche, un beau défi. Cinq minutes suffisent. »), sans coup ni case, sans reproche (test de mots interdits sur les 3 ans de calendrier) ; .ics RFC 5545 (RRULE:FREQ=DAILY, alarme à l'heure)
+  - ✅ R4d.2 app iOS (src/lib/reminders-run.ts) : notifications LOCALES Capacitor pour les 7 prochains jours (ids 7101–7107, 1 par date), reprogrammées à chaque ouverture/retour, celle du jour annulée dès que le joueur a joué ; refus du système → rien n'est activé ; toucher la notification → #/jour + évènement notif_opened. Rappel de fin d'essai Premium (notify.ts, id 7001) intact
+  - ✅ R4d.3 web, SANS serveur : pastille d'icône « 1 » (Badging API, app installée) tant que le Coup du jour n'est pas joué, effacée dès qu'il l'est ; événement d'agenda .ics récurrent à télécharger (l'agenda du joueur fait le rappel). Aucune notification web : Notification Triggers n'existe pas, le Web Push exige un serveur VAPID → reporté (voir docs/rappels-web-push.md)
+  - ✅ R4d.4 proposition en fin de séance et en fin de journée (Pour toi) : heure choisie, « Oui, à 18:30 » / « Non merci » de poids égal, une seule fois ; jamais proposée aux moins de 13 ans (activable dans Réglages, mention explicite) ; Réglages → Rappel : interrupteur (coupé en un geste), heure, options web
+  - ✅ R4d.5 feuille « Ajouter à l'écran d'accueil » (§2.11, reportée de R4b) : une seule fois, juste après la 1re réussite notée du Coup du jour, web non installé seulement ; Chromium : invite native (beforeinstallprompt gardé dès le chargement) ; iOS Safari : les 2 gestes ; « Plus tard » de poids égal ; Profil → Installer utilise aussi l'invite native
+  - ✅ R4d.6 journal : reminder {on, h, m, from, denied, declined, ics}, install {shown, accepted}, notif_opened (tous « base », rien ne sort)
+  - ✅ R4d.7 tests tests/r4d.test.ts + tests/r4d-native.test.ts (Capacitor simulé) + e2e bureau/iPhone (feuille d'installation, offre → 08:15 → .ics téléchargé → Réglages → coupé ; pastille ; mineur), axe sur la feuille, l'offre et Réglages

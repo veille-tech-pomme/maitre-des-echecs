@@ -126,8 +126,10 @@
 /* R4d : rappel opt-in (fin de séance, Réglages) et feuille d'installation */
 .inst-sheet .is-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-bottom: 10px; }
 .inst-sheet h2 { margin: 0 0 8px; font-size: 22px; }
-.is-steps { margin: 8px 0 14px; padding-left: 22px; line-height: 1.7; }
-.is-steps .ico { vertical-align: -3px; }
+.is-steps { display: inline-block; text-align: left; margin: 8px 0 14px; padding-left: 22px; line-height: 1.7; }
+.is-steps svg { display: inline-block; vertical-align: -3px; margin: 0 2px; }
+.inst-sheet .cs-card { text-align: center; }
+.inst-sheet .is-icon { margin: 0 auto 10px; }
 .rm-offer { text-align: left; margin: 14px 0 4px; padding: 14px 16px; width: min(460px, 100%); }
 .rm-q { margin: 0 0 10px; line-height: 1.45; }
 .rm-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-weight: 600; }
@@ -136,3 +138,5 @@
 .rm-done .ico { color: var(--green, #30A46C); flex: none; }
 .rm-web { display: grid; gap: 8px; }
 .rm-web .btn { justify-self: start; }
+.rm-settings .rm-time { flex: none; width: 7.5em; }
+.rm-settings .it-title { white-space: nowrap; }

@@ -5,7 +5,8 @@ import { useState } from 'preact/hooks';
 import { Icon } from './Icon';
 import { getState, setState } from '../lib/store';
 import { isIOS, isNative, isStandalone, installPrompt, clearInstallPrompt } from '../lib/platform';
-import { log } from '../lib/events';
+import { log as logEv, flushEvents } from '../lib/events';
+const log = (t: 'install', d: Record<string, unknown>) => { logEv(t, d); void flushEvents(); };
 
 
 /** la feuille doit-elle s'ouvrir ? (1re réussite notée du Coup du jour, jamais montrée, web non installé) */

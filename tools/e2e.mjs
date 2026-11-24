@@ -68,6 +68,8 @@ async function run(name, browserType, ctxOpts) {
   /** captures GOAT phase 1 (à tester par l'utilisateur) */
   const shotG2 = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4a-${n}.png`, fullPage: false }); };
   const shotB = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4b-${n}.png`, fullPage: false }); };
+  const shotD = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4d-${n}.png`, fullPage: false }); };
+  const axeRun = async (pg, label) => { await pg.evaluate(fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8')); const ax = await pg.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} ${x.nodes[0]?.target}`)); if (ax.length) throw new Error(`axe (${label}) : ` + ax.join(' | ')); };
   const shotC = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4c-${n}.png`, fullPage: false }); };
   const shotG = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/goat1/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
@@ -366,6 +368,11 @@ async function run(name, browserType, ctxOpts) {
     await p2.waitForSelector('.daily-result .dj-grid.big', { timeout: 10000 });
     const cells = await p2.locator('.daily-result .dj-grid.big .dj-cell').evaluateAll((l) => l.map((x) => x.className.replace('dj-cell ', '')));
     const exp = 'y' + 'g'.repeat(Math.floor(mv.length / 2) - 1); if (cells.join('') !== exp) throw new Error(`grille ${cells.join('')} ≠ ${exp}`);
+    // R4d (§2.11) : 1re réussite du Coup du jour → feuille « Ajouter à l'écran d'accueil », une seule fois
+    await p2.waitForSelector('.inst-sheet', { timeout: 5000 }); const ist = await p2.locator('.inst-sheet').innerText();
+    if (!/écran d’accueil/.test(ist) || (name === 'iphone' && !ist.includes('Sur l’écran d’accueil'))) throw new Error('feuille installation : ' + ist);
+    await shotD(p2, '01-installer'); await axeRun(p2, 'feuille installation');
+    await p2.click('.inst-sheet .is-later'); await p2.waitForSelector('.inst-sheet', { state: 'detached' });
     await shotB(p2, '02-resultat');
     await p2.evaluate(fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8'));
     const ax = await p2.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} ${x.nodes[0]?.target}`));
@@ -379,6 +386,7 @@ async function run(name, browserType, ctxOpts) {
     if (st.jour?.[n]?.grid !== exp || !st.jour[n].ok || !(st.jour[n].ms > 0)) throw new Error('résultat non gardé ' + JSON.stringify(st.jour?.[n]));
     // une seule tentative notée : au retour, le résultat ; « Rejouer » est sans note
     await p2.goto(URL0 + '#/'); await p2.goto(URL0 + '#/jour/' + n); await p2.waitForSelector('.daily-result');
+    await sleep(400); if (await p2.locator('.inst-sheet').count()) throw new Error('feuille installation montrée deux fois');
     await p2.click('text=Rejouer (sans note)'); await p2.waitForSelector('.daily-page[data-rated="0"]');
     await p2.goto(URL0 + '#/jour/' + (n + 1)); await p2.waitForSelector('text=n’est pas encore sorti');
     await p2.goto(URL0 + '#/jour/archives'); await p2.waitForSelector('.dj-archive .item'); await shotB(p2, '03-archives');
@@ -386,6 +394,7 @@ async function run(name, browserType, ctxOpts) {
     const dp = ev.filter((x) => x.type === 'daily_played'); const sh = ev.filter((x) => x.type === 'share');
     if (dp.length !== 1 || dp[0].data.n !== n || dp[0].data.grid !== exp || !dp[0].data.rated) throw new Error('daily_played ' + JSON.stringify(dp.map((x) => x.data)));
     if (sh.length !== 1 || sh[0].data.via !== 'share') throw new Error('share ' + JSON.stringify(sh.map((x) => x.data)));
+    const ins = ev.filter((x) => x.type === 'install'); if (!ins.some((x) => x.data.shown) || !ins.some((x) => x.data.accepted === false)) throw new Error('install ' + JSON.stringify(ins.map((x) => x.data)));
     if (ev.some((x) => x.type === 'puzzle_try')) throw new Error('puzzle_try sans accord');
     const foreign = [...new Set(reqs.filter((u) => !u.startsWith(URL0) && !u.startsWith('data:') && !u.startsWith('blob:')).map((u) => new URL(u).host))]; if (foreign.length) throw new Error('requêtes hors site : ' + foreign.join(', '));
     console.log(`    #${n} ${e.puzzleId} (${e.rating}, ${e.theme}) : grille ${cells.join('')}, partage « ${txt.split('\n')[1]} »`);
@@ -462,6 +471,49 @@ async function run(name, browserType, ctxOpts) {
     await m.p2.goto(URL0 + '#/serie'); await m.p2.waitForSelector('text=Ta série est masquée'); if (await m.p2.locator('.streak-switch').isChecked()) throw new Error('interrupteur activé');
     await shotC(m.p2, '07-mineur-masquee');
     await m.p2.click('.sk-set .switch-row'); await m.p2.goto(URL0 + '#/'); await m.p2.waitForSelector('.streak-btn');
+    await m.c2.close();
+  });
+  // R4d (plan §2.11, lignes rouges §9.3/§9.8) : rappel opt-in proposé en fin de journée (heure choisie), jamais aux moins
+  // de 13 ans ; sur le web, pastille d'icône (Badging API) + .ics, aucune notification serveur ; coupé en un geste.
+  const fullFeed = () => ({ date: ymd(0), served: Array.from({ length: 12 }, (_, i) => ({ id: 'x' + i, kind: 'puzzle', skill: null, out: 'ok' })), kinds: {}, lessonStep: {} });
+  const badgeSpy = (c2) => c2.addInitScript(() => { window.__badge = []; navigator.setAppBadge = async (n) => { window.__badge.push(n ?? 1); }; navigator.clearAppBadge = async () => { window.__badge.push(0); }; });
+  await check('R4d : rappel proposé en fin de journée (heure choisie), .ics, Réglages, coupé en un geste ; rien ne sort', async () => {
+    const { c2, p2 } = await seeded({ feed: fullFeed(), activity: { [ymd(0)]: 30, [ymd(-1)]: 20 } }); await badgeSpy(c2);
+    const reqs = []; p2.on('request', (r) => reqs.push(r.url()));
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.feed-end .rm-offer');
+    const q = await p2.locator('.rm-offer').innerText(); if (!q.includes('Un seul par jour') || !q.includes('Jamais de reproche')) throw new Error('offre : ' + q);
+    const st0 = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).settings.reminder); if (st0?.on) throw new Error('rappel actif par défaut');
+    await p2.locator('#rm-offer-time').fill('08:15'); await p2.waitForSelector('.rm-yes:has-text("08:15")');
+    await shotD(p2, '02-fin-de-journee-rappel'); await axeRun(p2, 'offre rappel');
+    await p2.click('.rm-yes'); await p2.waitForSelector('.rm-offer .rm-web');
+    await p2.waitForFunction(() => JSON.parse(localStorage.getItem('echecs-app-v1')).settings.reminder?.on, null, { timeout: 5000 }).catch(() => {});
+    const r = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).settings.reminder); if (!r?.on || r.h !== 8 || r.m !== 15) throw new Error('rappel ' + JSON.stringify(r));
+    await shotD(p2, '03-rappel-web');
+    const [dl] = await Promise.all([p2.waitForEvent('download'), p2.click('.rm-offer .rm-ics')]);
+    const ics = fs.readFileSync(await dl.path(), 'utf8'); if (!/RRULE:FREQ=DAILY/.test(ics) || !/DTSTART:\d{8}T081500/.test(ics) || dl.suggestedFilename() !== 'maitre-des-echecs-rappel.ics') throw new Error('ics ' + ics.slice(0, 200));
+    await sleep(300); const badge = await p2.evaluate(() => window.__badge); if (badge.includes(1)) throw new Error('pastille alors que le joueur a déjà joué ' + badge);
+    await p2.reload(); await p2.waitForSelector('.feed-end'); await sleep(500); if (await p2.locator('.rm-offer').count()) throw new Error('offre reproposée');
+    await p2.goto(URL0 + '#/settings'); await p2.waitForSelector('.rm-settings'); if (!(await p2.locator('.rm-switch').isChecked())) throw new Error('interrupteur');
+    if ((await p2.locator('#rm-set-time').inputValue()) !== '08:15') throw new Error('heure réglages');
+    await p2.locator('.rm-settings').scrollIntoViewIfNeeded(); await shotD(p2, '04-reglages-rappel'); await axeRun(p2, 'réglages rappel');
+    await p2.click('.rm-settings .switch-row'); await p2.waitForSelector('text=Désactivé');
+    await p2.waitForFunction(() => JSON.parse(localStorage.getItem('echecs-app-v1')).settings.reminder?.on === false, null, { timeout: 5000 }).catch(() => {});
+    const off = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).settings.reminder); if (off.on) throw new Error('pas coupé');
+    const ev = (await readJournal(p2)).filter((x) => x.type === 'reminder').map((x) => x.data);
+    if (!ev.some((x) => x.on && x.from === 'offer' && x.h === 8) || !ev.some((x) => x.ics) || !ev.some((x) => x.on === false && x.from === 'settings')) throw new Error('journal ' + JSON.stringify(ev));
+    const foreign = [...new Set(reqs.filter((u) => !u.startsWith(URL0) && !u.startsWith('data:') && !u.startsWith('blob:')).map((u) => new URL(u).host))]; if (foreign.length) throw new Error('requêtes hors site : ' + foreign.join(', '));
+    console.log(`    rappel 08:15 (web : .ics ${ics.length} o, pastille ${JSON.stringify(badge)}), coupé depuis Réglages ; journal ${ev.length} évènements`);
+    await c2.close();
+  });
+  await check('R4d : pastille d’icône tant que le Coup du jour n’est pas joué ; mineur : rappel jamais proposé', async () => {
+    const { c2, p2 } = await seeded({ settings: { name: 'Inès', reminder: { on: true, h: 18, m: 30, asked: 1 } } }); await badgeSpy(c2);
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.feed-head'); await p2.waitForFunction(() => window.__badge.length > 0, null, { timeout: 8000 });
+    const b = await p2.evaluate(() => window.__badge); if (b.at(-1) !== 1) throw new Error('pastille ' + b); await c2.close();
+    const m = await seeded({ feed: fullFeed(), activity: { [ymd(0)]: 30 }, consent: { detail: false, upload: false, ageBand: '<13', at: Date.now(), textV: 1, asked: 1 } });
+    await m.p2.goto(URL0 + '#/'); await m.p2.waitForSelector('.feed-end'); await sleep(600);
+    if (await m.p2.locator('.rm-offer').count()) throw new Error('rappel proposé à un mineur');
+    await m.p2.goto(URL0 + '#/settings'); await m.p2.waitForSelector('.rm-settings'); if (await m.p2.locator('.rm-switch').isChecked()) throw new Error('actif chez un mineur');
+    if (!(await m.p2.getByText('Moins de 13 ans : le rappel n’est jamais proposé').count())) throw new Error('mention mineur'); await m.p2.locator('.rm-settings').scrollIntoViewIfNeeded(); await m.p2.evaluate(() => window.scrollBy(0, 120)); await shotD(m.p2, '05-mineur');
     await m.c2.close();
   });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });

@@ -117,6 +117,8 @@ export function LessonPage({ id }: { id: string }) {
 
 /** coup différent de la solution : le coach (chargé à la demande) l'accepte s'il est aussi bon, sinon l'explique */
 const judgeMove = (fen: string, uci: string, rest: string[]) => import('../coach/client').then((c) => c.judgeLessonMove(fen, uci, rest));
+/** exercices de méthode (audit C3) : un coup « qui tient aussi » est expliqué, mais seule la méthode est acceptée */
+const methodJudge = (method: string) => (fen: string, uci: string, rest: string[]) => judgeMove(fen, uci, rest).then((v) => (v.accept ? { accept: false as const, headline: 'Pas la méthode', why: `Ce coup ne perd pas tout de suite, mais ${method}`, tip: '', refutation: [] } : v));
 export function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMistake }: { step: Step; lessonId: string; hints: number; sol: number; reset: number; onSolved: () => void; onMistake: () => void }) {
   if (step.type === 'text') return <Board fen={fenOf(step)} viewOnly orientation={step.orientation} shapes={toShapes(step.shapes)} />;
   if (step.type === 'demo') return <Demo step={step} />;
@@ -127,11 +129,11 @@ export function StepBoard({ step, lessonId, hints, sol, reset, onSolved, onMista
     case 'stars': return <StarsExercise piece={g.piece} from={g.from} stars={g.stars} blockers={g.blockers} par={g.par} resetSignal={reset} onDone={(c) => { if (!c) onMistake(); onSolved(); }} />;
     case 'select': return <SelectExercise fen={fen} squares={g.squares} orientation={step.orientation} onDone={onSolved} onMistake={onMistake} />;
     case 'quiz': return <div><Board fen={fen} viewOnly orientation={step.orientation} shapes={toShapes(step.shapes)} /><Quiz options={g.options} answer={g.answer} onDone={onSolved} onMistake={onMistake} /></div>;
-    case 'play': return <PlayGoal fen={fen} result={g.result} maxMoves={g.maxMoves} script={g.script} orientation={step.orientation} resetSignal={reset} onDone={onSolved} onFail={onMistake} />;
+    case 'play': return <PlayGoal fen={fen} result={g.result} maxMoves={g.maxMoves} script={g.script} method={g.method} orientation={step.orientation} resetSignal={reset} onDone={onSolved} onFail={onMistake} />;
     case 'line': return <MoveTrainer fen={fen} line={sanLineToUci(fen, g.moves)} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} judge={judgeMove} onSolved={onSolved} onMistake={onMistake} />;
     case 'any': {
       const line = sanLineToUci(fen, [g.accept[0]]);
-      return <MoveTrainer fen={fen} line={line} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} accept={(_, m) => g.accept.some((a) => a.replace(/[+#]/g, '') === m.san.replace(/[+#]/g, ''))} judge={judgeMove} onSolved={onSolved} onMistake={onMistake} />;
+      return <MoveTrainer fen={fen} line={line} orientation={step.orientation} hintLevel={moveHints} showSolutionSignal={sol} accept={(_, m) => g.accept.some((a) => a.replace(/[+#]/g, '') === m.san.replace(/[+#]/g, ''))} judge={g.method ? methodJudge(g.method) : judgeMove} onSolved={onSolved} onMistake={onMistake} />;
     }
     case 'mate': case 'check': {
       const ch = new Chess(fen);

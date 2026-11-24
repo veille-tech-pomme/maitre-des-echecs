@@ -5,7 +5,7 @@ import { Chess, legalDests, turnColor, checkSquare, isPromotion, tryMove, gameOv
 import { engine, whiteScore } from '../lib/engine';
 import { play, playForMove } from '../lib/sound';
 import { Icon } from './Icon';
-import { promotionVerdict, scriptKey, loneKingWin } from '../lib/goal';
+import { promotionVerdict, scriptKey, loneKingWin, methodIssue, type DrawMethod } from '../lib/goal';
 
 const ROLE: Record<string, string> = { Q: 'Q', R: 'R', B: 'B', N: 'N', K: 'K' };
 /** Ramasser les étoiles avec une pièce seule. */
@@ -62,7 +62,7 @@ export function Quiz({ options, answer, onDone, onMistake, success }: { options:
   );
 }
 /** Jouer une position contre le moteur jusqu'à l'objectif (mat, promotion, nulle). */
-export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, resetSignal, script }: { fen: string; result: 'mate' | 'promote' | 'draw'; maxMoves: number; onDone: (clean: boolean) => void; onFail?: (why: string) => void; orientation?: 'white' | 'black'; resetSignal?: number; /** défense imposée : position (placement + trait) → coup UCI du moteur */ script?: Record<string, string> }) {
+export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, resetSignal, script, method }: { /** finales à tenir nulle : méthode vérifiée à chaque coup (audit C3) */ method?: DrawMethod; fen: string; result: 'mate' | 'promote' | 'draw'; maxMoves: number; onDone: (clean: boolean) => void; onFail?: (why: string) => void; orientation?: 'white' | 'black'; resetSignal?: number; /** défense imposée : position (placement + trait) → coup UCI du moteur */ script?: Record<string, string> }) {
   const [ch, setCh] = useState(() => new Chess(fen)); const [last, setLast] = useState<[string, string] | null>(null);
   const [n, setN] = useState(0); const [state, setStateS] = useState<'play' | 'think' | 'won' | 'lost'>('play'); const [msg, setMsg] = useState('');
   const user = useRef(new Chess(fen).turn()); const alive = useRef(true);
@@ -72,6 +72,7 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
     if (state !== 'play') return false;
     const c = new Chess(ch.fen()); const m = tryMove(c, { from, to, promotion: promotion || (isPromotion(ch, from, to) ? 'q' : undefined) }); if (!m) return false;
     playForMove(m); setCh(c); setLast([m.from, m.to]); const moves = n + 1; setN(moves);
+    if (method) { const issue = methodIssue(method, c, user.current); if (issue) { fail(issue); return true; } }
     if (result === 'mate' && c.isCheckmate()) { setStateS('won'); setMsg(`Mat en ${moves} coups !`); play('win'); onDone(moves <= maxMoves * 0.7); return true; }
     // promotion : jugée après la réponse du moteur (une dame prise aussitôt, ou un pat, ne compte pas)
     const promoted = result === 'promote' && m.promotion ? m : null;
@@ -92,7 +93,7 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
     if (c2.isGameOver()) { if (result === 'draw' && !c2.isCheckmate()) { setStateS('won'); setMsg('Nulle obtenue !'); play('win'); onDone(true); } else if (c2.isCheckmate()) fail('Tu as été maté.'); else fail((gameOverText(c2) || 'Nulle') + ' — il fallait gagner !'); return true; }
     if (result === 'draw') {
       if (sc < -400 || em.promotion) { fail('La position est perdue. Recommence et applique la méthode !'); return true; }
-      if (moves >= maxMoves) { setStateS('won'); setMsg(`Tu as tenu ${maxMoves} coups : nulle assurée !`); play('win'); onDone(true); return true; }
+      if (moves >= maxMoves) { setStateS('won'); setMsg(method ? `Tu as tenu ${maxMoves} coups en appliquant la méthode : nulle assurée !` : `Tu as tenu ${maxMoves} coups : nulle assurée !`); play('win'); onDone(true); return true; }
     } else if (sc < 100 && moves > 2) { fail('L’avantage s’est envolé (nulle probable). Recommence !'); return true; }
     setStateS('play'); return true;
   }
@@ -101,7 +102,7 @@ export function PlayGoal({ fen, result, maxMoves, onDone, onFail, orientation, r
       <Board fen={ch.fen()} orientation={orientation || (user.current === 'w' ? 'white' : 'black')} turn={turnColor(ch)} movable={state === 'play' ? (user.current === 'w' ? 'white' : 'black') : 'none'}
         dests={legalDests(ch)} lastMove={last} check={!!checkSquare(ch)} onMove={(f, t, pr) => { onMove(f, t, pr); return true; }} promotionCheck={(f, t) => isPromotion(ch, f, t)} />
       <div class={'feedback ' + (state === 'won' ? 'solved' : state === 'lost' ? 'wrong' : 'play')}>
-        {state === 'play' && `À toi · coup ${n + 1}${result !== 'draw' ? ` / ${maxMoves}` : ` · tiens ${maxMoves} coups`}`}
+        {state === 'play' && `À toi · coup ${n + 1}${result !== 'draw' ? ` / ${maxMoves}` : ` · tiens ${maxMoves} coups${method ? ' avec la méthode' : ''}`}`}
         {state === 'think' && <span><span class="thinking" aria-hidden="true" />Le moteur réfléchit</span>}
         {state === 'won' && <span><Icon name="sparkles" size={20} />{msg}</span>}
         {state === 'lost' && <span><Icon name="xCircle" size={20} />{msg}</span>}

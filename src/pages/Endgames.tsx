@@ -28,7 +28,7 @@ export function EndgameDrill({ id }: { id: string }) {
     <div class="page">
       <div class="game-top"><a class="nb-btn round" href="#/endgames" aria-label="Fermer"><Icon name="close" size={18} stroke={2.5} /></a><div class="gt-title">{d.title}</div><span /></div>
       <div class="play-grid">
-        <PlayGoal fen={d.fen} result={d.goal} maxMoves={d.maxMoves} script={d.script} resetSignal={reset}
+        <PlayGoal fen={d.fen} result={d.goal} maxMoves={d.maxMoves} script={d.script} method={d.method} resetSignal={reset}
           onDone={() => { setWon(true); const first = !useStoreSnapshot().endgames[d.id]?.done; setState((s) => { s.endgames[d.id] = { done: true }; pushCoach(s, { k: 'endgame', t: Date.now(), id: d.id, ok: true }); }); addXp(first ? 30 : 5, 'Finale réussie'); checkBadges(); }} />
         <aside class="side">
           <p class="goal-line"><Icon name="target" size={18} /><span><b>Objectif :</b> {d.goal === 'mate' ? `mater en ${d.maxMoves} coups maximum` : d.goal === 'promote' ? 'aller à dame en gardant une position gagnante' : `tenir ${d.maxMoves} coups sans perdre`}.</span></p>

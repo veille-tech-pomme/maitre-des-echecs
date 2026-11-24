@@ -38,3 +38,26 @@ export function loneKingWin(after: Chess, user: 'w' | 'b'): boolean {
   const b = mine.filter((x) => x === 'b').length, n = mine.filter((x) => x === 'n').length;
   return (b >= 1 && n >= 1) || b >= 2;
 }
+
+/**
+ * Audit Magnus C3 : dans les finales à tenir nulle, vérifier la MÉTHODE, pas seulement le résultat.
+ * Philidor (le camp `user` défend tour contre tour + pion) :
+ *  1. tant que le pion le plus avancé n'a pas atteint la 6e rangée (vue de l'attaquant), la tour défend la 6e rangée ;
+ *  2. dès que le pion arrive en 6e, la tour descend tout en bas (1re ou 2e rangée de l'attaquant) pour les échecs par derrière.
+ * Renvoie null si le coup respecte la méthode, sinon l'explication.
+ */
+export function philidorMethodIssue(after: Chess, user: 'w' | 'b'): string | null {
+  const att = user === 'w' ? 'b' : 'w';
+  const rel = (sq: string) => (att === 'w' ? +sq[1] : 9 - +sq[1]); // rangée vue de l'attaquant
+  const sqs = after.board().flat().filter(Boolean) as { square: string; type: string; color: string }[];
+  const pawns = sqs.filter((p) => p.type === 'p' && p.color === att); const rook = sqs.find((p) => p.type === 'r' && p.color === user);
+  const attRook = sqs.find((p) => p.type === 'r' && p.color === att);
+  if (!pawns.length || !rook || !attRook) return null; // pion ou tours échangés : la méthode ne s'applique plus
+  const adv = Math.max(...pawns.map((p) => rel(p.square)));
+  const r = rel(rook.square);
+  if (adv <= 5 && r !== 6) return 'Ce n’est pas la méthode Philidor : tant que le pion n’a pas atteint ta 3e rangée, ta tour reste sur cette rangée pour barrer la route au roi adverse. Recommence.';
+  if (adv >= 6 && r > 2) return 'Ce n’est pas la méthode Philidor : le pion est arrivé sur ta 3e rangée, le roi adverse n’a plus d’abri devant lui. Il fallait descendre la tour tout en bas pour donner des échecs par derrière. Recommence.';
+  return null;
+}
+export type DrawMethod = 'philidor';
+export const methodIssue = (m: DrawMethod, after: Chess, user: 'w' | 'b') => (m === 'philidor' ? philidorMethodIssue(after, user) : null);

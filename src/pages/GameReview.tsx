@@ -69,7 +69,7 @@ export function GameReviewPage({ id }: { id: string }) {
     setRunning(true); setErr('');
     try {
       const st = getState(); const elo = st.coach ? globalRating(st.coach) : st.puzzle.rating;
-      const r = await coachReview(START_FEN, game.moves, { depth: ent.premium ? 14 : 12, elo, user: game.color, oppElo: bot.elo, gameId: id, result: game.result, onProgress: setProg, onPartial: (p) => setPartial((x) => (x && x.moves.length >= p.moves.length ? x : p)), signal: sig.current });
+      const r = await coachReview(START_FEN, game.moves, { depth: ent.premium ? 18 : 16, elo, user: game.color, oppElo: bot.elo, gameId: id, result: game.result, onProgress: setProg, onPartial: (p) => setPartial((x) => (x && x.moves.length >= p.moves.length ? x : p)), signal: sig.current });
       try { localStorage.setItem(cacheKey(id), JSON.stringify(r)); } catch {}
       if (!game.reviewed) consumeReview();
       const mine = r.moves.filter((m) => m.color === game.color);

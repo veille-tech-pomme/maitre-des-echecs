@@ -3,6 +3,7 @@
 import { Chess } from 'chess.js';
 import { parseFen, applyMove, sqIdx, sqName, opp, threatOn, attackers, MAT, type Color, type Role, type Pos } from './geometry';
 import { moveMotifs, verifyOnLine, hanging, features, opposition, squareRule, rookPawnPattern, endgameKind, type Motif, type MotifKey } from './motifs';
+import { trapExplanation } from './traps';
 import { my, his, the, a, cap, pick, lineFr, sanOf, materialWords, NAME, agree, list, fem } from './lang';
 import type { MoveClass } from './classify';
 import { pct } from './winprob';
@@ -274,6 +275,7 @@ function endgameNote(before: Pos, afterPlayed: Pos, afterBest: Pos | null, me: C
 
 /** Explique un coup. Toutes les affirmations tactiques sont vérifiées sur les lignes du moteur. */
 export function explainMove(c: MoveCtx): Explanation {
+  const trap = trapExplanation(c.fenBefore, c.uci); if (trap) return trap; // pièges classiques : explication écrite à la main
   const level = levelOf(c.elo); const seed = c.fenBefore + c.uci;
   const before = parseFen(c.fenBefore); const me = before.turn; const them = opp(me);
   const fenAfter = applyU(c.fenBefore, c.uci) || c.fenBefore; const after = parseFen(fenAfter);

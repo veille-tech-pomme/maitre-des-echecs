@@ -176,9 +176,9 @@ Statut par point (✅ fait · 🟡 partiel · ⬜ à faire). Ordre P0 → P1 →
   - ⬜ B5 Cours thématiques sur un même gabarit
   - ✅ B6 Diagnostic : 6 positions au moins, arrêt dès σ < 125, 8 au plus ; départ 600 (mat de l'accueil compté comme item 400 : 1re carte ≈ 840 au lieu de 1 083) ; bouton « Je débute » sur les cartes Découverte → niveau 600 et leçon 1 (d-echiquier)
   - ⬜ B7 Bots : calibration, Elo mesuré, erreurs humaines, pendule
-  - ⬜ B8 Bilan : piège de l'éléphant mal expliqué
+  - ✅ B8 Bilan : piège de l'éléphant — coach/traps.ts, explications écrites à la main reconnues par position + coup (6.Cxd5 ?? → 6…Cxd5 7.Fxd8 Fb4+ ! 8.Dd2 Fxd2+ 9.Rxd2 Rxd8 ; 7.Fxd8 n'est plus « Bien vu ! »), plus Légal et l'arche de Noé
 - P2
-  - ⬜ C1 Bilan plus profond + corpus de pièges (éléphant, Légal, Noah) en non-régression
+  - ✅ C1 Bilan : 2e passage (positions critiques) à profondeur 16 (gratuit) / 18 (Premium) au lieu de 12/14, 1er passage ≤ 11 ; coût mesuré (WASM mono-thread, partie de 53 demi-coups, tools/tmp/depth-cost.mjs) : 5 s → 20 s (16) / 36 s (18), commentaires progressifs dès ~5 s ; corpus de pièges en non-régression : tests/coach-traps.test.ts (éléphant, Légal, arche de Noé)
   - ⬜ C2 Curriculum : opposition et carré en Intermédiaire, Lucena/Philidor étoffés, milieu de jeu (pion isolé, Carlsbad, Maroczy, pions pendants), calcul sur positions non forcées
   - ⬜ C3 Finales à tenir nulle : vérifier la méthode (Philidor), pas seulement « tiens N coups »
-  - ⬜ C4 Captures `screenshots/*-ERR-*` orphelines
+  - ✅ C4 Captures `screenshots/*-ERR-*` orphelines supprimées du dépôt (traces d'échecs e2e déjà corrigés en R3)

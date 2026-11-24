@@ -52,7 +52,8 @@ export async function coachReview(startFen: string, sans: string[], o: ReviewOpt
   const ch = new Chess(startFen); const fens = [ch.fen()]; const ucis: string[] = [];
   for (const s of sans) { const m = ch.move(s); ucis.push(m.from + m.to + (m.promotion || '')); fens.push(ch.fen()); }
   const { isBookFen } = await import('../data/openings');
-  const D = o.depth ?? 12; const D0 = Math.max(8, D - 3); const N = fens.length;
+  // passage 1 rapide (≤ 11) sur toutes les positions, passage 2 à pleine profondeur (16 gratuit, 18 Premium) sur les positions critiques
+  const D = o.depth ?? 16; const D0 = Math.max(8, Math.min(D - 3, 11)); const N = fens.length;
   const book = ucis.map((_, i) => i < 20 && isBookFen(fens[i + 1]));
   const over = fens.map((f) => new Chess(f).isGameOver());
   const lines: Line[][] = new Array(N).fill(null).map(() => []); const depthOf = new Array(N).fill(0);

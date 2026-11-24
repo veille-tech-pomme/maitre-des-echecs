@@ -11,7 +11,7 @@ import { CLASSES, type MoveClass } from '../coach/classify';
 import type { Explanation } from '../coach/explain';
 import type { Hint } from '../coach/hints';
 const coachClient = () => import('../coach/client');
-import { playForMove, play } from '../lib/sound';
+import { playForMove, play, haptic } from '../lib/sound';
 import { useStore, setState, addXp, getState } from '../lib/store';
 import { recommendedBot, markPlanDone } from '../lib/plan';
 import { checkBadges } from '../lib/progress';
@@ -124,7 +124,7 @@ export function Game({ botId }: { botId: string }) {
       const c = clk.current; if (!c) return; const now = Date.now();
       const f = c.flagged(now); if (f === color) { end(ch, hist, false, color); return; } // détection < 100 ms (intervalle 50 ms)
       const mine = c.remaining(color, now);
-      if (!tenSec.current && mine < 10000 && c.running() === color) { tenSec.current = true; setSrClock('10 secondes'); if (getState().settings.sound) { play('notify'); navigator.vibrate?.(30); } }
+      if (!tenSec.current && mine < 10000 && c.running() === color) { tenSec.current = true; setSrClock('10 secondes'); if (getState().settings.sound) { play('notify'); haptic(30); } }
       const v = fmtClock(mine) + '|' + fmtClock(c.remaining(color === 'w' ? 'b' : 'w', now)); if (v !== shown) { shown = v; tick((x) => x + 1); }
     }, 50);
     return () => clearInterval(id);
@@ -177,7 +177,7 @@ export function Game({ botId }: { botId: string }) {
     const mm = m || n.history({ verbose: true }).slice(-1)[0];
     const tb = Date.now();
     if (clk.current) { if (clk.current.flagged(tb) === mm.color) { setThinking(false); return end(c, h, false, mm.color); } clk.current.press(mm.color, tb); clocks.current[h.length] = clk.current.remaining(mm.color, tb); snaps.current[h.length + 1] = clk.current.snapshot(tb); }
-    log('move', { gid: gid.current, ply: h.length, uci: mm.from + mm.to + (mm.promotion || ''), side: 'bot', thinkMs: tb - t0, clockMs: clk.current?.remaining(mm.color, tb), oppClockMs: clk.current?.remaining(color, tb), hintLevel: 0 });
+    log('move', { gid: gid.current, ply: h.length, uci: mm.from + mm.to + (mm.promotion || ''), side: 'bot', thinkMs: Math.round(tb - t0), clockMs: clk.current?.remaining(mm.color, tb), oppClockMs: clk.current?.remaining(color, tb), hintLevel: 0 });
     live.current.plies = h.length + 1; ready();
     playForMove(mm); const nh = [...h, mm]; setCh(n); setHist(nh); setThinking(false);
     if (mm.captured && Math.random() < 0.4) say(bot.lines.capture); else if (mm.san.includes('+') && Math.random() < 0.5) say(bot.lines.check);

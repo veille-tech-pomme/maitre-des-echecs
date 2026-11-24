@@ -1,3 +1,4 @@
+import { todayNumber } from '../lib/daily-num';
 import { useEffect, useState } from 'preact/hooks';
 import { useStore, setState } from '../lib/store';
 import { LESSONS, LEVELS, loadCourses } from '../data/lessons';
@@ -117,7 +118,7 @@ function PuzzleEntry() {
         <Icon name="right" size={18} class="chev" stroke={2.4} />
       </a>
       <div class="tiles">
-        <a class="tile" href="#/puzzles/daily"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{s.daily[today()] && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Puzzle du jour</b><small>Un défi par jour</small></a>
+        <a class="tile" href="#/jour"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{(s.daily[today()] || s.jour?.[todayNumber()]) && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Coup du jour</b><small>#{todayNumber()} · le même pour tous</small></a>
         <a class="tile" href="#/puzzles/rush"><span class="tl-icon" style="--c:#FF9F0A"><Icon name="timer" size={20} /></span><b>Contre la montre</b><small>3 minutes, 3 vies</small></a>
         <a class="tile" href="#/review"><span class="tl-icon" style="--c:#5E5CE6"><Icon name="repeat" size={20} /></span>{due > 0 && <span class="tl-badge badge-n">{due}</span>}<b>Révisions</b><small>{due ? `${due} à revoir` : 'Tout est à jour'}</small></a>
         <a class="tile" href="#/analysis"><span class="tl-icon" style="--c:#64D2FF"><Icon name="microscope" size={20} /></span><b>Analyse</b><small>Stockfish 18</small></a>

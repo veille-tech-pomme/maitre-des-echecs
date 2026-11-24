@@ -31,6 +31,7 @@ const EndgamesHub = lazy(endM, 'EndgamesHub'), EndgameDrill = lazy(endM, 'Endgam
 import { Profile } from './pages/Profile';
 const Settings = lazy(() => import('./pages/Settings'), 'Settings');
 const Premium = lazy(() => import('./pages/Premium'), 'Premium');
+const DailyPage = lazy(() => import('./pages/Daily'), 'DailyPage');
 const Privacy = lazy(() => import('./pages/Privacy'), 'Privacy');
 const ReviewHub = lazy(() => import('./pages/Review'), 'ReviewHub');
 const coachM = () => import('./pages/Coach');
@@ -41,7 +42,7 @@ import { lazy } from './lib/lazy';
 
 const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) => boolean }[] = [
   { href: '#/', icon: 'sparkles', label: 'Pour toi', match: (p) => p.length === 0 },
-  { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire', 'puzzles', 'review'].includes(p[0]) },
+  { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire', 'puzzles', 'review', 'jour'].includes(p[0]) },
   { href: '#/play', icon: 'play', label: 'Jouer', match: (p) => ['play', 'game', 'analysis'].includes(p[0]) },
   { href: '#/profile', icon: 'me', label: 'Moi', match: (p) => ['profile', 'settings', 'premium', 'privacy', 'more', 'coach'].includes(p[0]) },
 ];
@@ -56,7 +57,8 @@ function App() {
     case undefined: page = <Feed />; break;
     case 'learn': page = b === 'course' ? <CoursePage id={c} /> : <Learn />; break;
     case 'lesson': page = <LessonPage key={b} id={b} />; break;
-    case 'puzzles': page = b === 'rated' ? <PuzzleSession key="rated" mode="rated" /> : b === 'daily' ? <PuzzleSession key="daily" mode="daily" /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession key="review" mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession key={"custom" + query?.toString()} mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
+    case 'puzzles': page = b === 'rated' ? <PuzzleSession key="rated" mode="rated" /> : b === 'daily' ? <DailyPage /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession key="review" mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession key={"custom" + query?.toString()} mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
+    case 'jour': page = <DailyPage arg={b} />; break;
     case 'review': page = b === 'mistakes' ? <MistakesSession /> : <ReviewHub />; break;
     case 'coach': page = b === 'test' ? <DiagnosticPage /> : <CoachPage />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;
@@ -74,7 +76,7 @@ function App() {
     case 'more': page = <Profile />; break;
     default: page = <Feed />;
   }
-  const focus = a === 'lesson' || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
+  const focus = a === 'lesson' || (a === 'jour' && b !== 'archives') || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
     || (a === 'openings' && c != null) || a === 'repertoire' || (a === 'train' && !!b) || (a === 'endgames' && !!b) || a === 'premium' || (a === 'coach' && b === 'test') || (a === 'review' && b === 'mistakes');
   return (
     <div class={'app ' + (focus ? 'focus' : '')}>
@@ -88,7 +90,7 @@ function App() {
         {NAV.map((n) => <a class={n.match(parts) ? 'on' : ''} href={n.href} aria-current={n.match(parts) ? 'page' : undefined}><Icon name={n.icon} size={25} stroke={1.9} /><small>{n.label}</small></a>)}
       </nav>
       <Toasts />
-      <Onboarding />
+      {a !== 'jour' && <Onboarding />}
       {celebrate && <MasteryCelebration />}
     </div>
   );

@@ -1,4 +1,5 @@
 // État persistant de l'application (localStorage), avec abonnement réactif.
+import type { DailyResult } from './daily';
 import { useEffect, useState } from 'preact/hooks';
 import type { SrsItem } from './srs';
 import { migrate, SCHEMA_VERSION } from './migrations';
@@ -34,6 +35,8 @@ export interface State {
   puzzle: { rating: number; declared?: number; games: number; history: { t: number; r: number }[]; solved: number; failed: number; seen: string[]; streak: number; bestStreak: number };
   themes: Record<string, ThemeStat>;
   daily: Record<string, boolean>;
+  /** R4b : résultat noté du Coup du jour, par numéro (une seule tentative notée, le jour même) */
+  jour: Record<string, DailyResult>;
   rush: { best3: number; best5: number; survival: number; runs: number };
   srs: Record<string, SrsItem>;
   games: GameRecord[];
@@ -74,7 +77,7 @@ export function defaultState(): State {
   return {
     v: SCHEMA_VERSION, createdAt: Date.now(), deviceId: ulid(), installDay: today(), xp: 0, streak: { count: 0, best: 0, last: '' }, activity: {}, lessons: {},
     puzzle: { rating: 800, games: 0, history: [], solved: 0, failed: 0, seen: [], streak: 0, bestStreak: 0 },
-    themes: {}, daily: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
+    themes: {}, daily: {}, jour: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
     badges: {}, openings: {}, repertoire: [], endgames: {}, plan: { date: '', done: [] },
     settings: { theme: 'auto', board: 'maitre', pieces: 'cburnett', sound: true, coords: true, animation: true, showLegal: true, autoQueen: false, coachInPlay: true, reduceMotion: false, boardSize: 100, name: '' },
     onboarded: false, training: {},

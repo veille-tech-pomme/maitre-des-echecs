@@ -1,7 +1,7 @@
 // Brief P0 §9 : journal unique (events.ts), niveaux, flush groupé, compactage, consentement, effacement, repli.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ulid, ULID_RE } from '../src/lib/ulid';
-import { log, flushEvents, query, eraseAll, eraseTier, stats, setEventStore, memoryStore, maybeCompact, appendRaw, exportJsonl, TIER, FLUSH_MS, type EventStore } from '../src/lib/events';
+import { log, flushEvents, query, eraseAll, eraseTier, stats, setEventStore, memoryStore, maybeCompact, appendRaw, exportJsonl, storedBytes, pack, unpack, TIER, FLUSH_MS, type EventStore } from '../src/lib/events';
 import { compact } from '../src/lib/events-compact';
 import { syntheticGames } from '../src/lib/synthetic';
 import { setState, getState, resetAll } from '../src/lib/store';
@@ -80,7 +80,7 @@ describe('Plafonds et compactage', () => {
   });
   it('volume : ≤ 250 octets par coup (≈ 10 Ko pour 40 coups)', () => {
     const g = syntheticGames(1, { startT: Date.now(), moves: 40 }); const mv = g.filter((e) => e.type === 'move');
-    const per = mv.reduce((a, e) => a + JSON.stringify(e).length, 0) / mv.length; expect(per).toBeLessThanOrEqual(250);
+    const per = mv.reduce((a, e) => a + storedBytes(e), 0) / mv.length; expect(per).toBeLessThanOrEqual(250);
   });
 });
 

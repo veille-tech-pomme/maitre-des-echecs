@@ -8,7 +8,9 @@ export interface AnalyseOpts {
 }
 interface Job { fen: string; opts: AnalyseOpts; resolve: (r: AnalyseResult) => void; reject: (e: any) => void; cancelled?: boolean }
 
-export const mtAvailable = () => typeof SharedArrayBuffer !== 'undefined' && (globalThis as any).crossOriginIsolated === true;
+/** WebKit (Safari, et tout navigateur iOS) refuse le worker imbriqué du Stockfish multi-thread sous COEP : mono-thread direct */
+const webkitOnly = () => typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && (!/Chrome\/|Chromium|Edg\/|Firefox\//.test(navigator.userAgent) || /iPhone|iPad|iPod/.test(navigator.userAgent));
+export const mtAvailable = () => typeof SharedArrayBuffer !== 'undefined' && (globalThis as any).crossOriginIsolated === true && !webkitOnly();
 
 class Engine {
   private w: Worker | null = null;

@@ -3,7 +3,7 @@
 // de l'app (ancienne app en cache) n'est jamais « rétrogradée » : on la laisse telle quelle.
 import { ulid } from './ulid';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 type Raw = Record<string, any>;
 export interface Migration { to: number; note: string; up: (s: Raw) => void }
 
@@ -24,6 +24,11 @@ export const MIGRATIONS: Migration[] = [
       if (typeof s.deviceId !== 'string' || !s.deviceId) s.deviceId = ulid();
       if (typeof s.installDay !== 'string' || !s.installDay) s.installDay = earliestDay(s);
     },
+  },
+  {
+    to: 3,
+    note: 'R4b : résultats du Coup du jour (calendrier figé, par numéro)',
+    up(s) { if (!s.jour || typeof s.jour !== 'object') s.jour = {}; },
   },
 ];
 

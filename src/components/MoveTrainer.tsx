@@ -43,6 +43,8 @@ export interface TrainerProps {
   /** niveau d'indice atteint (pour la page : planifier une révision si 3) */
   onHint?: (level: number) => void;
   showSolutionSignal?: number;
+  /** Coup du jour : joue le coup attendu à la place du joueur (« Montre le coup »), puis la ligne continue */
+  revealSignal?: number;
   feedback?: boolean;
   extraShapes?: string[];
   resetSignal?: number;
@@ -191,6 +193,17 @@ export function MoveTrainer(p: TrainerProps) {
     later(step, 200);
   }, [p.showSolutionSignal]);
 
+  // « Montre le coup » : le coup attendu est joué pour le joueur, la ligne continue (Coup du jour)
+  useEffect(() => {
+    if (!p.revealSignal || (status !== 'play' && status !== 'wrong')) return;
+    const L = lineR.current; const u = L[idx]; if (!u) return;
+    const n = new Chess(ch.fen()); const m = tryMove(n, u); if (!m) return;
+    judging.current++; setDiag(null); setNarr(''); setNote('Voici le coup.'); shown.current = true;
+    playForMove(m); setCh(n); setLast([m.from, m.to]); setFlash(null);
+    const ni = idx + 1; setIdx(ni); p.onProgress?.(ni);
+    if (ni >= L.length || n.isGameOver()) { setStatus('solved'); p.onSolved?.(false); }
+    else { setStatus('good'); later(() => autoMove(n, ni), 900); }
+  }, [p.revealSignal]);
   const curHint = hl > 0 && status !== 'solved' ? hints[hl - 1] : undefined;
   const shapes = useMemo(() => {
     const out = toShapes(p.extraShapes || []);

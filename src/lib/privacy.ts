@@ -8,7 +8,7 @@ export const FIELD_VISIBILITY: Record<keyof State, Visibility> = {
   v: 'private', createdAt: 'private', deviceId: 'private', installDay: 'private', consent: 'private',
   xp: 'public-candidate', streak: 'public-candidate', badges: 'public-candidate',
   puzzle: 'mixed', settings: 'mixed',
-  activity: 'private', lessons: 'private', themes: 'private', daily: 'private', rush: 'private', srs: 'private', games: 'private',
+  activity: 'private', lessons: 'private', themes: 'private', daily: 'private', jour: 'private', rush: 'private', srs: 'private', games: 'private',
   reviews: 'private', openings: 'private', repertoire: 'private', endgames: 'private', plan: 'private', onboarded: 'private',
   obMate: 'private', placement: 'private', trial: 'private', training: 'private', coach: 'private', coachQ: 'private',
   session: 'private', feed: 'private',

@@ -1,6 +1,7 @@
 // Onglet « Pour toi » : un fil vertical de cartes courtes (15–60 s) choisies par le coach.
 // Réussite → carte suivante automatique ; « Passer » (ou balayage vers le haut) = signal négatif enregistré ;
 // la carte N+1 est préparée pendant la carte N (et seulement elle) ; fin propre quand le programme du jour est fait.
+import { todayNumber } from '../lib/daily-num';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore, getState, setState, addXp, levelFromXp, streakAlive } from '../lib/store';
 import { MoveTrainer } from '../components/MoveTrainer';
@@ -161,6 +162,8 @@ function FeedHead({ onStart }: { onStart?: () => void }) {
         <Icon name="right" size={18} stroke={2.5} />
       </button>
     )}
+    {onStart && !sess && s.onboarded && (() => { const n = todayNumber(); const r = s.jour?.[n];
+      return <a class={'daily-chip' + (r ? ' done' : '')} href="#/jour"><Icon name={r ? 'checkCircle' : 'calendar'} size={18} /><span><b>Coup du jour #{n}</b><small>{r ? 'Joué · partage ta grille' : 'La même position pour tout le monde'}</small></span><Icon name="right" size={16} stroke={2.5} /></a>; })()}
     {sess && (() => { const frac = Math.min(1, sess.spent / sess.budget); const left = Math.max(0, Math.ceil((sess.budget - sess.spent) / 60000));
       return <div class="session-gauge" role="progressbar" aria-label="Séance de 5 minutes" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}><div class="sg-bar"><span style={{ width: `${Math.round(frac * 100)}%` }} /></div><span class="sg-txt tnum">{sess.n} carte{sess.n > 1 ? 's' : ''} · {left ? `≈ ${left} min restante${left > 1 ? 's' : ''}` : 'dernière carte'}</span></div>; })()}
     {tb && (

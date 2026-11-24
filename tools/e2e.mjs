@@ -66,6 +66,7 @@ async function run(name, browserType, ctxOpts) {
   const shot = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   /** captures GOAT phase 1 (à tester par l'utilisateur) */
   const shotG2 = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4a-${n}.png`, fullPage: false }); };
+  const shotB = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4b-${n}.png`, fullPage: false }); };
   const shotG = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/goat1/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
@@ -255,7 +256,7 @@ async function run(name, browserType, ctxOpts) {
   });
   // R4a (plan rétention §6, §2.13) : migration v1 → v2 (sauvegarde gardée), identifiant d'installation stable, journal local,
   // J1/J7/J30 calculés sur l'appareil, export ; AUCUNE requête ne transporte l'identifiant ni le journal.
-  await check('R4a : migration v1→v2, identifiant stable, mesures locales, rien ne sort', async () => {
+  await check('R4a : migration v1→v3, identifiant stable, mesures locales, rien ne sort', async () => {
     const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
     const d = (n) => { const x = new Date(); x.setDate(x.getDate() - n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
     const v1 = { v: 1, createdAt: Date.now() - 40 * 86400e3, xp: 420, onboarded: true, lessons: { 'd-echiquier': { done: true, stars: 3, step: 0 } }, activity: { [d(40)]: 30, [d(39)]: 10, [d(33)]: 5, [d(2)]: 8 }, streak: { count: 1, best: 3, last: d(2) }, settings: { name: 'Léa' } };
@@ -264,7 +265,7 @@ async function run(name, browserType, ctxOpts) {
     await p2.goto(URL0 + '#/dev/metrics'); await p2.waitForSelector('[data-testid=retention] .mt-tile');
     await sleep(600);
     const st = await p2.evaluate(() => ({ s: JSON.parse(localStorage.getItem('echecs-app-v1') || '{}'), bak: localStorage.getItem('echecs-app-v1.bak-v1') }));
-    if (st.s.v !== 2 || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(st.s.deviceId || '')) throw new Error('migration : ' + JSON.stringify({ v: st.s.v, dev: st.s.deviceId }));
+    if (st.s.v !== 3 || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(st.s.deviceId || '')) throw new Error('migration : ' + JSON.stringify({ v: st.s.v, dev: st.s.deviceId }));
     if (!st.bak || JSON.parse(st.bak).xp !== 420 || st.s.xp !== 420 || st.s.settings.name !== 'Léa') throw new Error('perte de données ou sauvegarde absente');
     if (st.s.installDay !== d(40)) throw new Error('jour d’installation ' + st.s.installDay);
     const ret = await p2.locator('[data-testid=retention] .mt-tile').evaluateAll((els) => els.map((e) => e.getAttribute('data-ret')));
@@ -342,6 +343,74 @@ async function run(name, browserType, ctxOpts) {
     console.log(`    refus : ${ev.length} évènements de base, 0 détaillé`);
     await c2.close();
   });
+  // R4b (plan §2.2) : Coup du jour à calendrier figé, ouvert par un lien partagé (nouveau visiteur), une tentative notée,
+  // grille sans spoiler, partage natif (feuille du système simulée), résultat gardé, rejouer sans note, numéro futur bloqué.
+  await check('R4b : Coup du jour par lien (nouveau visiteur), 1 erreur → 🟨, grille partagée sans spoiler', async () => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    await c2.addInitScript(() => { window.__shared = []; Object.defineProperty(navigator, 'share', { configurable: true, value: async (d) => { window.__shared.push(d); } }); });
+    p2.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}/r4b] ${p2.url().split('#')[1] || '/'} console: ${m.text()}`); });
+    const reqs = []; p2.on('request', (r) => reqs.push(r.url()));
+    await p2.goto(URL0 + '#/jour'); await p2.waitForSelector('.daily-page[data-jour]');
+    const n = +(await p2.locator('.daily-page').getAttribute('data-jour')); if ((await p2.locator('.daily-page').getAttribute('data-rated')) !== '1') throw new Error('tentative non notée');
+    const e = await p2.evaluate(async (n) => { const y = new Date(Date.UTC(2026, 10, 24) + (n - 1) * 864e5).getUTCFullYear(); const l = await (await fetch(`daily/${y}.json`)).json(); return l.find((x) => x.n === n); }, n);
+    const orient = e.fen.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = e.moves.split(' ');
+    const c = new Chess(e.fen); c.move({ from: mv[0].slice(0, 2), to: mv[0].slice(2, 4), promotion: mv[0][4] });
+    const wrong = c.moves({ verbose: true }).find((m) => m.from + m.to !== mv[1].slice(0, 4) && !m.san.includes('#'));
+    await sleep(1300); await shotB(p2, '01-coup-du-jour');
+    await clickSq(p2, wrong.from, orient); await clickSq(p2, wrong.to, orient); if (wrong.promotion) await p2.click('.promo-piece[aria-label="Dame"]').catch(() => {});
+    await sleep(1800);
+    const PR = { q: 'Dame', n: 'Cavalier', r: 'Tour', b: 'Fou' };
+    for (let i = 1; i < mv.length; i += 2) { await clickSq(p2, mv[i].slice(0, 2), orient); await clickSq(p2, mv[i].slice(2, 4), orient); if (mv[i][4]) await p2.click(`.promo-piece[aria-label="${PR[mv[i][4]]}"]`); await sleep(1000); }
+    await p2.waitForSelector('.daily-result .dj-grid.big', { timeout: 10000 });
+    const cells = await p2.locator('.daily-result .dj-grid.big .dj-cell').evaluateAll((l) => l.map((x) => x.className.replace('dj-cell ', '')));
+    const exp = 'y' + 'g'.repeat(Math.floor(mv.length / 2) - 1); if (cells.join('') !== exp) throw new Error(`grille ${cells.join('')} ≠ ${exp}`);
+    await shotB(p2, '02-resultat');
+    await p2.click('.daily-result .btn.primary'); await sleep(300);
+    const shared = await p2.evaluate(() => window.__shared); const txt = shared[0]?.text || '';
+    if (!new RegExp(`^♟ Coup du jour #${n} · [★☆]{5}\\n🟨(🟩)*  ⏱ \\d+:\\d\\d  💡0\\n`).test(txt)) throw new Error('texte partagé : ' + JSON.stringify(txt));
+    if (!txt.endsWith(`#/jour/${n}`)) throw new Error('lien absent');
+    for (const u of mv) if (txt.includes(u.slice(2, 4))) throw new Error('spoiler : ' + u);
+    const st = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')));
+    if (st.jour?.[n]?.grid !== exp || !st.jour[n].ok || !(st.jour[n].ms > 0)) throw new Error('résultat non gardé ' + JSON.stringify(st.jour?.[n]));
+    // une seule tentative notée : au retour, le résultat ; « Rejouer » est sans note
+    await p2.goto(URL0 + '#/'); await p2.goto(URL0 + '#/jour/' + n); await p2.waitForSelector('.daily-result');
+    await p2.click('text=Rejouer (sans note)'); await p2.waitForSelector('.daily-page[data-rated="0"]');
+    await p2.goto(URL0 + '#/jour/' + (n + 1)); await p2.waitForSelector('text=n’est pas encore sorti');
+    await p2.goto(URL0 + '#/jour/archives'); await p2.waitForSelector('.dj-archive .item'); await shotB(p2, '03-archives');
+    const ev = await readJournal(p2);
+    const dp = ev.filter((x) => x.type === 'daily_played'); const sh = ev.filter((x) => x.type === 'share');
+    if (dp.length !== 1 || dp[0].data.n !== n || dp[0].data.grid !== exp || !dp[0].data.rated) throw new Error('daily_played ' + JSON.stringify(dp.map((x) => x.data)));
+    if (sh.length !== 1 || sh[0].data.via !== 'share') throw new Error('share ' + JSON.stringify(sh.map((x) => x.data)));
+    if (ev.some((x) => x.type === 'puzzle_try')) throw new Error('puzzle_try sans accord');
+    const foreign = [...new Set(reqs.filter((u) => !u.startsWith(URL0) && !u.startsWith('data:') && !u.startsWith('blob:')).map((u) => new URL(u).host))]; if (foreign.length) throw new Error('requêtes hors site : ' + foreign.join(', '));
+    console.log(`    #${n} ${e.puzzleId} (${e.rating}, ${e.theme}) : grille ${cells.join('')}, partage « ${txt.split('\n')[1]} »`);
+    await c2.close();
+  });
+  await check('R4b + P0 : avec accord, Coup du jour « Montre le coup » → 🟥, puzzle_try (jour et classé)', async () => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    p2.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}/r4b2] ${p2.url().split('#')[1] || '/'} console: ${m.text()}`); });
+    const seed = { v: 1, createdAt: Date.now() - 3 * 86400e3, onboarded: true, xp: 50, settings: { name: 'Noé' }, consent: { detail: true, upload: false, ageBand: '13+', at: Date.now(), textV: 1, asked: 1 } };
+    await c2.addInitScript((v) => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('echecs-app-v1', JSON.stringify(v)); } }, seed);
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.daily-chip'); await shotB(p2, '04-pour-toi-chip');
+    await p2.click('.daily-chip'); await p2.waitForSelector('.daily-page[data-rated="1"]'); await sleep(1300);
+    await p2.click('.daily-page button:has-text("Indice")'); await p2.click('.daily-page button:has-text("Montre le coup")');
+    const n = +(await p2.locator('.daily-page').getAttribute('data-jour'));
+    const e = await p2.evaluate(async (n) => { const y = new Date(Date.UTC(2026, 10, 24) + (n - 1) * 864e5).getUTCFullYear(); const l = await (await fetch(`daily/${y}.json`)).json(); return l.find((x) => x.n === n); }, n);
+    const orient = e.fen.split(' ')[1] === 'w' ? 'black' : 'white'; const mv = e.moves.split(' '); await sleep(1800);
+    const PR = { q: 'Dame', n: 'Cavalier', r: 'Tour', b: 'Fou' };
+    for (let i = 3; i < mv.length; i += 2) { await clickSq(p2, mv[i].slice(0, 2), orient); await clickSq(p2, mv[i].slice(2, 4), orient); if (mv[i][4]) await p2.click(`.promo-piece[aria-label="${PR[mv[i][4]]}"]`); await sleep(1000); }
+    await p2.waitForSelector('.daily-result .dj-grid.big', { timeout: 10000 });
+    const g = (await p2.locator('.daily-result .dj-grid.big .dj-cell').evaluateAll((l) => l.map((x) => x.className.replace('dj-cell ', '')))).join('');
+    if (g !== 'r' + 'g'.repeat(Math.floor(mv.length / 2) - 1)) throw new Error('grille ' + g);
+    // puzzle classé : une tentative = un puzzle_try
+    await p2.goto(URL0 + '#/puzzles/rated'); await p2.waitForSelector('.puzzle-session[data-pz]'); const pid = await solvePz(p2, '.puzzle-session'); await p2.waitForSelector('.next-btn', { timeout: 10000 });
+    const ev = await readJournal(p2); const pt = ev.filter((x) => x.type === 'puzzle_try');
+    const dj = pt.find((x) => x.data.mode === 'daily'), rt = pt.find((x) => x.data.pid === pid);
+    if (pt.length !== 2 || !dj || dj.data.ok || !dj.data.shown || dj.data.hints !== 1) throw new Error('puzzle_try du jour ' + JSON.stringify(pt.map((x) => x.data)));
+    if (!rt || !rt.data.ok || rt.data.mode !== 'rated' || !(rt.data.totalMs > 0) || !(rt.data.firstMoveMs > 0) || rt.data.hints !== 0) throw new Error('puzzle_try classé ' + JSON.stringify(rt?.data));
+    console.log(`    jour : grille ${g} (indice + coup montré) ; classé ${pid} : 1er coup ${rt.data.firstMoveMs} ms, total ${rt.data.totalMs} ms`);
+    await c2.close();
+  });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });
   await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });
   await check('onglets : Pour toi / Apprendre / Jouer / Moi', async () => { const t = (await page.locator(name === 'desktop' ? '.sidebar .nav-item' : '.tabbar a small').allInnerTexts()).map((x) => x.trim()); for (const w of ['Pour toi', 'Apprendre', 'Jouer', 'Moi']) if (!t.includes(w)) throw new Error('onglet manquant : ' + w + ' (' + t.join(', ') + ')'); if (t.includes('Puzzles') || t.includes('Accueil')) throw new Error('ancien onglet encore présent'); });
@@ -362,9 +431,8 @@ async function run(name, browserType, ctxOpts) {
     }
     if (await page.locator('text=Puzzle suivant').count()) throw new Error('bouton « Puzzle suivant » encore présent');
   });
-  await check('puzzle du jour → puzzles classés seuls', async () => {
-    await page.goto(URL0 + '#/puzzles/daily'); await page.waitForFunction(() => document.querySelector('.gt-title')?.textContent === 'Puzzle du jour' && document.querySelector('.puzzle-session[data-pz] cg-board')); await solvePz(page, '.page'); await sleep(300); await shot('05c-puzzle-du-jour-reussi');
-    await page.waitForFunction(() => location.hash === '#/puzzles/rated', null, { timeout: 8000 });
+  await check('ancien lien #/puzzles/daily → Coup du jour (calendrier figé)', async () => {
+    await page.goto(URL0 + '#/puzzles/daily'); await page.waitForSelector('.daily-page[data-jour] cg-board, .daily-result[data-jour]'); await sleep(300); await shot('05c-coup-du-jour');
   });
   await check('puzzles hub', async () => { await page.goto(URL0 + '#/puzzles'); await page.waitForSelector('.mode-grid, .theme-grid', { timeout: 10000 }); await shot('06-puzzles'); });
   await check('contre la montre', async () => { await page.goto(URL0 + '#/puzzles/rush'); await sleep(800); await shot('07-rush'); });

@@ -31,10 +31,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,json,wasm,txt,webmanifest}'],
         // Hors précache (téléchargés à la demande puis mis en cache) : moteur multi-thread et packs de contenu.
-        globIgnores: ['**/engine/stockfish-18-lite.*', '**/packs/**', '**/explorer/**', '**/node_modules/**'],
+        globIgnores: ['**/engine/stockfish-18-lite.*', '**/packs/**', '**/explorer/**', '**/daily/**', '**/node_modules/**'],
         runtimeCaching: [
           { urlPattern: /\/engine\/stockfish-18-lite\.(js|wasm)$/, handler: 'CacheFirst', options: { cacheName: 'moteur-mt', expiration: { maxEntries: 4 } } },
           { urlPattern: /\/explorer\//, handler: 'CacheFirst', options: { cacheName: 'explorer', expiration: { maxEntries: 1200 } } },
+          // Coup du jour : calendrier figé (un fichier par année, immuable une fois publié)
+          { urlPattern: /\/daily\/\d{4}\.json$/, handler: 'StaleWhileRevalidate', options: { cacheName: 'daily', expiration: { maxEntries: 6 } } },
           { urlPattern: /\/packs\//, handler: 'CacheFirst', options: { cacheName: 'packs', expiration: { maxEntries: 2000 } } },
         ],
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,

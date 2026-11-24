@@ -72,7 +72,7 @@ export function dailyPlan(s: State): PlanItem[] {
   const w = weaknesses(s)[0];
   if (w?.theme) items.push({ id: 'weak:' + w.theme, icon: '🎯', title: `5 puzzles « ${themeName(w.theme)} »`, why: `Point faible détecté : ${w.evidence}.`, route: `#/puzzles/theme/${w.theme}`, done: done.includes('weak:' + w.theme) });
   else items.push({ id: 'puzzles', icon: '🧩', title: '5 puzzles classés', why: 'Entretiens ta vision tactique.', route: '#/puzzles/rated', done: done.includes('puzzles') });
-  items.push({ id: 'daily', icon: '📅', title: 'Puzzle du jour', why: 'Un nouveau défi chaque jour.', route: '#/puzzles/daily', done: !!s.daily[d] });
+  items.push({ id: 'daily', icon: '📅', title: 'Coup du jour', why: 'La même position pour tout le monde, chaque jour.', route: '#/jour', done: !!s.daily[d] });
   const unrev = s.games.slice().reverse().find((g) => !g.reviewed && g.moves.length >= 10);
   if (unrev) items.push({ id: 'review:' + unrev.id, icon: '🔬', title: 'Fais le bilan de ta dernière partie', why: 'Comprendre ses erreurs est le moyen le plus rapide de progresser.', route: `#/game/${unrev.id}`, done: false });
   else { const b = recommendedBot(s); items.push({ id: 'play', icon: '♟️', title: 'Joue une partie', why: 'Mets en pratique contre un adversaire de ton niveau.', route: `#/play/${b}`, done: done.includes('play') }); }

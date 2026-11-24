@@ -14,7 +14,7 @@ export function checkBadges() {
 }
 /** mode : rated (classé), theme, daily, rush, review (SRS), lesson */
 /** opts.interleaved : thème non annoncé avant la réponse (fil « Pour toi ») */
-export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme' | 'daily' | 'rush' | 'review', opts: { interleaved?: boolean } = {}) {
+export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme' | 'daily' | 'rush' | 'review', opts: { interleaved?: boolean; daily?: Record<string, unknown> } = {}) {
   let delta = 0;
   setState((s) => {
     if (mode === 'rated' || mode === 'theme' || mode === 'daily') {
@@ -30,8 +30,8 @@ export function recordPuzzle(p: Puzzle, success: boolean, mode: 'rated' | 'theme
     if (mode === 'daily' && success) s.daily[today()] = true;
     if (mode !== 'rush') pushCoach(s, { k: 'puzzle', t: Date.now(), id: p.i, r: p.r, th: p.t, ok: success, plies: p.m.split(' ').length - 1, il: opts.interleaved ?? mode !== 'theme', fen: p.f });
   });
-  if (mode === 'daily') logEvent('daily_played', { id: p.i, ok: success });
-  if (success) addXp(mode === 'rush' ? 2 : mode === 'daily' ? 20 : 8, mode === 'daily' ? 'Puzzle du jour' : 'Puzzle résolu');
+  if (mode === 'daily') logEvent('daily_played', { id: p.i, ok: success, ...opts.daily });
+  if (success) addXp(mode === 'rush' ? 2 : mode === 'daily' ? 20 : 8, mode === 'daily' ? 'Coup du jour' : 'Puzzle résolu');
   checkBadges();
   return delta;
 }

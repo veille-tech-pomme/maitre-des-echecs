@@ -1,3 +1,4 @@
+import { todayNumber } from '../lib/daily-num';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { log } from '../lib/events';
@@ -65,7 +66,7 @@ export function PuzzlesHub() {
         <div class="rh-stats"><span><b class="tnum">{s.puzzle.solved}</b> réussis</span><span><b class="tnum">{s.puzzle.streak}</b> d’affilée</span><span><b class="tnum">{s.puzzle.bestStreak}</b> record</span></div>
       </a>
       <div class="tiles">
-        <a class="tile" href="#/puzzles/daily"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{s.daily[today()] && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Du jour</b><small>Un nouveau défi</small></a>
+        <a class="tile" href="#/jour"><span class="tl-icon" style="--c:#0A84FF"><Icon name="calendar" size={20} /></span>{(s.daily[today()] || s.jour?.[todayNumber()]) && <span class="tl-badge pill ok"><Icon name="check" size={12} stroke={3} />Fait</span>}<b>Coup du jour</b><small>#{todayNumber()} · le même pour tous</small></a>
         <a class="tile" href="#/puzzles/rush"><span class="tl-icon" style="--c:#FF9F0A"><Icon name="timer" size={20} /></span><b>Contre la montre</b><small>Record {Math.max(s.rush.best3, s.rush.best5)}</small></a>
         <a class="tile" href="#/puzzles/battle"><span class="tl-icon" style="--c:#FF453A"><Icon name="swords" size={20} /></span><b>Duel</b><small>{b.w} V · {b.l} D</small></a>
         <a class="tile" href="#/review"><span class="tl-icon" style="--c:#5E5CE6"><Icon name="repeat" size={20} /></span>{due > 0 && <span class="tl-badge badge-n">{due}</span>}<b>Révisions</b><small>{due ? `${due} à revoir` : 'À jour'}</small></a>

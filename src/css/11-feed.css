@@ -77,3 +77,24 @@
 .auto-next .an-count { display: inline-grid; place-items: center; min-width: 26px; height: 26px; margin-left: 8px; border-radius: 99px; background: color-mix(in srgb, var(--on-gold) 16%, transparent); font-size: 14px; }
 .auto-next .an-stop { align-self: center; }
 .reduce-motion .fc-next.auto::after { animation: none; }
+
+/* R4b — Coup du jour */
+.daily-chip { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r); background: var(--surface); color: var(--text); text-decoration: none; box-shadow: var(--shadow); }
+.daily-chip > span { display: flex; flex-direction: column; flex: 1; } .daily-chip b { font-size: 15px; } .daily-chip small { font-size: 13px; color: var(--text-2); }
+.daily-chip .ico:first-child { color: var(--blue); } .daily-chip.done .ico:first-child { color: var(--green); }
+.dj-grid { display: inline-flex; gap: 4px; } .dj-grid.big { gap: 8px; margin: 8px auto 4px; }
+.dj-cell { width: 16px; height: 16px; border-radius: 4px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--sep); }
+.dj-grid.big .dj-cell { width: 44px; height: 44px; border-radius: 10px; }
+.dj-cell.g { background: var(--green); box-shadow: none; } .dj-cell.y { background: #E5B700; box-shadow: none; } .dj-cell.r { background: var(--red); box-shadow: none; }
+.dj-cell.cur { box-shadow: inset 0 0 0 2px var(--text-2); }
+.dj-progress { display: flex; gap: 6px; margin: 6px 0 10px; }
+.dj-goal { margin: 0 0 4px; font-size: 17px; }
+.daily-result { text-align: center; gap: 6px; }
+.daily-result h1 { margin: 6px 0 4px; }
+.dj-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; }
+.dj-num { font-weight: 700; color: var(--text-2); font-size: 15px; letter-spacing: .02em; } .dj-stars { color: var(--gold); font-size: 20px; letter-spacing: 2px; }
+.dj-stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; color: var(--text-2); margin: 6px 0 10px; } .dj-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.dj-actions { gap: 8px; width: min(360px, 100%); margin: 6px auto 0; } .dj-actions .btn { width: 100%; }
+.dj-noshare { margin: -2px 0 6px; } .dj-next { margin-top: 14px; }
+.dj-archive .dj-cell { width: 14px; height: 14px; }
+.dj-pill { color: var(--gold); white-space: nowrap; }

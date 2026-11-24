@@ -49,14 +49,21 @@ export function memoryStore(): EventStore & { items: Ev[] } {
     async clear() { m.items = []; },
   });
 }
+// Stockage compact (R4b, cible P0 ≤ 250 o/coup) : `dev` est le même pour tout le journal de l'appareil ; il n'est pas
+// répété dans chaque enregistrement IndexedDB et il est remis à la lecture. La forme exposée (query, export) ne change pas.
+const curDev = () => getState().deviceId || '';
+export function pack(e: Ev): Ev { if (e.dev && e.dev === curDev()) { const { dev, ...r } = e; return r as Ev; } return e; }
+export function unpack(r: Ev): Ev { return r.dev ? r : { ...r, dev: curDev() }; }
+/** taille stockée d'un évènement (octets du JSON enregistré) */
+export const storedBytes = (e: Ev) => JSON.stringify(pack(e)).length;
 function idbStore(db: IDBDatabase): EventStore {
   const tx = (mode: IDBTransactionMode, fn: (os: IDBObjectStore) => void) => new Promise<void>((res, rej) => {
     const t = db.transaction('ev', mode); fn(t.objectStore('ev')); t.oncomplete = () => res(); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
   });
   return {
     // append-only : add (jamais put) ; un id déjà présent est ignoré
-    add: (b) => tx('readwrite', (os) => { for (const e of b) { const r = os.add(e); r.onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); }; } }),
-    all: () => new Promise((res, rej) => { const r = db.transaction('ev', 'readonly').objectStore('ev').getAll(); r.onsuccess = () => res(r.result as Ev[]); r.onerror = () => rej(r.error); }),
+    add: (b) => tx('readwrite', (os) => { for (const e of b) { const r = os.add(pack(e)); r.onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); }; } }),
+    all: () => new Promise((res, rej) => { const r = db.transaction('ev', 'readonly').objectStore('ev').getAll(); r.onsuccess = () => res((r.result as Ev[]).map(unpack)); r.onerror = () => rej(r.error); }),
     remove: (ids) => tx('readwrite', (os) => { for (const id of ids) os.delete(id); }),
     clear: () => tx('readwrite', (os) => os.clear()),
   };
@@ -142,7 +149,7 @@ export async function eraseTier(tier: Tier): Promise<number> {
 }
 export async function stats(): Promise<{ count: number; bytes: number; oldest: number | null; byType: Record<string, number> }> {
   const ev = await query(); const byType: Record<string, number> = {}; let bytes = 0;
-  for (const e of ev) { byType[e.type] = (byType[e.type] || 0) + 1; bytes += JSON.stringify(e).length; }
+  for (const e of ev) { byType[e.type] = (byType[e.type] || 0) + 1; bytes += storedBytes(e); }
   return { count: ev.length, bytes, oldest: ev[0]?.t ?? null, byType };
 }
 

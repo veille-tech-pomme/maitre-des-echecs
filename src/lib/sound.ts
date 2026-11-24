@@ -48,4 +48,5 @@ export function playForMove(m: { san: string; captured?: string; flags?: string 
   else if (m.captured) play('capture');
   else play('move');
 }
-export function haptic(ms: number | number[] = 10) { try { navigator.vibrate?.(ms); } catch {} }
+/** vibration courte ; jamais avant un premier geste de l'utilisateur (sinon le navigateur la bloque et le signale) */
+export function haptic(ms: number | number[] = 10) { try { if ((navigator as any).userActivation && !(navigator as any).userActivation.hasBeenActive) return; navigator.vibrate?.(ms); } catch {} }

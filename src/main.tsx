@@ -10,6 +10,7 @@ import { setSoundEnabled } from './lib/sound';
 import { engine } from './lib/engine';
 import { startAppTracking } from './lib/events';
 import { startStreakSync } from './lib/streak-sync';
+import { startReminders } from './lib/reminders-run';
 import { Toasts } from './components/ui';
 import { Icon, type IconName } from './components/Icon';
 import { Onboarding } from './pages/Onboarding';
@@ -109,6 +110,7 @@ async function boot() {
   render(<App />, document.getElementById('app')!);
   startAppTracking(); // journal local (R4a) : rien ne quitte l'appareil
   startStreakSync(); // série souple (R4c) : jours manqués → vacances, gel ou pause
+  startReminders(); // rappels opt-in (R4d) : notifications locales (app), pastille d'icône (web)
   setTimeout(() => engine.warmup(), 800);
   // FSRS (répétition espacée) : chargé après le premier affichage, hors du premier chargement
   setTimeout(() => import('./lib/srs').then((m) => m.loadFsrs()), 1500);

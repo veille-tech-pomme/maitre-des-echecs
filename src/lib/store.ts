@@ -1,6 +1,7 @@
 // État persistant de l'application (localStorage), avec abonnement réactif.
 import type { DailyResult } from './daily';
 import { hit, alive, type Streak, type HitResult } from './streak';
+import type { Reminder } from './reminders';
 import { useEffect, useState } from 'preact/hooks';
 import type { SrsItem } from './srs';
 import { migrate, SCHEMA_VERSION } from './migrations';
@@ -9,7 +10,8 @@ import { ulid } from './ulid';
 export type ThemeMode = 'auto' | 'dark' | 'light';
 export interface Settings {
   theme: ThemeMode; board: string; pieces: string; sound: boolean; coords: boolean; animation: boolean;
-  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; playTc?: string; /** R4c : afficher la série (mineurs : masquée par défaut) */ streakShow?: boolean; reduceMotion: boolean; boardSize: number; name: string;
+  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; playTc?: string; /** R4c : afficher la série (mineurs : masquée par défaut) */ streakShow?: boolean;
+  /** R4d : rappel quotidien (opt-in, désactivé par défaut) et feuille d'installation déjà montrée */ reminder?: Reminder; installAsked?: number; reduceMotion: boolean; boardSize: number; name: string;
 }
 export interface GameRecord {
   id: string; date: number; botId: string; color: 'w' | 'b'; result: '1-0' | '0-1' | '1/2-1/2' | '*';

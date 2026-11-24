@@ -143,9 +143,9 @@ cg-board square.danger { background: radial-gradient(transparent 0 58%, rgba(229
 .mt-list .item { justify-content: space-between; } .mt-list code, .mt-dev { font-size: 13px; }
 .mt-export { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 /* P0 : feuille de consentement — boutons de poids visuel ÉGAL (même style), rien de pré-coché */
-.consent-sheet { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; background: rgba(0, 0, 0, .45); padding: 0; }
-.consent-sheet .cs-card { width: min(560px, 100%); max-height: 100dvh; overflow: auto; background: var(--surface); color: var(--text); border-radius: 22px 22px 0 0; padding: 22px 20px calc(18px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-lg); }
-@media (min-width: 700px) { .consent-sheet { place-items: center; } .consent-sheet .cs-card { border-radius: 22px; } }
+.consent-sheet, .inst-sheet { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; background: rgba(0, 0, 0, .45); padding: 0; }
+.consent-sheet .cs-card, .inst-sheet .cs-card { width: min(560px, 100%); max-height: 100dvh; overflow: auto; background: var(--surface); color: var(--text); border-radius: 22px 22px 0 0; padding: 22px 20px calc(18px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-lg); }
+@media (min-width: 700px) { .consent-sheet, .inst-sheet { place-items: center; } .consent-sheet .cs-card, .inst-sheet .cs-card { border-radius: 22px; } }
 .cs-card h2 { margin: 0 0 8px; font-size: 22px; } .cs-card p { margin: 0 0 14px; line-height: 1.45; }
 .cs-age { border: 0; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
 .cs-opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); cursor: pointer; font-weight: 600; }

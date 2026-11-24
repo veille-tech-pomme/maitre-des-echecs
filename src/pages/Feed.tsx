@@ -12,6 +12,7 @@ import { Board, toShapes } from '../components/Board';
 import { Icon, type IconName } from '../components/Icon';
 import { Md, toastPrefs } from '../components/ui';
 import { trialBanner, dismissTrialBanner } from '../lib/notify';
+import { ReminderOffer } from '../components/ReminderOffer';
 import { pickPuzzle, findPuzzle, type BankPuzzle } from '../lib/puzzlebank';
 import { recordPuzzle } from '../lib/progress';
 import { review as srsReview } from '../lib/srs';
@@ -345,6 +346,7 @@ function SessionEnd({ sm, onContinue }: { sm: SessionSummary; onContinue: () => 
         : <p class="muted">Pas encore de notion qui bouge nettement : c’est en répétant sur plusieurs jours que la maîtrise se construit.</p>}
       <p class="muted small">Note d’entraînement : <b class="tnum">{sm.rating}</b>{sm.dRating ? ` (${sm.dRating > 0 ? '+' : ''}${sm.dRating})` : ''}</p>
       <p class="fe-teaser">{sm.tomorrow}</p>
+      <ReminderOffer />
       <div class="fe-actions">
         <button class="btn primary lg se-continue" onClick={onContinue}>Continuer</button>
         <a class="btn secondary lg" href="#/play"><Icon name="play" size={18} />Jouer une partie</a>
@@ -361,6 +363,7 @@ function FeedEnd() {
       <h2>C’est tout pour aujourd’hui</h2>
       <p class="fe-stats"><b class="tnum">{pr.ok}</b>/{pr.total} réussies · niveau {lvl.level}{streakVisible(s) ? ` · série ${streakAlive(s) ? s.streak.count : 0} j` : ''}</p>
       <p class="fe-teaser">{teaser}</p>
+      <ReminderOffer />
       <div class="fe-actions">
         <a class="btn primary lg" href="#/play"><Icon name="play" size={18} />Jouer une partie</a>
         <a class="btn secondary lg" href="#/learn"><Icon name="learn" size={18} />Apprendre</a>

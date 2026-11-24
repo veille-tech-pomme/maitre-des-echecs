@@ -25,7 +25,7 @@ export const TIER = {
   // consentement (trace de l'accord : toujours écrit, jamais compacté)
   consent: 'base',
   // réservés au plan GOAT (R4b–R4d)
-  daily_played: 'base', share: 'base', challenge_sent: 'base', challenge_opened: 'base', streak_saved: 'base', notif_opened: 'base', streak_broken: 'base', streak_milestone: 'base', vacation: 'base',
+  daily_played: 'base', share: 'base', challenge_sent: 'base', challenge_opened: 'base', streak_saved: 'base', notif_opened: 'base', streak_broken: 'base', streak_milestone: 'base', vacation: 'base', reminder: 'base', install: 'base',
 } as const satisfies Record<string, Tier>;
 export type EvType = keyof typeof TIER;
 /** compat : ancien nom */

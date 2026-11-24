@@ -3,6 +3,7 @@ import { useStore, setState, exportData, importData, resetAll } from '../lib/sto
 import { clearEvents, exportJsonl } from '../lib/events';
 import { withdrawConsent } from '../lib/consent';
 import { lazy } from '../lib/lazy';
+import { ReminderSettings } from '../components/ReminderOffer';
 const ConsentSheet = lazy<{ onClose: (d: boolean) => void; from?: 'sheet' | 'settings' }>(() => import('../components/ConsentSheet'), 'ConsentSheet', () => <div />);
 /** export complet (brief P0 §6) : état + journal (JSON Lines) dans un ZIP (fflate, déjà une dépendance) */
 async function exportZip() {
@@ -54,6 +55,9 @@ export function Settings() {
         <Toggle k="coachInPlay" label="Coach pendant les parties" desc="Il juge chacun de tes coups" icon="message" color="#30A46C" />
         <Item onClick={() => play('success')} icon="playIcon" color="#FF9F0A" title="Tester le son" chevron={false} />
       </div>
+
+      <div class="section-label">Rappel</div>
+      <ReminderSettings />
 
       <div class="section-label">Données et coach</div>
       <div class="list">

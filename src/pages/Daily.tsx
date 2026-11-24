@@ -3,6 +3,7 @@
 // Ensuite on peut rejouer, sans note. Les archives sont gratuites, sans note et sans série. Rien ne quitte l'appareil.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { MoveTrainer } from '../components/MoveTrainer';
+import { InstallSheet, wantInstallSheet } from '../components/InstallSheet';
 import { NavBar, Item, toast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { streakVisible } from '../lib/streak';
@@ -116,6 +117,7 @@ function DailyResultView({ e, r, onReplay, isToday, fresh, rated }: { e: DailyEn
   const official = isToday && (!fresh || rated);
   const [, tick] = useState(0); useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(t); }, []);
   const good = [...r.grid].filter((c) => c === 'g').length;
+  const [inst, setInst] = useState(() => !!(fresh && rated && wantInstallSheet(r.ok)));
   return (
     <div class="page center-page daily-result" data-jour={e.n}>
       <NavBar back="#/" backLabel="Pour toi" close />
@@ -134,6 +136,7 @@ function DailyResultView({ e, r, onReplay, isToday, fresh, rated }: { e: DailyEn
       </div>
       {isToday && <p class="muted small dj-next">Prochain Coup du jour dans {untilTomorrow()}.</p>}
       <p class="sr-only">{[...r.grid].map((c) => CELL_EMOJI[c as Cell]).join('')}</p>
+      {inst && <InstallSheet onClose={() => setInst(false)} />}
     </div>
   );
 }

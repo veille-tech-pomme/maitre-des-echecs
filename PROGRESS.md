@@ -219,3 +219,27 @@ Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste,
   - ✅ P7.1 « Ma séance de 5 minutes » (1 geste depuis l'accueil, jauge, fin de séance progrès + demain, continuer) ; tests CA7.1/CA7.2 ; correctif 24/11 : la séance n'est plus coupée par le plafond du jour. e2e temps simulés (page.clock) dans tools/e2e.mjs
 - Fin
   - ✅ Fin (24/11) : axe 0 violation grave (clair + sombre) ; vitest 1457/1457 ; e2e local 100/100 (bureau Chromium + iPhone WebKit), 0 erreur console ; déployé (gh-pages, bundle index-CKP7XLSd.js vérifié en ligne) ; e2e EN LIGNE 100/100 ; Lighthouse mobile en ligne 98–99 / 100 / 100 / 100 (LCP 1,8–2,0 s, TBT 0, CLS 0) ; captures screenshots/goat1/ (local + live-). Reste bloqué : CI GitHub (P8.1, portée workflow).
+
+# PHASE 10 (24/11) — R4 « Le rituel » — /workspace/retention/plan-goat-maitre-des-echecs.md (§2.2, 2.3, 2.11, 2.13, 6, 7, 9)
+Quatre versions, chacune testée (unit + e2e bureau + iPhone WebKit), déployée, vérifiée en ligne, captures screenshots/r4/, rapport au parent APRÈS CHAQUE version (s'arrêter après R4a). La CI reste dans tools/ci/ (décision de l'utilisateur).
+Statut (✅ fait · 🟡 partiel · ⬜ à faire). Reprise : relire cette liste + `git log`.
+- R4a fondations (§6 + §2.13)
+  - ✅ R4a.1 identifiant d'installation stable (ULID aléatoire local, aucune donnée de l'appareil) — src/lib/ulid.ts
+  - ✅ R4a.2 modèle versionné + migrations (src/lib/migrations.ts, sauvegarde avant migration, import d'un ancien export migré, version future non touchée)
+  - ✅ R4a.3 journal d'évènements append-only IndexedDB {id, dev, t, type, v, data} (src/lib/events.ts), repli mémoire ; effacé par « Tout effacer »
+  - ✅ R4a.4 metrics.ts : J1/J7/J30 locaux réels (+ historique d'activité pour les anciens joueurs), écran #/dev/metrics, export JSON ; rien ne quitte l'appareil (e2e : aucune requête ne contient l'identifiant)
+  - ✅ R4a.5 tests, déploiement, vérification en ligne, captures screenshots/r4/
+- P0 modélisation des joueurs (ajout au périmètre R4a, /workspace/modelisation-joueurs/brief-P0-expert-programmation.md) — UN SEUL journal (events.ts) pour P0 et plan §6
+  - ✅ P0.A events.ts : sid, niveau base/detail filtré par consentement dans log(), flush 2 s, query/exportAll(JSONL)/eraseAll/stats, EventStore (IndexedDB + mémoire)
+  - ✅ P0.B temps de réflexion par coup (src/lib/timing.ts computeThinkMs) + onTouch Board (lifts, firstTouchMs, input) ; game_start/move/takeback/game_end
+  - ✅ P0.C pendule pure src/lib/clock.ts (pause onglet caché/coach/gaffe, snapshot/restore à la reprise, drapeau <100 ms, nulle matériel insuffisant), cadences Sans (défaut)/15+10/10+5/5+3/3+2, <1000 → Sans, PGN TimeControl + [%clk]
+  - ✅ P0.D puzzle_try (1 par puzzle), puzzle_rush, lesson_step
+  - ✅ P0.E card_served {card, kind, skill, d, score, p, policy:'greedy-v1', rank} au moment où la carte est montrée ; card_result
+  - ✅ P0.F consentement (texte §6 exact, après le 1er mat + 2e carte, âge 13+/<13, boutons égaux, redemande 1 fois après 7 j), Réglages « Données et coach », export ZIP (état + JSONL), effacer = journal + deviceId, Confidentialité (+ public/privacy.html, ligne Synchronisation corrigée)
+  - ✅ P0.G plafonds 200 000 év. / 40 Mo, compactage >180 j avec game_summary, consent jamais compacté, storage.persist, #/dev/events (50 derniers, taille, estimate, 1 000 parties synthétiques en dev)
+  - ✅ P0 tests : events/clock/think-time/pgn-clock + e2e (consentement oui → partie 3+2 de 10 coups ; non → aucun move ; accueil < 15 s ; 0 erreur console ; aucune requête nouvelle)
+  - Livré 24/11 : commit 4c278d6, en ligne index-DmOHvzXp.js. vitest 1495/1495, e2e local + en ligne bureau + iPhone WebKit verts, 0 erreur console, coups faux 283/283. Premier chargement 138,0 Kio gzip (avant 134,6 ; limite 165). Lighthouse mobile en ligne : perf 99 / a11y 100 / BP 100, LCP 1,8 s.
+  - Écarts : 297 o/coup (cible 250) ; settings.playTc gardé (le brief dit timeControl) ; State n'est pas une projection du journal (double écriture) ; fake-indexeddb (dev) ; p=1/rank=1 (politique gloutonne). Pas vérifiés : puzzle_try en e2e, navigation privée WebKit, partie de 40 coups.
+- ⬜ R4b Coup du jour partageable (calendrier figé public/daily, numéro, grille sans spoiler, partage natif)
+- ⬜ R4c série souple (bug addXp → 1, gels gagnés, mission 2 min, réparation, vacances)
+- ⬜ R4d rappels locaux (Capacitor + repli web, 1/jour max, écrits par le coach, coupables jamais, désactivables ; rappel d'essai Premium conservé ; mineurs)

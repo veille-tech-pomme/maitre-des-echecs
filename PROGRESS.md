@@ -191,3 +191,7 @@ Statut par point (✅ fait · 🟡 partiel · ⬜ à faire). Ordre P0 → P1 →
   - Tests unitaires : 1 402 / 1 402 (21 fichiers ; 1 286 avant l’audit)
   - e2e local bureau Chromium + iPhone 14 Pro WebKit : 88 vérifications, 0 échec, 0 erreur console
   - Premier chargement : 158 KiB ; Lighthouse mobile local : 99 / 100 / 100 / 100 (LCP 2,3 s, TBT 40 ms)
+  - val_lessons2 (cours, relancé après le redémarrage de la machine) : seuls restent des PLAY de faible profondeur (fin-0, fin-4, fin-5 : gain confirmé par la base de finales), un WRONG artefact (même coup) et 3 ANY-MISS de parties célèbres à ≤ 23 cp, acceptés à l’exécution par le juge
+- En ligne (24/11, 18:56 Bruxelles) : main 1c4bd57, gh-pages 386be6f, bundle index-ZceGoXSS.js identique à dist
+  - e2e en ligne bureau + iPhone 14 Pro WebKit : 88 vérifications, 0 échec, 0 erreur console (1er passage : 1 dépassement de délai sur « bilan de partie » iPhone, page correcte à l’écran ; 2e passage vert)
+  - Premier chargement en ligne : 153 KiB ; Lighthouse mobile en ligne : 100 / 100 / 100 / 100 (LCP 1,5 s, TBT 10 ms, CLS 0)

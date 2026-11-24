@@ -1,0 +1,42 @@
+[
+ {
+  "id": "B0kFQ",
+  "fen": "r4r1k/1bq1bpnp/p2pp3/1p2P1Qn/3N1P2/2NB4/PPP3PP/2KRR3 w - - 1 18",
+  "best": "Qh6",
+  "pv": "18. Dh6 f5 19. exf6 Cxf6 20. Dxg7+",
+  "alts": [
+   "Nxe6",
+   "Ndxb5"
+  ],
+  "refs": [
+   "18. Cxe6 Fxg5 19. Cxc7 Fxf4+",
+   "18. Cdxb5 Fxg5 19. Cxc7 Fxf4+"
+  ],
+  "scores": [
+   381,
+   -348,
+   -361
+  ],
+  "r": 1741
+ },
+ {
+  "id": "CgHB1",
+  "fen": "r3qrk1/1ppbbp1n/p6Q/8/4Pp2/2NB3P/PPP3P1/R4RK1 w - - 0 17",
+  "best": "e5",
+  "pv": "17. e5 Fc5+ 18. Rh1 f5 19. exf6",
+  "alts": [
+   "Rxf4",
+   "Qxf4"
+  ],
+  "refs": [
+   "17. Txf4 Fg5 18. Dxg5+ Cxg5",
+   "17. Dxf4 Fc5+ 18. Rh1 Fd6"
+  ],
+  "scores": [
+   439,
+   -361,
+   -364
+  ],
+  "r": 1720
+ }
+]

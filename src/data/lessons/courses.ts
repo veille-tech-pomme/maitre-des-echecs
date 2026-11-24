@@ -5,6 +5,7 @@ import { MATE_TEXTS, HAND_MATES, TACTIC_TEXTS, ENDGAME_THEME_TEXTS, STRATEGY } f
 import { OPENINGS } from '../openings';
 import { ENDGAMES } from '../endgames';
 import { Chess } from 'chess.js';
+import { MIDDLEGAME } from './middlegame';
 
 export interface Course { id: string; title: string; icon: string; desc: string; premium?: boolean; lessons: Lesson[] }
 type Ex = { id: string; fen: string; pre: string[]; line: string[]; r: number; why?: string; hint?: string; notes?: Record<string, string> };
@@ -75,6 +76,7 @@ export const COURSES: Course[] = [
   { id: 'tactique', title: 'Motifs tactiques', icon: '⚔️', desc: `${tactics.length} motifs, de la fourchette au coup tranquille, avec des positions de vraies parties.`, lessons: tactics },
   { id: 'ouvertures', title: 'Ouvertures', icon: '📖', desc: `${openings.length} ouvertures expliquées ligne par ligne, avec exercice de mémorisation.`, lessons: openings },
   { id: 'strategie', title: 'Stratégie du milieu de jeu', icon: '🧠', desc: 'Centre, structures, avant-postes, colonnes, plans et prophylaxie.', lessons: strategy },
+  { id: 'milieu', title: 'Milieu de jeu : structures et plans', icon: '🧭', desc: 'Pion isolé, Carlsbad, Maroczy, pions pendants : les plans, avec des positions vérifiées au moteur.', lessons: MIDDLEGAME },
   { id: 'finales', title: 'Théorie des finales', icon: '♔', desc: 'Les finales théoriques jouées contre le moteur, plus les finales tactiques.', lessons: endgames },
   { id: 'parties', title: 'Parties célèbres', icon: '🏛️', desc: `${famous.length} chefs-d’œuvre et leurs moments clés, de Morphy à Carlsen.`, premium: true, lessons: famous },
 ];

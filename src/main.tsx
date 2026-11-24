@@ -9,6 +9,7 @@ import { initEntitlements } from './lib/entitlements';
 import { setSoundEnabled } from './lib/sound';
 import { engine } from './lib/engine';
 import { startAppTracking } from './lib/events';
+import { startStreakSync } from './lib/streak-sync';
 import { Toasts } from './components/ui';
 import { Icon, type IconName } from './components/Icon';
 import { Onboarding } from './pages/Onboarding';
@@ -32,6 +33,8 @@ import { Profile } from './pages/Profile';
 const Settings = lazy(() => import('./pages/Settings'), 'Settings');
 const Premium = lazy(() => import('./pages/Premium'), 'Premium');
 const DailyPage = lazy(() => import('./pages/Daily'), 'DailyPage');
+const streakM = () => import('./pages/Streak');
+const StreakPage = lazy(streakM, 'StreakPage'), StreakMilestone = lazy(streakM, 'StreakMilestone');
 const Privacy = lazy(() => import('./pages/Privacy'), 'Privacy');
 const ReviewHub = lazy(() => import('./pages/Review'), 'ReviewHub');
 const coachM = () => import('./pages/Coach');
@@ -44,12 +47,13 @@ const NAV: { href: string; icon: IconName; label: string; match: (p: string[]) =
   { href: '#/', icon: 'sparkles', label: 'Pour toi', match: (p) => p.length === 0 },
   { href: '#/learn', icon: 'learn', label: 'Apprendre', match: (p) => ['learn', 'lesson', 'openings', 'endgames', 'train', 'repertoire', 'puzzles', 'review', 'jour'].includes(p[0]) },
   { href: '#/play', icon: 'play', label: 'Jouer', match: (p) => ['play', 'game', 'analysis'].includes(p[0]) },
-  { href: '#/profile', icon: 'me', label: 'Moi', match: (p) => ['profile', 'settings', 'premium', 'privacy', 'more', 'coach'].includes(p[0]) },
+  { href: '#/profile', icon: 'me', label: 'Moi', match: (p) => ['profile', 'settings', 'premium', 'privacy', 'more', 'coach', 'serie'].includes(p[0]) },
 ];
 function App() {
   const { parts, query } = useRoute();
   const ent = useStore((s) => s.settings);
   const celebrate = useStore((s) => !!s.coach?.masteredLog?.some((x) => !x.seen));
+  const streakCel = useStore((s) => !!s.streak.cel && s.onboarded);
   useEffect(() => { applyAppearance(); setSoundEnabled(ent.sound); }, [ent.theme, ent.board, ent.pieces, ent.sound, ent.reduceMotion]);
   const [a, b, c] = parts;
   let page;
@@ -59,6 +63,7 @@ function App() {
     case 'lesson': page = <LessonPage key={b} id={b} />; break;
     case 'puzzles': page = b === 'rated' ? <PuzzleSession key="rated" mode="rated" /> : b === 'daily' ? <DailyPage /> : b === 'rush' ? <Rush /> : b === 'theme' ? <PuzzleSession key={c} mode="theme" theme={c} /> : b === 'review' ? <PuzzleSession key="review" mode="review" /> : b === 'custom' ? (c === 'go' ? <PuzzleSession key={"custom" + query?.toString()} mode="custom" query={query} /> : <PuzzleCustom />) : b === 'battle' ? <Battle /> : b === 'paths' ? (c ? <PuzzlePath id={c} /> : <PuzzlePaths />) : <PuzzlesHub />; break;
     case 'jour': page = <DailyPage arg={b} />; break;
+    case 'serie': page = <StreakPage key={b} arg={b} />; break;
     case 'review': page = b === 'mistakes' ? <MistakesSession /> : <ReviewHub />; break;
     case 'coach': page = b === 'test' ? <DiagnosticPage /> : <CoachPage />; break;
     case 'play': page = b ? <Game key={b} botId={b} /> : <BotSelect />; break;
@@ -76,7 +81,7 @@ function App() {
     case 'more': page = <Profile />; break;
     default: page = <Feed />;
   }
-  const focus = a === 'lesson' || (a === 'jour' && b !== 'archives') || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
+  const focus = a === 'lesson' || (a === 'jour' && b !== 'archives') || (a === 'serie' && b === 'mission') || (a === 'play' && !!b) || (a === 'puzzles' && !!b && b !== 'paths' && b !== 'custom') || (a === 'puzzles' && b === 'custom' && c === 'go') || a === 'game' || a === 'analysis'
     || (a === 'openings' && c != null) || a === 'repertoire' || (a === 'train' && !!b) || (a === 'endgames' && !!b) || a === 'premium' || (a === 'coach' && b === 'test') || (a === 'review' && b === 'mistakes');
   return (
     <div class={'app ' + (focus ? 'focus' : '')}>
@@ -92,6 +97,7 @@ function App() {
       <Toasts />
       {a !== 'jour' && <Onboarding />}
       {celebrate && <MasteryCelebration />}
+      {streakCel && !celebrate && <StreakMilestone />}
     </div>
   );
 }
@@ -102,6 +108,7 @@ async function boot() {
   applyAppearance();
   render(<App />, document.getElementById('app')!);
   startAppTracking(); // journal local (R4a) : rien ne quitte l'appareil
+  startStreakSync(); // série souple (R4c) : jours manqués → vacances, gel ou pause
   setTimeout(() => engine.warmup(), 800);
   // FSRS (répétition espacée) : chargé après le premier affichage, hors du premier chargement
   setTimeout(() => import('./lib/srs').then((m) => m.loadFsrs()), 1500);

@@ -1,9 +1,11 @@
+import { streakVisible, atRisk, noteText } from '../lib/streak';
+import { clearStreakNotes } from '../lib/streak-sync';
 // Onglet « Pour toi » : un fil vertical de cartes courtes (15–60 s) choisies par le coach.
 // Réussite → carte suivante automatique ; « Passer » (ou balayage vers le haut) = signal négatif enregistré ;
 // la carte N+1 est préparée pendant la carte N (et seulement elle) ; fin propre quand le programme du jour est fait.
 import { todayNumber } from '../lib/daily-num';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { useStore, getState, setState, addXp, levelFromXp, streakAlive } from '../lib/store';
+import { useStore, getState, setState, addXp, levelFromXp, streakAlive, today } from '../lib/store';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { CONCEPT } from '../data/concepts';
 import { Board, toShapes } from '../components/Board';
@@ -143,7 +145,7 @@ export function Feed() {
   );
 }
 function FeedHead({ onStart }: { onStart?: () => void }) {
-  const s = useStore((x) => x); const pr = feedProgress(s); const streak = streakAlive(s) ? s.streak.count : 0;
+  const s = useStore((x) => x); const pr = feedProgress(s); const streak = streakAlive(s) ? s.streak.count : 0; const sv = streakVisible(s); const d0 = today();
   const [, f] = useState(0); const tb = trialBanner();
   const sess = sessionActive(s) ? s.session! : null;
   const plan = useMemo(() => (!sess && s.coach && s.onboarded ? sessionPlan(s, s.coach) : null), [!!sess, !!s.coach, s.onboarded, pr.done]);
@@ -153,8 +155,10 @@ function FeedHead({ onStart }: { onStart?: () => void }) {
       <div class="fh-dots" role="progressbar" aria-label="Programme du jour" aria-valuemin={0} aria-valuemax={pr.total} aria-valuenow={pr.done}>
         {Array.from({ length: pr.total }, (_, i) => <span class={i < pr.done ? 'on' : i === pr.done ? 'cur' : ''} />)}
       </div>
-      <a class="streak-btn" href="#/profile" aria-label={`Série : ${streak} jour${streak > 1 ? 's' : ''}`}><Icon name="flame" size={18} class={streak ? 'lit' : ''} /><b class="tnum">{streak}</b></a>
+      {sv && <a class="streak-btn" href="#/serie" aria-label={`Série : ${streak} jour${streak > 1 ? 's' : ''}${s.streak.freezes ? `, ${s.streak.freezes} gel${s.streak.freezes > 1 ? 's' : ''}` : ''}`}><Icon name="flame" size={18} class={streak ? 'lit' : ''} /><b class="tnum">{streak}</b>{!!s.streak.freezes && <span class="sb-ice" aria-hidden="true">❄️</span>}</a>}
     </header>
+    {sv && !!s.streak.notes?.length && <div class="streak-notes" role="status">{s.streak.notes.map((n) => <p>{noteText(n)}</p>)}<button class="btn plain sm" onClick={clearStreakNotes}>OK</button></div>}
+    {onStart && sv && s.onboarded && !sess && atRisk(s.streak, d0) && <a class="streak-mission" href="#/serie/mission"><Icon name="flame" size={18} class="lit" /><span><b>Ta série : {s.streak.count} {s.streak.count > 1 ? 'jours' : 'jour'}</b><small>Une carte de 2 minutes suffit aujourd’hui</small></span><Icon name="right" size={16} stroke={2.5} /></a>}
     {onStart && !sess && plan && plan.cards > 0 && (
       <button class="session-start" onClick={onStart}>
         <span class="ss-ico"><Icon name="playIcon" size={20} /></span>
@@ -355,7 +359,7 @@ function FeedEnd() {
     <section class="feed-end">
       <span class="fe-icon"><Icon name="checkCircle" size={40} /></span>
       <h2>C’est tout pour aujourd’hui</h2>
-      <p class="fe-stats"><b class="tnum">{pr.ok}</b>/{pr.total} réussies · niveau {lvl.level} · série {streakAlive(s) ? s.streak.count : 0} j</p>
+      <p class="fe-stats"><b class="tnum">{pr.ok}</b>/{pr.total} réussies · niveau {lvl.level}{streakVisible(s) ? ` · série ${streakAlive(s) ? s.streak.count : 0} j` : ''}</p>
       <p class="fe-teaser">{teaser}</p>
       <div class="fe-actions">
         <a class="btn primary lg" href="#/play"><Icon name="play" size={18} />Jouer une partie</a>

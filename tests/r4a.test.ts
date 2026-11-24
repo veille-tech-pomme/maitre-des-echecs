@@ -32,7 +32,7 @@ describe('Modèle versionné et migrations', () => {
   it('v1 → v2 sans perte : tout champ existant est conservé, identifiant + jour d’installation ajoutés', () => {
     const m = migrate(v1);
     expect(m.from).toBe(1); expect(m.to).toBe(SCHEMA_VERSION); expect(m.applied).toEqual(MIGRATIONS.map((x) => x.to));
-    for (const [k, v] of Object.entries(v1)) if (k !== 'v') expect(m.state[k]).toEqual(v);
+    for (const [k, v] of Object.entries(v1)) if (k !== 'v') { if (k === 'streak') expect(m.state[k]).toMatchObject(v as object); else expect(m.state[k]).toEqual(v); } // v4 complète la série (gels…) sans rien perdre
     expect(m.state.deviceId).toMatch(ULID_RE);
     expect(m.state.installDay).toBe('2026-09-28'); // plus ancien jour connu (puzzle du jour avant la création)
     expect(v1).not.toHaveProperty('deviceId'); // l'objet d'origine n'est pas modifié

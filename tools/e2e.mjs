@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { Chess } from 'chess.js';
 import { puzzleById } from './puzzle-lookup.mjs';
+const SCHEMA = +fs.readFileSync('src/lib/migrations.ts', 'utf8').match(/SCHEMA_VERSION = (\d+)/)[1];
 const THREATS = JSON.parse(fs.readFileSync('src/data/feed-threats.json', 'utf8'));
 // Test E2E headless : bureau (Chromium) + iPhone (WebKit, repli Chromium mobile). Capture erreurs console + captures d'écran.
 import { chromium, webkit, devices } from 'playwright';
@@ -67,6 +68,7 @@ async function run(name, browserType, ctxOpts) {
   /** captures GOAT phase 1 (à tester par l'utilisateur) */
   const shotG2 = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4a-${n}.png`, fullPage: false }); };
   const shotB = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4b-${n}.png`, fullPage: false }); };
+  const shotC = async (pg, n) => { await sleep(450); fs.mkdirSync('screenshots/r4', { recursive: true }); return pg.screenshot({ path: `screenshots/r4/${process.env.E2E_URL ? 'live-' : ''}${name}-r4c-${n}.png`, fullPage: false }); };
   const shotG = async (n) => { await sleep(450); return page.screenshot({ path: `screenshots/goat1/${process.env.E2E_URL ? 'live-' : ''}${name}-${n}.png`, fullPage: false }); };
   const check = async (label, fn) => { try { await fn(); console.log(`  ✓ ${label}`); } catch (e) { failures++; console.log(`  ✗ ${label}: ${String(e.message).split('\n')[0]}`); await shot('ERR-' + label.replace(/\W+/g, '_')).catch(() => {}); } };
   console.log(`▶ ${name}`);
@@ -256,7 +258,7 @@ async function run(name, browserType, ctxOpts) {
   });
   // R4a (plan rétention §6, §2.13) : migration v1 → v2 (sauvegarde gardée), identifiant d'installation stable, journal local,
   // J1/J7/J30 calculés sur l'appareil, export ; AUCUNE requête ne transporte l'identifiant ni le journal.
-  await check('R4a : migration v1→v3, identifiant stable, mesures locales, rien ne sort', async () => {
+  await check('R4a : migration v1→vN (actuelle), identifiant stable, mesures locales, rien ne sort', async () => {
     const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
     const d = (n) => { const x = new Date(); x.setDate(x.getDate() - n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
     const v1 = { v: 1, createdAt: Date.now() - 40 * 86400e3, xp: 420, onboarded: true, lessons: { 'd-echiquier': { done: true, stars: 3, step: 0 } }, activity: { [d(40)]: 30, [d(39)]: 10, [d(33)]: 5, [d(2)]: 8 }, streak: { count: 1, best: 3, last: d(2) }, settings: { name: 'Léa' } };
@@ -265,7 +267,7 @@ async function run(name, browserType, ctxOpts) {
     await p2.goto(URL0 + '#/dev/metrics'); await p2.waitForSelector('[data-testid=retention] .mt-tile');
     await sleep(600);
     const st = await p2.evaluate(() => ({ s: JSON.parse(localStorage.getItem('echecs-app-v1') || '{}'), bak: localStorage.getItem('echecs-app-v1.bak-v1') }));
-    if (st.s.v !== 3 || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(st.s.deviceId || '')) throw new Error('migration : ' + JSON.stringify({ v: st.s.v, dev: st.s.deviceId }));
+    if (st.s.v !== SCHEMA || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(st.s.deviceId || '')) throw new Error('migration : ' + JSON.stringify({ v: st.s.v, dev: st.s.deviceId }));
     if (!st.bak || JSON.parse(st.bak).xp !== 420 || st.s.xp !== 420 || st.s.settings.name !== 'Léa') throw new Error('perte de données ou sauvegarde absente');
     if (st.s.installDay !== d(40)) throw new Error('jour d’installation ' + st.s.installDay);
     const ret = await p2.locator('[data-testid=retention] .mt-tile').evaluateAll((els) => els.map((e) => e.getAttribute('data-ret')));
@@ -414,6 +416,54 @@ async function run(name, browserType, ctxOpts) {
     console.log(`    jour : grille ${g} (indice + coup montré) ; classé ${pid} : 1er coup ${rt.data.firstMoveMs} ms, total ${rt.data.totalMs} ms`);
     await c2.close();
   });
+  // R4c (plan §2.3, lignes rouges §9) : série souple — gel qui protège un jour manqué, mission 2 min, palier 7 + gel gagné,
+  // réparation proposée sans gel, vacances, mineurs (série masquée par défaut). Tout est local.
+  const ymd = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+  const WD = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const seeded = async (extra) => {
+    const c2 = await browser.newContext(ctxOpts); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000);
+    p2.on('console', (m) => { if (m.type() === 'error') errors.push(`[${name}/r4c] ${p2.url().split('#')[1] || '/'} console: ${m.text()}`); });
+    const v = { v: 3, createdAt: Date.now() - 20 * 86400e3, onboarded: true, xp: 300, jour: {}, settings: { name: 'Inès' }, activity: { [ymd(-2)]: 20, [ymd(-3)]: 20, [ymd(-4)]: 20 }, ...extra };
+    await c2.addInitScript((v) => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('echecs-app-v1', JSON.stringify(v)); } }, v);
+    return { c2, p2 };
+  };
+  await check('R4c : gel qui protège hier, mission 2 min → 7 jours (palier + gel gagné)', async () => {
+    const { c2, p2 } = await seeded({ streak: { count: 6, best: 6, last: ymd(-2), freezes: 1 } });
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.streak-notes');
+    const note = await p2.locator('.streak-notes').innerText(); const wd = WD[new Date(Date.now() - 864e5).getDay()];
+    if (!note.includes(`Ton gel a protégé ${wd} ❄️`)) throw new Error('note du gel : ' + note);
+    if ((await p2.locator('.streak-btn b').innerText()).trim() !== '6') throw new Error('série affichée ' + await p2.locator('.streak-btn b').innerText());
+    await p2.waitForSelector('.streak-mission'); await shotC(p2, '01-gel-et-mission');
+    await p2.click('.streak-notes .btn'); await p2.click('.streak-mission'); await p2.waitForSelector('.streak-mission[data-pz]'); await shotC(p2, '02-mission');
+    await solvePz(p2, '.streak-mission');
+    await p2.waitForSelector('.streak-cel', { timeout: 10000 }); const cel = await p2.locator('.streak-cel').innerText();
+    if (!/7/.test(cel) || !cel.includes('Une semaine')) throw new Error('palier : ' + cel); await shotC(p2, '03-palier-7');
+    await p2.click('.streak-cel .sc-close'); await p2.waitForSelector('text=Série validée : 7 jours');
+    const st = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).streak);
+    if (st.count !== 7 || st.freezes !== 1 || st.frozen?.[0] !== ymd(-1) || st.last !== ymd(0)) throw new Error('état ' + JSON.stringify(st));
+    const ev = await readJournal(p2); const sv = ev.filter((e) => e.type === 'streak_saved').map((e) => e.data.via);
+    if (!sv.includes('freeze') || !sv.includes('mission') || !ev.some((e) => e.type === 'streak_milestone' && e.data.n === 7)) throw new Error('journal ' + JSON.stringify(ev.filter((e) => e.type.startsWith('streak')).map((e) => [e.type, e.data])));
+    await p2.goto(URL0 + '#/serie'); await p2.waitForSelector('.sk-hero[data-count="7"]'); await p2.waitForSelector('.sk-ok'); await shotC(p2, '04-ma-serie');
+    await p2.selectOption('.sk-vac select', '5'); await p2.click('text=Partir en vacances'); await p2.waitForSelector('text=En vacances jusqu’au'); await shotC(p2, '05-vacances');
+    const vac = await p2.evaluate(() => JSON.parse(localStorage.getItem('echecs-app-v1')).streak.vacation); if (vac?.to !== ymd(4)) throw new Error('vacances ' + JSON.stringify(vac));
+    await p2.click('text=Je suis de retour'); await p2.waitForSelector('.sk-vac');
+    console.log(`    gel → « ${note.split('\n')[0]} » ; mission → 7 jours, palier « Une semaine », 1 gel gagné ; vacances 5 j jusqu’au ${vac.to}`);
+    await c2.close();
+  });
+  await check('R4c : sans gel, réparation proposée (texte sans culpabilité) ; mineur : série masquée par défaut', async () => {
+    const { c2, p2 } = await seeded({ streak: { count: 12, best: 15, last: ymd(-2), freezes: 0 } });
+    await p2.goto(URL0 + '#/'); await p2.waitForSelector('.streak-notes');
+    const note = await p2.locator('.streak-notes').innerText(); if (!note.includes('Ta série de 12 jours est en pause. Tu peux la réparer')) throw new Error('note : ' + note);
+    await p2.goto(URL0 + '#/serie'); await p2.waitForSelector('.sk-repair'); const rp = await p2.locator('.sk-repair').innerText(); if (!rp.includes('0/2')) throw new Error('réparation ' + rp);
+    await shotC(p2, '06-reparation'); await c2.close();
+    const m = await seeded({ streak: { count: 3, best: 3, last: ymd(-1), freezes: 0 }, consent: { detail: false, upload: false, ageBand: '<13', at: Date.now(), textV: 1, asked: 1 } });
+    await m.p2.goto(URL0 + '#/'); await m.p2.waitForSelector('.feed-head'); await sleep(500);
+    if (await m.p2.locator('.streak-btn, .streak-mission').count()) throw new Error('série visible chez un mineur');
+    await m.p2.goto(URL0 + '#/serie'); await m.p2.waitForSelector('text=Ta série est masquée'); if (await m.p2.locator('.streak-switch').isChecked()) throw new Error('interrupteur activé');
+    await shotC(m.p2, '07-mineur-masquee');
+    await m.p2.click('.sk-set .switch-row'); await m.p2.goto(URL0 + '#/'); await m.p2.waitForSelector('.streak-btn');
+    await m.c2.close();
+  });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });
   await check('apprendre : entrée puzzles', async () => { await page.goto(URL0 + '#/learn'); await page.click('.pz-hub'); await page.waitForSelector('.rating-hero', { timeout: 10000 }); });
   await check('onglets : Pour toi / Apprendre / Jouer / Moi', async () => { const t = (await page.locator(name === 'desktop' ? '.sidebar .nav-item' : '.tabbar a small').allInnerTexts()).map((x) => x.trim()); for (const w of ['Pour toi', 'Apprendre', 'Jouer', 'Moi']) if (!t.includes(w)) throw new Error('onglet manquant : ' + w + ' (' + t.join(', ') + ')'); if (t.includes('Puzzles') || t.includes('Accueil')) throw new Error('ancien onglet encore présent'); });
@@ -489,7 +539,7 @@ async function run(name, browserType, ctxOpts) {
   // pilier 8 (F8.4) : accessibilité axe-core (WCAG 2.x A/AA) sur les écrans principaux ; échec sur toute violation « serious » ou « critical »
   await check('accessibilité axe-core (WCAG A/AA)', async () => {
     const AXE = fs.readFileSync('node_modules/axe-core/axe.min.js', 'utf8'); const bad = [];
-    for (const r of ['#/', '#/learn', '#/lesson/d-echiquier', '#/play', '#/puzzles', '#/coach', '#/profile', '#/settings', '#/jour', '#/jour/archives']) {
+    for (const r of ['#/', '#/learn', '#/lesson/d-echiquier', '#/play', '#/puzzles', '#/coach', '#/profile', '#/settings', '#/jour', '#/jour/archives', '#/serie']) {
       await page.goto(URL0 + r); await page.waitForSelector('.page, main', { timeout: 15000 }); await sleep(900);
       await page.evaluate(AXE);
       const v = await page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id} (${x.nodes.length}) ${x.nodes[0]?.target}`));

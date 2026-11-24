@@ -1,4 +1,5 @@
-import { useStore, levelFromXp } from '../lib/store';
+import { streakVisible, titleFor } from '../lib/streak';
+import { useStore, levelFromXp, streakAlive } from '../lib/store';
 import { BADGES } from '../lib/badges';
 import { useState } from 'preact/hooks';
 import { LineChart, Progress, PremiumLock, Ring, Item } from '../components/ui';
@@ -38,7 +39,7 @@ export function Profile() {
         <a class="nb-btn round" href="#/settings" aria-label="Réglages"><Icon name="settings" size={20} /></a>
       </header>
       <div class="stat-strip four">
-        <div class="stat-tile" style="--c:#FF9F0A"><span class="st-top"><Icon name="flame" size={13} />Série</span><b>{s.streak.count}</b><small>record {s.streak.best}</small></div>
+        <a class="stat-tile" href="#/serie" style="--c:#FF9F0A"><span class="st-top"><Icon name="flame" size={13} />Série</span>{streakVisible(s) ? <><b>{streakAlive(s) ? s.streak.count : 0}</b><small>record {s.streak.best}{titleFor(s.streak.best) ? ` · ${titleFor(s.streak.best)}` : ''}</small></> : <><b>—</b><small>masquée</small></>}</a>
         <div class="stat-tile" style="--c:#F2B544"><span class="st-top"><Icon name="star" size={13} />Niveau</span><b>{lvl.level}</b><small>{lvl.into}/{lvl.need} XP</small></div>
         <div class="stat-tile" style="--c:#0A84FF"><span class="st-top"><Icon name="puzzle" size={13} />Puzzles</span><b>{s.puzzle.rating}</b><small>{s.puzzle.solved} réussis</small></div>
         <div class="stat-tile" style="--c:#30A46C"><span class="st-top"><Icon name="play" size={13} />Parties</span><b>{s.games.length}</b><small>{rev.length} analysées</small></div>

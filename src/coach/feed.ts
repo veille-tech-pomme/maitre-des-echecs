@@ -2,6 +2,7 @@
 // les cartes sont classées par le gain d'apprentissage du curriculum (faiblesse × importance × zone proximale),
 // plus les erreurs dues (répétition espacée), les coups de maîtres et une mini-étape de la leçon en cours.
 // Le fil a une fin quotidienne (DAILY_CARDS) : pas de puits sans fond.
+import { markGoal } from '../lib/streak';
 import type { State, FeedState, FeedStat } from '../lib/store';
 import { today, pushCoach } from '../lib/store';
 import { isDue } from '../lib/srs';
@@ -163,6 +164,8 @@ export type FeedOutcome = 'ok' | 'fail' | 'skip' | 'abandon';
 export function recordFeed(s: State, c: FeedCard, out: FeedOutcome, ms: number, counted = false, now = Date.now(), fen?: string) {
   const f = (s.feed = feedToday(s, now));
   if (out !== 'abandon') f.served.push({ id: c.id, kind: c.kind, skill: c.skill, out, ...(c.concept ? { concept: c.concept } : {}) });
+  // R4c : objectif du jour atteint → compte pour la réparation de la série
+  if (out !== 'abandon' && f.served.length === DAILY_CARDS && s.streak) markGoal(s.streak, f.date);
   // notion (pilier 2) : réussite entrelacée (thème non annoncé) ; les puzzles passent par recordPuzzle (counted)
   if (c.concept && !counted && c.kind !== 'diag' && (out === 'ok' || out === 'fail')) pushCoach(s, { k: 'concept', t: now, ids: [c.concept], ok: out === 'ok', f: out === 'ok', fen, il: true, src: 'feed' });
   const st = (f.kinds[c.kind] ||= { n: 0, ok: 0, fail: 0, skip: 0, ab: 0, ms: 0 });

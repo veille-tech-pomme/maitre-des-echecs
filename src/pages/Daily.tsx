@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { MoveTrainer } from '../components/MoveTrainer';
 import { NavBar, Item, toast } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { streakVisible } from '../lib/streak';
 import { useStore, getState, setState, today, streakAlive } from '../lib/store';
 import { recordPuzzle } from '../lib/progress';
 import { log } from '../lib/events';
@@ -27,7 +28,7 @@ function Grid({ g, big }: { g: string; big?: boolean }) {
 function untilTomorrow() { const now = new Date(); const t = new Date(now); t.setHours(24, 0, 0, 0); const m = Math.max(1, Math.round((t.getTime() - now.getTime()) / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`; }
 
 async function shareResult(e: DailyEntry, r: DailyResult) {
-  const s = getState(); const text = shareText(e, r, streakAlive(s) ? s.streak.count : 0);
+  const s = getState(); const text = shareText(e, r, streakAlive(s) && streakVisible(s) ? s.streak.count : 0);
   let via = 'none';
   try {
     if (navigator.share) { await navigator.share({ text }); via = 'share'; }

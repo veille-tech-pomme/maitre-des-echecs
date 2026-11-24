@@ -77,7 +77,7 @@ describe('Grille et partage sans spoiler', () => {
 describe('Migration v3', () => {
   it('ajoute jour = {} sans toucher au reste', () => {
     const r = migrate({ v: 2, deviceId: '01ABC', installDay: '2026-11-01', daily: { '2026-11-20': true } });
-    expect(SCHEMA_VERSION).toBe(3); expect(r.state.jour).toEqual({}); expect(r.state.daily).toEqual({ '2026-11-20': true }); expect(r.state.v).toBe(3);
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(3); expect(r.state.jour).toEqual({}); expect(r.state.daily).toEqual({ '2026-11-20': true }); expect(r.state.v).toBe(SCHEMA_VERSION);
     expect(defaultState().jour).toEqual({});
   });
 });

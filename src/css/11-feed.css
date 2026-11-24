@@ -98,3 +98,28 @@
 .dj-noshare { margin: -2px 0 6px; } .dj-next { margin-top: 14px; }
 .dj-archive .dj-cell { width: 14px; height: 14px; }
 .dj-pill { color: var(--tint); white-space: nowrap; }
+
+/* R4c — série souple */
+.streak-btn .sb-ice { font-size: 11px; margin-left: 1px; }
+.streak-notes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow); }
+.streak-notes p { margin: 0; flex: 1 1 100%; font-size: 15px; } .streak-notes .btn { margin-left: auto; }
+.streak-mission { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r); background: var(--surface); color: var(--text); text-decoration: none; box-shadow: var(--shadow); }
+.streak-mission > span { display: flex; flex-direction: column; flex: 1; } .streak-mission b { font-size: 15px; } .streak-mission small { font-size: 13px; color: var(--text-2); }
+.ico.lit { color: var(--orange); }
+.sk-hero { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 8px 0 16px; }
+.sk-hero b { font-size: 56px; line-height: 1; } .sk-hero > span { font-weight: 600; }
+.sk-h { margin: 18px 16px 6px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.sk-ice span { opacity: .25; filter: grayscale(1); } .sk-ice span.on { opacity: 1; filter: none; }
+.sk-p { margin: 0 16px 8px; }
+.sk-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 4px 16px 6px; max-width: 360px; }
+.sk-d { display: inline-block; aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--sep); }
+.sk-legend .sk-d { width: 12px; vertical-align: -2px; margin: 0 2px 0 8px; } .sk-legend .sk-d:first-child { margin-left: 0; }
+.sk-d.on { background: var(--orange); box-shadow: none; } .sk-d.ice { background: #64D2FF; box-shadow: none; } .sk-d.vac { background: var(--green); box-shadow: none; opacity: .6; }
+.sk-d.today { outline: 2px solid var(--text-2); outline-offset: 1px; }
+.sk-vac { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 16px 8px; } .sk-vac select { margin-left: 6px; width: auto; }
+.sk-set { margin-top: 14px; }
+.sk-ok .ico { color: var(--green); } .sk-mission .ico:first-child { color: var(--orange); } .sk-repair .ico { color: var(--purple); }
+.streak-cel { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(0, 0, 0, .55); padding: 20px; }
+.sc-card { display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(360px, 100%); padding: 28px 22px 18px; border-radius: 24px; background: var(--surface); text-align: center; box-shadow: var(--shadow); }
+.sc-n { font-size: 64px; line-height: 1; } .sc-l { font-weight: 700; font-size: 18px; } .sc-t { margin: 6px 0 0; }
+.sc-card .btn { width: 100%; }

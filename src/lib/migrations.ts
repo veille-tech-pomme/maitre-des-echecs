@@ -3,7 +3,7 @@
 // de l'app (ancienne app en cache) n'est jamais « rétrogradée » : on la laisse telle quelle.
 import { ulid } from './ulid';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 type Raw = Record<string, any>;
 export interface Migration { to: number; note: string; up: (s: Raw) => void }
 
@@ -29,6 +29,18 @@ export const MIGRATIONS: Migration[] = [
     to: 3,
     note: 'R4b : résultats du Coup du jour (calendrier figé, par numéro)',
     up(s) { if (!s.jour || typeof s.jour !== 'object') s.jour = {}; },
+  },
+  {
+    to: 4,
+    note: 'R4c : série souple (gels gagnés, réparation, vacances, paliers) ; gels de départ = 1 par tranche de 7 jours de la série en cours (2 au plus)',
+    up(s) {
+      const st = (s.streak && typeof s.streak === 'object') ? s.streak : (s.streak = { count: 0, best: 0, last: '' });
+      st.count = +st.count || 0; st.best = Math.max(+st.best || 0, st.count); st.last = typeof st.last === 'string' ? st.last : '';
+      if (typeof st.freezes !== 'number') st.freezes = Math.min(2, Math.floor(st.count / 7));
+      st.frozen ||= []; st.goalDays ||= []; st.repair ??= null; st.vacation ??= null; st.notes ||= []; st.cel ??= null;
+      // paliers déjà franchis : pas de célébration rétroactive
+      st.seen ||= [3, 7, 30, 100, 365].filter((m) => st.best >= m);
+    },
   },
 ];
 

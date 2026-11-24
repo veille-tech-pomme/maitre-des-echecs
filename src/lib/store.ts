@@ -1,5 +1,6 @@
 // État persistant de l'application (localStorage), avec abonnement réactif.
 import type { DailyResult } from './daily';
+import { hit, alive, type Streak, type HitResult } from './streak';
 import { useEffect, useState } from 'preact/hooks';
 import type { SrsItem } from './srs';
 import { migrate, SCHEMA_VERSION } from './migrations';
@@ -8,7 +9,7 @@ import { ulid } from './ulid';
 export type ThemeMode = 'auto' | 'dark' | 'light';
 export interface Settings {
   theme: ThemeMode; board: string; pieces: string; sound: boolean; coords: boolean; animation: boolean;
-  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; playTc?: string; reduceMotion: boolean; boardSize: number; name: string;
+  showLegal: boolean; autoQueen: boolean; coachInPlay: boolean; playTc?: string; /** R4c : afficher la série (mineurs : masquée par défaut) */ streakShow?: boolean; reduceMotion: boolean; boardSize: number; name: string;
 }
 export interface GameRecord {
   id: string; date: number; botId: string; color: 'w' | 'b'; result: '1-0' | '0-1' | '1/2-1/2' | '*';
@@ -29,7 +30,7 @@ export interface State {
   /** consentement à l'analyse détaillée sur l'appareil (brief P0 §6) ; upload toujours false en P0 */
   consent?: Consent;
   xp: number;
-  streak: { count: number; best: number; last: string };
+  streak: Streak;
   activity: Record<string, number>; // date -> xp gagné
   lessons: Record<string, { done: boolean; stars: number; step: number; best?: number }>;
   puzzle: { rating: number; declared?: number; games: number; history: { t: number; r: number }[]; solved: number; failed: number; seen: string[]; streak: number; bestStreak: number };
@@ -75,7 +76,7 @@ const KEY = 'echecs-app-v1';
 export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export function defaultState(): State {
   return {
-    v: SCHEMA_VERSION, createdAt: Date.now(), deviceId: ulid(), installDay: today(), xp: 0, streak: { count: 0, best: 0, last: '' }, activity: {}, lessons: {},
+    v: SCHEMA_VERSION, createdAt: Date.now(), deviceId: ulid(), installDay: today(), xp: 0, streak: { count: 0, best: 0, last: '', freezes: 0, frozen: [], goalDays: [], repair: null, vacation: null, seen: [], cel: null, notes: [] }, activity: {}, lessons: {},
     puzzle: { rating: 800, games: 0, history: [], solved: 0, failed: 0, seen: [], streak: 0, bestStreak: 0 },
     themes: {}, daily: {}, jour: {}, rush: { best3: 0, best5: 0, survival: 0, runs: 0 }, srs: {}, games: [], reviews: { date: '', count: 0 },
     badges: {}, openings: {}, repertoire: [], endgames: {}, plan: { date: '', done: [] },
@@ -130,20 +131,21 @@ export function resetAll() { replaceState(defaultState()); }
 
 // ——— XP, niveaux, séries ———
 export const levelFromXp = (xp: number) => { let lvl = 1, need = 100, acc = 0; while (xp >= acc + need) { acc += need; lvl++; need = Math.round(need * 1.18); } return { level: lvl, into: xp - acc, need }; };
-type Listener = (e: { type: 'xp'; amount: number; reason: string } | { type: 'badge'; id: string } | { type: 'level'; level: number }) => void;
+type Listener = (e: { type: 'xp'; amount: number; reason: string } | { type: 'streak'; r: HitResult; reason: string } | { type: 'badge'; id: string } | { type: 'level'; level: number }) => void;
 const listeners = new Set<Listener>();
 export function onEvent(l: Listener) { listeners.add(l); return () => listeners.delete(l); }
 export function emit(e: Parameters<Listener>[0]) { listeners.forEach((l) => l(e)); }
 export function addXp(amount: number, reason: string) {
   const before = levelFromXp(state.xp).level;
+  let r: HitResult | null = null;
   setState((s) => {
     s.xp += amount; const d = today(); s.activity[d] = (s.activity[d] || 0) + amount;
-    if (s.streak.last !== d) {
-      const y = new Date(); y.setDate(y.getDate() - 1);
-      s.streak.count = s.streak.last === today(y) ? s.streak.count + 1 : 1; s.streak.last = d; s.streak.best = Math.max(s.streak.best, s.streak.count);
-    }
+    // R4c : la 1re réussite du jour valide la série (gels, réparation, vacances : lib/streak.ts). Avant, un jour manqué la remettait à 1.
+    r = hit(s.streak, d);
   });
   emit({ type: 'xp', amount, reason });
+  if (r) emit({ type: 'streak', r, reason });
   const after = levelFromXp(state.xp).level; if (after > before) emit({ type: 'level', level: after });
 }
-export function streakAlive(s: State) { const y = new Date(); y.setDate(y.getDate() - 1); return s.streak.last === today() || s.streak.last === today(y); }
+/** série en cours (jours manqués couverts par un gel ou des vacances comptés comme protégés) */
+export function streakAlive(s: State) { return alive(s.streak, today()); }

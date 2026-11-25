@@ -26,7 +26,9 @@ jobs:
       - name: Stockfish 17.1 (binaire officiel épinglé, GPL-3.0)
         uses: actions/cache@v4
         id: sf
-        with: { path: /tmp/stockfish, key: sf-17.1-avx2-${{ env.SF_SHA256 }} }
+        with:
+          path: /tmp/stockfish
+          key: sf-17.1-avx2-${{ env.SF_SHA256 }}
       - if: steps.sf.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/stockfish && cd /tmp/stockfish

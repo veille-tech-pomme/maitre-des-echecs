@@ -513,7 +513,7 @@ async function run(name, browserType, ctxOpts) {
     await m.p2.goto(URL0 + '#/'); await m.p2.waitForSelector('.feed-end'); await sleep(600);
     if (await m.p2.locator('.rm-offer').count()) throw new Error('rappel proposé à un mineur');
     await m.p2.goto(URL0 + '#/settings'); await m.p2.waitForSelector('.rm-settings'); if (await m.p2.locator('.rm-switch').isChecked()) throw new Error('actif chez un mineur');
-    if (!(await m.p2.getByText('Moins de 13 ans : le rappel n’est jamais proposé').count())) throw new Error('mention mineur'); await m.p2.locator('.rm-settings').scrollIntoViewIfNeeded(); await m.p2.evaluate(() => window.scrollBy(0, 120)); await shotD(m.p2, '05-mineur');
+    if (!(await m.p2.getByText('Moins de 13 ans : le rappel n’est jamais proposé').count())) throw new Error('mention mineur'); await m.p2.locator('.rm-settings').scrollIntoViewIfNeeded(); await shotD(m.p2, '05-mineur');
     await m.c2.close();
   });
   await check('moi : mes progrès', async () => { await page.goto(URL0 + '#/profile'); await page.waitForSelector('.coach-card:not(.skeleton) .cc-title'); await sleep(300); await shot('01d-moi-progres'); });

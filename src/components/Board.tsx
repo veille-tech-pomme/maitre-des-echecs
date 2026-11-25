@@ -53,7 +53,7 @@ export function Board(p: BoardProps) {
       premovable: { enabled: false },
       draggable: { enabled: true, showGhost: true },
       selectable: { enabled: true },
-      drawable: { enabled: true, visible: true, autoShapes: validShapes(q.shapes), defaultSnapToValidMove: true },
+      drawable: { enabled: true, visible: true, autoShapes: [], defaultSnapToValidMove: true },
       events: { select: (k: Key) => { props.current.onSquare?.(k); props.current.onTouch?.(k, 'select'); } },
     };
   };
@@ -95,7 +95,20 @@ export function Board(p: BoardProps) {
     document.addEventListener('animationend', onAnim); document.addEventListener('transitionend', onAnim);
     return () => { removeEventListener('pointerup', pu); cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('animationend', onAnim); document.removeEventListener('transitionend', onAnim); cg.current?.destroy(); cg.current = null; };
   }, []);
-  useEffect(() => { cg.current?.set(config()); cg.current?.setAutoShapes(validShapes(p.shapes)); });
+  // flèches : seulement une fois l'échiquier mesuré (0×0 → coordonnées NaN dans chessground, vu sur iPhone en ligne)
+  const shapeRO = useRef<ResizeObserver | null>(null); const pending = useRef<DrawShape[] | null>(null);
+  useEffect(() => { cg.current?.set(config()); const sh = validShapes(p.shapes);
+    const c = cg.current; if (!c) return; const dom = (c.state as any).dom;
+    const sized = () => { let r = dom?.bounds?.(); if (r && (r.width < 1 || r.height < 1)) { dom.bounds.clear(); r = dom.bounds(); } return !!r && r.width >= 1 && r.height >= 1; };
+    if (!sh.length || sized()) { pending.current = null; c.setAutoShapes(sh); return; }
+    // échiquier pas encore mesuré (ou masqué) : on attend qu'il ait une taille, sinon chessground calcule des coordonnées NaN
+    c.setAutoShapes([]); pending.current = sh;
+    if (!shapeRO.current && typeof ResizeObserver !== 'undefined' && el.current) {
+      shapeRO.current = new ResizeObserver(() => { const k = cg.current; if (!k || !pending.current || !sized()) return; k.redrawAll(); k.setAutoShapes(pending.current); pending.current = null; });
+      shapeRO.current.observe(el.current);
+    }
+  });
+  useEffect(() => () => shapeRO.current?.disconnect(), []);
 
   return (
     <div class={'board-wrap ' + (p.class || '')}>

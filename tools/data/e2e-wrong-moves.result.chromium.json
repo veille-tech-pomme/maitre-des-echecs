@@ -5,29 +5,30 @@
   "ok": 283,
   "failed": 0,
   "firstSentenceMs": {
-   "median": 147,
-   "p95": 179
+   "median": 144,
+   "p95": 176
   },
   "finalMs": {
-   "median": 196,
-   "p95": 285
+   "median": 189,
+   "p95": 265
   },
   "bySource": {
-   "rules": 78,
-   "engine": 205
+   "rules": 75,
+   "engine": 208
   },
   "byKind": {
-   "hanging": 35,
+   "hanging": 36,
    "wrongGoal": 1,
-   "allowedTactic": 42,
-   "missedFree": 14,
-   "positional": 69,
-   "missedMate": 95,
+   "allowedTactic": 41,
+   "missedFree": 17,
+   "missedMate": 94,
+   "positional": 64,
    "ignoredMateThreat": 11,
+   "slower": 1,
    "losingTrade": 9,
-   "missedTactic": 7
+   "missedTactic": 9
   },
-  "seconds": 37
+  "seconds": 35
  },
  "failures": [],
  "sample": [
@@ -50,7 +51,7 @@
    "step": 1,
    "wrong": "d1a1",
    "headline": "Ce coup permet une tactique : échec",
-   "why": "Après Ta1, l’adversaire a Dh1+ (échec) : tu perds du matériel (5 points). Avant de jouer, regarde les échecs, prises et menaces de l’adversaire."
+   "why": "Après Ta1, l’adversaire a De5+ (échec) : tu perds du matériel (5 points). Avant de jouer, regarde les échecs, prises et menaces de l’adversaire."
   },
   {
    "id": "d-pion",
@@ -63,8 +64,8 @@
    "id": "d-pion",
    "step": 1,
    "wrong": "b1a3",
-   "headline": "Il y a plus fort ici",
-   "why": "Solide, mais le bon coup était plus précis. Ton cavalier part au bord en a3 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
+   "headline": "Du matériel était à prendre",
+   "why": "Une pièce adverse était mal protégée. Avant chaque coup, regarde ce que tu peux prendre gratuitement."
   },
   {
    "id": "d-echec",
@@ -105,8 +106,8 @@
    "id": "d-coups-speciaux",
    "step": 1,
    "wrong": "e1d1",
-   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
-   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
+   "headline": "Il y a plus fort ici",
+   "why": "Exactement ce qu’il fallait."
   },
   {
    "id": "d-roque",
@@ -116,6 +117,13 @@
    "why": "Après la suite 1… Fxc4 2. dxc4 Cxe4 3. Dd3 f5 4. le bon coup-O, tu perds un pion."
   },
   {
+   "id": "d-roque",
+   "step": 2,
+   "wrong": "c3a4",
+   "headline": "Tu perds un pion",
+   "why": "Après la suite 1… Fxc4 2. dxc4 Cxe4 3. Dd3 f5 4. le bon coup, tu perds un pion."
+  },
+  {
    "id": "d-coups-speciaux",
    "step": 2,
    "wrong": "a1a2",
@@ -123,11 +131,11 @@
    "why": "Ton pion en e7 était déjà attaqué : il fallait le mettre à l’abri (le bon coup+)."
   },
   {
-   "id": "d-roque",
+   "id": "d-pat-nulles",
    "step": 2,
-   "wrong": "c3a4",
-   "headline": "Tu perds un pion",
-   "why": "Après la suite 1… Fxc4 2. dxc4 Cxe4 3. Dd3 Dg4 4. le bon coup, tu perds un pion."
+   "wrong": "e7a3",
+   "headline": "Il y avait un mat en 1",
+   "why": "Le roi adverse n’a presque plus de cases : un seul coup le mate tout de suite. Cherche les échecs."
   },
   {
    "id": "d-coups-speciaux",
@@ -135,13 +143,6 @@
    "wrong": "b1a3",
    "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
    "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
-  },
-  {
-   "id": "d-pat-nulles",
-   "step": 2,
-   "wrong": "e7a3",
-   "headline": "Il y avait un mat en 1",
-   "why": "Le roi adverse n’a presque plus de cases : un seul coup le mate tout de suite. Cherche les échecs."
   },
   {
    "id": "d-premiere-partie",
@@ -158,6 +159,13 @@
    "why": "Tu développes une pièce mineure : principe n°1 de l’ouverture."
   },
   {
+   "id": "i-principes",
+   "step": 1,
+   "wrong": "b1a3",
+   "headline": "Du matériel était à prendre",
+   "why": "Une pièce adverse était mal protégée. Avant chaque coup, regarde ce que tu peux prendre gratuitement."
+  },
+  {
    "id": "i-fourchette",
    "step": 1,
    "wrong": "b5a3",
@@ -165,11 +173,11 @@
    "why": "Après Ca3, la tour prend ton cavalier en a3 gratuitement."
   },
   {
-   "id": "i-principes",
-   "step": 1,
-   "wrong": "b1a3",
-   "headline": "Il y a plus fort ici",
-   "why": "Ton pion a2 se retrouve isolé : aucun pion voisin ne pourra jamais le protéger ; tu te retrouves avec des pions doublés en colonne a. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie."
+   "id": "i-fourchette",
+   "step": 2,
+   "wrong": "e1d1",
+   "headline": "Tu n’as pas paré la menace",
+   "why": "Ton pion en d3 était déjà attaqué : il fallait le mettre à l’abri (le bon coup)."
   },
   {
    "id": "i-principes",
@@ -177,13 +185,6 @@
    "wrong": "b1a3",
    "headline": "Il y a plus fort ici",
    "why": "Tu développes une pièce mineure : principe n°1 de l’ouverture."
-  },
-  {
-   "id": "i-fourchette",
-   "step": 2,
-   "wrong": "e1d1",
-   "headline": "Il y a plus fort ici",
-   "why": "Solide, mais le bon coup était plus précis. Tu perds ton pion passé en colonne c. Ces faiblesses de pions ne disparaissent pas : elles deviennent des cibles pour toute la partie."
   },
   {
    "id": "i-fourchette",
@@ -201,17 +202,17 @@
   },
   {
    "id": "i-clouage",
-   "step": 1,
-   "wrong": "c3a4",
-   "headline": "Tu n’as pas paré la menace",
-   "why": "Ton pion en c4 était déjà attaqué : il fallait s’en occuper (le bon coup)."
-  },
-  {
-   "id": "i-clouage",
    "step": 3,
    "wrong": "e1a1",
    "headline": "Tu n’as pas paré la menace",
    "why": "Ton pion en d4 était déjà attaqué : il fallait le mettre à l’abri (le bon coup)."
+  },
+  {
+   "id": "i-clouage",
+   "step": 1,
+   "wrong": "c3a4",
+   "headline": "Tu n’as pas paré la menace",
+   "why": "Ton pion en c4 était déjà attaqué : il fallait s’en occuper (le bon coup)."
   },
   {
    "id": "i-enfilade",
@@ -222,17 +223,17 @@
   },
   {
    "id": "i-decouverte",
-   "step": 3,
-   "wrong": "e4c3",
-   "headline": "Il y avait un mat en 1",
-   "why": "Le roi adverse n’a presque plus de cases : un seul coup le mate tout de suite. Cherche les échecs."
-  },
-  {
-   "id": "i-decouverte",
    "step": 1,
    "wrong": "e5c4",
    "headline": "Du matériel était à prendre",
    "why": "La dame adverse n’était pas assez protégée. Avant chaque coup, regarde ce que tu peux prendre gratuitement."
+  },
+  {
+   "id": "i-decouverte",
+   "step": 3,
+   "wrong": "e4c3",
+   "headline": "Il y avait un mat en 1",
+   "why": "Le roi adverse n’a presque plus de cases : un seul coup le mate tout de suite. Cherche les échecs."
   },
   {
    "id": "i-couloir",
@@ -250,15 +251,15 @@
   },
   {
    "id": "i-mats-typiques",
-   "step": 1,
-   "wrong": "f6d5",
+   "step": 0,
+   "wrong": "g5e4",
    "headline": "Il y avait un mat en 1",
    "why": "Regarde tous tes échecs : l’un d’eux est mat."
   },
   {
    "id": "i-mats-typiques",
-   "step": 0,
-   "wrong": "g5e4",
+   "step": 1,
+   "wrong": "f6d5",
    "headline": "Il y avait un mat en 1",
    "why": "Regarde tous tes échecs : l’un d’eux est mat."
   },
@@ -266,27 +267,20 @@
    "id": "i-calcul",
    "step": 1,
    "wrong": "a2a1",
-   "headline": "Il y avait un mat",
-   "why": "Le roi adverse n’a presque plus de cases. Après Taa1, il n’y a plus de mat. Cherche les échecs."
+   "headline": "Ça mate aussi, mais plus lentement",
+   "why": "Après Taa1, le mat arrive en 6 coups ; il y a plus rapide (mat en 2). Cherche le coup le plus forçant."
   },
   {
    "id": "a-structures",
    "step": 4,
    "wrong": "e1d1",
-   "headline": "Tu perds un pion",
-   "why": "Après la suite 1… Re7 2. le bon coup Rd6 3. Rd3 Rxd5, tu perds un pion."
+   "headline": "Il y a plus fort ici",
+   "why": "Bouger le roi sans roquer t’enlève le roque, le meilleur moyen de le mettre à l’abri."
   },
   {
    "id": "a-pieces",
    "step": 1,
    "wrong": "c3a4",
-   "headline": "Il y a plus fort ici",
-   "why": "Bon choix, mais le bon coup était plus précis. Ton cavalier part au bord en a4 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
-  },
-  {
-   "id": "a-colonnes",
-   "step": 1,
-   "wrong": "a1b1",
    "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
    "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
   },
@@ -295,7 +289,14 @@
    "step": 2,
    "wrong": "d1a1",
    "headline": "Il y a plus fort ici",
-   "why": "Bon choix, mais le bon coup était plus précis. le bon coup abîmait la structure adverse (pion isolé en b6) : une faiblesse durable à attaquer."
+   "why": "Bon choix, mais le bon coup était plus précis. le bon coup abîmait la structure adverse (pion isolé en b5) : une faiblesse durable à attaquer."
+  },
+  {
+   "id": "a-colonnes",
+   "step": 1,
+   "wrong": "a1b1",
+   "headline": "Ce coup tient aussi, mais ce n’est pas l’idée ici",
+   "why": "Selon le moteur, ton coup ne perd rien. L’exercice travaille une autre idée : relis la consigne, ou prends un indice."
   },
   {
    "id": "a-philidor",
@@ -309,7 +310,7 @@
    "step": 1,
    "wrong": "b1a3",
    "headline": "Il y a plus fort ici",
-   "why": "Solide, mais le bon coup était plus précis. Ton cavalier part au bord en a3 : il n’y contrôle que 4 cases et ne participe plus à la bataille du centre."
+   "why": "« Cavalier au bord, cavalier mort » : au centre il contrôle 8 cases, au bord seulement 4."
   }
  ]
 }

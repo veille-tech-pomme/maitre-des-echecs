@@ -1,0 +1,1 @@
+function e(e,t,n=[],r=[]){if(!(t>e))return 0;let i=[...n,...r].map(([n,r])=>[Math.max(n,e),Math.min(r,t)]).filter(([e,t])=>t>e).sort((e,t)=>e[0]-t[0]),a=0,o=-1/0,s=-1/0;for(let[e,t]of i)e>s?(s>o&&(a+=s-o),o=e,s=t):s=Math.max(s,t);return s>o&&(a+=s-o),Math.max(0,Math.round(t-e-a))}export{e as t};

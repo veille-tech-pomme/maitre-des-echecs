@@ -1,13 +1,10 @@
-# ⚠ À placer dans .github/workflows/ci.yml : le jeton du compte veille-tech-pomme n’a pas la portée « workflow »
-#   (push refusé). Une fois la portée accordée (gh auth refresh -h github.com -s workflow) : git mv tools/ci/ci.yml .github/workflows/ci.yml
-#   En attendant, tools/ci-local.sh exécute les mêmes étapes.
 # CI « vérité moteur » (cahier GOAT, pilier 8). Dépôt public : minutes GitHub Actions gratuites (runners standard).
 # - check : types, validation du contenu au moteur (Stockfish 17.1 épinglé + cache commité), tests unitaires, build
 # - e2e   : parcours complet bureau (Chromium) + iPhone (WebKit), dont accessibilité axe-core
 # - nuit  : validation recalculée de zéro (--fresh) : la régénération ne doit produire aucun diff (reproductibilité)
 name: CI
 on:
-  push: { branches: ['**'] }
+  push: { branches-ignore: [gh-pages] } # gh-pages = site déployé (scripts/deploy-gh-pages.sh), pas de CI dessus
   pull_request:
   schedule: [{ cron: '17 2 * * *' }]
   workflow_dispatch:

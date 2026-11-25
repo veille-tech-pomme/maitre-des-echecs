@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mêmes étapes que tools/ci/ci.yml (GitHub Actions), en local. Échoue au premier pas rouge.
+# Mêmes étapes que .github/workflows/ci.yml (GitHub Actions), en local. Échoue au premier pas rouge.
 # Usage : tools/ci-local.sh [--fresh] [--no-e2e]     STOCKFISH=/chemin/vers/stockfish (Stockfish 17.1 avx2)
 set -euo pipefail
 cd "$(dirname "$0")/.."
